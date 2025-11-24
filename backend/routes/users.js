@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
 // Get all users
@@ -22,8 +23,9 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
-    // Simple password check (in production, use bcrypt)
-    if (user.password !== password) {
+    // Compare password with bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
@@ -42,7 +44,21 @@ router.post('/login', async (req, res) => {
 // Register/Create user (Admin only in production)
 router.post('/register', async (req, res) => {
   try {
-    const user = new User(req.body);
+    const { username, password, name, email, role, department } = req.body;
+    
+    // Hash password before saving
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const user = new User({
+      username,
+      password: hashedPassword,
+      name,
+      email,
+      role: role || 'Employee',
+      department: department || '',
+      isActive: true
+    });
+    
     const newUser = await user.save();
     const userResponse = newUser.toObject();
     delete userResponse.password;
