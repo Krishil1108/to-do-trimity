@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const User = require('./models/User');
+const Project = require('./models/Project');
 
 const DEMO_USERS = [
   {
@@ -48,9 +49,10 @@ async function seedDatabase() {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/taskmanagement');
     console.log('📦 Connected to MongoDB');
 
-    // Clear existing users
+    // Clear existing users and projects
     await User.deleteMany({});
-    console.log('🗑️  Cleared existing users');
+    await Project.deleteMany({});
+    console.log('🗑️  Cleared existing users and projects');
 
     // Hash passwords and insert demo users
     const usersWithHashedPasswords = await Promise.all(
@@ -72,6 +74,16 @@ async function seedDatabase() {
       console.log(`│ ${user.username.padEnd(11)} │ ${user.name.padEnd(16)} │ ${user.role.padEnd(11)} │ ${user.password.padEnd(12)} │`);
     });
     console.log('└─────────────┴──────────────────┴─────────────┴──────────────┘');
+
+    // Add default projects
+    const defaultProjects = [
+      { name: 'Website Redesign' },
+      { name: 'Mobile App' },
+      { name: 'Marketing Campaign' },
+      { name: 'Infrastructure' }
+    ];
+    await Project.insertMany(defaultProjects);
+    console.log('\n✅ Added default projects: Website Redesign, Mobile App, Marketing Campaign, Infrastructure');
 
     console.log('\n🎉 Database seeded successfully!');
     console.log('\n💡 Login with any of the above credentials');

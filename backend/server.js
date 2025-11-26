@@ -35,10 +35,12 @@ mongoose.connection.on('reconnected', () => {
 const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
+const projectRoutes = require('./routes/projects');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -37,7 +37,7 @@ const TaskManagementSystem = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
-  const [projects, setProjects] = useState(['Website Redesign', 'Mobile App', 'Marketing Campaign', 'Infrastructure']);
+  const [projects, setProjects] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [editingProject, setEditingProject] = useState(null);
@@ -91,6 +91,7 @@ const TaskManagementSystem = () => {
       loadTasks();
       loadUsers();
       loadNotifications();
+      loadProjects();
       // Poll for new notifications every 30 seconds
       const interval = setInterval(loadNotifications, 30000);
       return () => clearInterval(interval);
@@ -152,47 +153,75 @@ const TaskManagementSystem = () => {
     }
   };
 
-  const addProject = () => {
-    if (newProjectName.trim()) {
-      const projectName = newProjectName.trim();
-      
-      if (editingProject) {
-        // Editing existing project
-        if (projectName !== editingProject && projects.includes(projectName)) {
-          alert('A project with this name already exists');
-          return;
-        }
-        setProjects(projects.map(p => p === editingProject ? projectName : p));
-        if (formData.project === editingProject) {
-          setFormData({...formData, project: projectName});
-        }
-        setEditingProject(null);
-      } else {
-        // Adding new project
-        if (projects.includes(projectName)) {
-          alert('A project with this name already exists');
-          return;
-        }
-        setProjects([...projects, projectName]);
-        setFormData({...formData, project: projectName}); // Auto-select the new project
-      }
-      
-      setNewProjectName('');
-      setShowProjectModal(false);
+  const loadProjects = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/projects`);
+      setProjects(response.data); // Store full project objects with _id
+    } catch (error) {
+      console.error('Error loading projects:', error);
     }
   };
 
-  const editProject = (projectName) => {
-    setEditingProject(projectName);
-    setNewProjectName(projectName);
+  const addProject = async () => {
+    if (newProjectName.trim()) {
+      const projectName = newProjectName.trim();
+      
+      try {
+        if (editingProject) {
+          // Editing existing project
+          const projectToEdit = editingProject._id ? editingProject : 
+            { _id: projects.find(p => typeof p === 'object' && p.name === editingProject)?._id };
+          
+          await axios.put(`${API_URL}/projects/${editingProject._id}`, { name: projectName });
+          
+          // Update local state
+          await loadProjects();
+          
+          // Update task form if needed
+          if (formData.project === editingProject.name) {
+            setFormData({...formData, project: projectName});
+          }
+          
+          setEditingProject(null);
+        } else {
+          // Adding new project
+          await axios.post(`${API_URL}/projects`, { name: projectName });
+          await loadProjects();
+          setFormData({...formData, project: projectName}); // Auto-select the new project
+        }
+        
+        setNewProjectName('');
+        setShowProjectModal(false);
+      } catch (error) {
+        console.error('Error saving project:', error);
+        if (error.response?.data?.message) {
+          alert(error.response.data.message);
+        } else {
+          alert('Failed to save project');
+        }
+      }
+    }
+  };
+
+  const editProject = (projectObj) => {
+    setEditingProject(projectObj);
+    setNewProjectName(projectObj.name);
     setShowProjectModal(true);
   };
 
-  const deleteProject = (projectName) => {
-    if (window.confirm(`Are you sure you want to delete the project "${projectName}"?`)) {
-      setProjects(projects.filter(p => p !== projectName));
-      if (formData.project === projectName) {
-        setFormData({...formData, project: ''});
+  const deleteProject = async (projectObj) => {
+    if (window.confirm(`Are you sure you want to delete the project "${projectObj.name}"?`)) {
+      try {
+        await axios.delete(`${API_URL}/projects/${projectObj._id}`);
+        await loadProjects();
+        
+        // Clear from task form if selected
+        if (formData.project === projectObj.name) {
+          setFormData({...formData, project: ''});
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        alert('Failed to delete project');
       }
     }
   };
@@ -1522,55 +1551,6 @@ const TaskManagementSystem = () => {
     );
   };
 
-  // Manage Projects View
-  const ManageProjectsView = () => {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Manage Projects</h2>
-          <button
-            onClick={() => setShowProjectModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4" />
-            Add Project
-          </button>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-6">
-            <div className="grid gap-3">
-              {projects.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  No projects yet. Click "Add Project" to create one.
-                </div>
-              ) : (
-                projects.map((project, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FolderKanban className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium text-gray-900">{project}</span>
-                    </div>
-                    <button
-                      onClick={() => deleteProject(project)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete project"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // Admin Reports View
   const AdminReportsView = () => {
     const [selectedQuarter, setSelectedQuarter] = useState(Math.floor((new Date().getMonth() + 3) / 3));
@@ -2219,30 +2199,17 @@ const TaskManagementSystem = () => {
               </button>
               
               {isAdmin() && (
-                <>
-                  <button
-                    onClick={() => { setCurrentView('admin-reports'); setShowAdvancedMenu(false); }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      currentView === 'admin-reports' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="w-4 h-4" />
-                      Admin Reports
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => { setCurrentView('manage-projects'); setShowAdvancedMenu(false); }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      currentView === 'manage-projects' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <FolderKanban className="w-4 h-4" />
-                      Manage Projects
-                    </div>
-                  </button>
-                </>
+                <button
+                  onClick={() => { setCurrentView('admin-reports'); setShowAdvancedMenu(false); }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    currentView === 'admin-reports' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Admin Reports
+                  </div>
+                </button>
               )}
             </div>
           )}
@@ -2255,7 +2222,6 @@ const TaskManagementSystem = () => {
         {currentView === 'all-tasks' && <AllTasksView />}
         {currentView === 'assigned-by-me' && <AssignedByMeView />}
         {currentView === 'admin-reports' && isAdmin() && <AdminReportsView />}
-        {currentView === 'manage-projects' && isAdmin() && <ManageProjectsView />}
       </div>
 
       {/* Notifications Panel */}
@@ -2313,12 +2279,12 @@ const TaskManagementSystem = () => {
                   ) : (
                     projects.map((project, index) => (
                       <div
-                        key={index}
+                        key={project._id || index}
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <FolderKanban className="w-5 h-5 text-blue-600" />
-                          <span className="font-medium text-gray-900">{project}</span>
+                          <span className="font-medium text-gray-900">{project.name || project}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -2386,7 +2352,7 @@ const TaskManagementSystem = () => {
                     required
                   >
                     <option value="">Select Project</option>
-                    {projects.map(p => <option key={p} value={p}>{p}</option>)}
+                    {projects.map(p => <option key={p._id || p} value={p.name || p}>{p.name || p}</option>)}
                   </select>
                   <button
                     type="button"
