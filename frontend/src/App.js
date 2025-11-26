@@ -30,9 +30,8 @@ const STATUS_COLORS = {
   'Overdue': 'bg-red-50 border-red-200 text-red-800'
 };
 
-const TEAMS = ['Team A', 'Team B', 'Team C'];
-const PROJECTS = ['Website Redesign', 'Mobile App', 'Marketing Campaign', 'Infrastructure'];
 
+const CRM_API_URL = 'https://trimity-crm.onrender.com/api';
 
 
 const TaskManagementSystem = () => {
@@ -41,6 +40,7 @@ const TaskManagementSystem = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]); // Projects from CRM
   
   // App state
   const [currentView, setCurrentView] = useState('my-tasks');
@@ -91,6 +91,7 @@ const TaskManagementSystem = () => {
       loadTasks();
       loadUsers();
       loadNotifications();
+      loadProjects(); // Load projects from CRM
       // Poll for new notifications every 30 seconds
       const interval = setInterval(loadNotifications, 30000);
       return () => clearInterval(interval);
@@ -123,11 +124,9 @@ const TaskManagementSystem = () => {
     }
   };
 
-  // Check if current user is admin (you can customize this logic)
+  // Check if current user is admin - only Ketul Lathia
   const isAdmin = useCallback(() => {
-    // console.log('Current User:', currentUser); // Commented out to reduce console noise
-    // Temporarily return true to show admin reports for all users
-    return true;
+    return currentUser && currentUser.username === 'ketul.lathia';
   }, [currentUser]);
 
   const loadTasks = async () => {
@@ -151,6 +150,19 @@ const TaskManagementSystem = () => {
       setUnreadCount(unread);
     } catch (error) {
       console.error('Error loading notifications:', error);
+    }
+  };
+
+  const loadProjects = async () => {
+    try {
+      const response = await axios.get(`${CRM_API_URL}/projects`);
+      // Extract project names from CRM response
+      const projectNames = response.data.map(project => project.name || project.projectName);
+      setProjects(projectNames);
+    } catch (error) {
+      console.error('Error loading projects from CRM:', error);
+      // Fallback to default projects if CRM is unavailable
+      setProjects(['Website Redesign', 'Mobile App', 'Marketing Campaign', 'Infrastructure']);
     }
   };
 
@@ -194,7 +206,7 @@ const TaskManagementSystem = () => {
     severity: 'Minor',
     inDate: '',
     outDate: '',
-    team: 'Team A',
+    team: '',
     associates: [],
     assignedTo: '',
     assignedBy: '',
@@ -212,7 +224,7 @@ const TaskManagementSystem = () => {
       severity: 'Minor',
       inDate: '',
       outDate: '',
-      team: 'Team A',
+      team: '',
       associates: [],
       assignedTo: '',
       assignedBy: currentUser?.username || '',
@@ -564,7 +576,7 @@ const TaskManagementSystem = () => {
       });
 
       // Group by project
-      PROJECTS.forEach(project => {
+      projects.forEach(project => {
         const projectTasks = reportTasks.filter(t => t.project === project);
         report.byProject[project] = {
           total: projectTasks.length,
@@ -1912,7 +1924,7 @@ const TaskManagementSystem = () => {
             <Filter className="w-5 h-5" />
             Filters
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
               <select
@@ -1921,20 +1933,10 @@ const TaskManagementSystem = () => {
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
                 <option value="">All</option>
-                {PROJECTS.map(p => <option key={p} value={p}>{p}</option>)}
+                {projects.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Team</label>
-              <select
-                value={filters.team || ''}
-                onChange={(e) => setFilters({...filters, team: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
               <select
@@ -2295,7 +2297,7 @@ const TaskManagementSystem = () => {
                   required
                 >
                   <option value="">Select Project</option>
-                  {PROJECTS.map(p => <option key={p} value={p}>{p}</option>)}
+                  {projects.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
 
@@ -2374,16 +2376,7 @@ const TaskManagementSystem = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Team</label>
-                <select
-                  value={formData.team}
-                  onChange={(e) => setFormData({...formData, team: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
