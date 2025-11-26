@@ -6,75 +6,39 @@ const User = require('./models/User');
 
 const DEMO_USERS = [
   {
-    username: 'admin',
-    password: 'admin123',
-    name: 'Admin User',
-    email: 'admin@taskmanagement.com',
+    username: 'ketul.lathia',
+    password: '125478',
+    name: 'Ketul Lathia',
+    email: 'ketul.lathia@trido.com',
     role: 'Admin',
-    department: 'Management',
+    department: 'Administrative',
     isActive: true
   },
   {
-    username: 'manager1',
-    password: 'manager123',
-    name: 'John Manager',
-    email: 'john.manager@taskmanagement.com',
+    username: 'kinjal.solanki',
+    password: '963258',
+    name: 'Kinjal Solanki',
+    email: 'kinjal.solanki@trido.com',
     role: 'Manager',
-    department: 'IT',
+    department: 'Administrative',
     isActive: true
   },
   {
-    username: 'manager2',
-    password: 'manager123',
-    name: 'Sarah Manager',
-    email: 'sarah.manager@taskmanagement.com',
-    role: 'Manager',
-    department: 'Sales',
-    isActive: true
-  },
-  {
-    username: 'teamlead1',
-    password: 'teamlead123',
-    name: 'Jane Team Lead',
-    email: 'jane.teamlead@taskmanagement.com',
+    username: 'vraj.patel',
+    password: '741852',
+    name: 'Vraj Patel',
+    email: 'vraj.patel@trido.com',
     role: 'Team Lead',
-    department: 'IT',
+    department: 'Project Management',
     isActive: true
   },
   {
-    username: 'teamlead2',
-    password: 'teamlead123',
-    name: 'Mike Team Lead',
-    email: 'mike.teamlead@taskmanagement.com',
-    role: 'Team Lead',
-    department: 'Sales',
-    isActive: true
-  },
-  {
-    username: 'employee1',
-    password: 'employee123',
-    name: 'Bob Employee',
-    email: 'bob.employee@taskmanagement.com',
+    username: 'piyush.diwan',
+    password: '369852',
+    name: 'Piyush Diwan',
+    email: 'piyush.diwan@trido.com',
     role: 'Employee',
-    department: 'IT',
-    isActive: true
-  },
-  {
-    username: 'employee2',
-    password: 'employee123',
-    name: 'Alice Employee',
-    email: 'alice.employee@taskmanagement.com',
-    role: 'Employee',
-    department: 'Sales',
-    isActive: true
-  },
-  {
-    username: 'employee3',
-    password: 'employee123',
-    name: 'Charlie Employee',
-    email: 'charlie.employee@taskmanagement.com',
-    role: 'Employee',
-    department: 'HR',
+    department: 'Studio Team',
     isActive: true
   }
 ];
