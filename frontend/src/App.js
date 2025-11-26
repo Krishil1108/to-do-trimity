@@ -153,7 +153,9 @@ const TaskManagementSystem = () => {
 
   const addProject = () => {
     if (newProjectName.trim() && !projects.includes(newProjectName.trim())) {
-      setProjects([...projects, newProjectName.trim()]);
+      const projectName = newProjectName.trim();
+      setProjects([...projects, projectName]);
+      setFormData({...formData, project: projectName}); // Auto-select the new project
       setNewProjectName('');
       setShowProjectModal(false);
     }
@@ -2303,15 +2305,26 @@ const TaskManagementSystem = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Project *</label>
-                <select
-                  value={formData.project}
-                  onChange={(e) => setFormData({...formData, project: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Select Project</option>
-                  {projects.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    value={formData.project}
+                    onChange={(e) => setFormData({...formData, project: e.target.value})}
+                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select Project</option>
+                    {projects.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowProjectModal(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap"
+                    title="Add new project"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add
+                  </button>
+                </div>
               </div>
 
               <div>
