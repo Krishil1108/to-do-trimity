@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
-import { Calendar, Users, Bell, MessageCircle, Mic, Plus, Edit2, Trash2, MoreVertical, Filter, Check, Clock, AlertCircle, X, LogOut, User, Mail, Lock, Menu, CheckCircle, XCircle, LayoutGrid, List, Eye, Download, FileText, BarChart3, TrendingUp } from 'lucide-react';
+import { Calendar, Users, Bell, MessageCircle, Mic, Plus, Edit2, Trash2, MoreVertical, Filter, Check, Clock, AlertCircle, X, LogOut, User, Mail, Lock, Menu, CheckCircle, XCircle, LayoutGrid, List, Eye, Download, FileText, BarChart3, TrendingUp, FolderKanban } from 'lucide-react';
 import API_URL from './config';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -31,16 +31,15 @@ const STATUS_COLORS = {
 };
 
 
-const CRM_API_URL = 'https://trimity-crm.onrender.com/api';
-
-
 const TaskManagementSystem = () => {
   
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
-  const [projects, setProjects] = useState([]); // Projects from CRM
+  const [projects, setProjects] = useState(['Website Redesign', 'Mobile App', 'Marketing Campaign', 'Infrastructure']);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
   
   // App state
   const [currentView, setCurrentView] = useState('my-tasks');
@@ -91,7 +90,6 @@ const TaskManagementSystem = () => {
       loadTasks();
       loadUsers();
       loadNotifications();
-      loadProjects(); // Load projects from CRM
       // Poll for new notifications every 30 seconds
       const interval = setInterval(loadNotifications, 30000);
       return () => clearInterval(interval);
@@ -153,16 +151,17 @@ const TaskManagementSystem = () => {
     }
   };
 
-  const loadProjects = async () => {
-    try {
-      const response = await axios.get(`${CRM_API_URL}/projects`);
-      // Extract project names from CRM response
-      const projectNames = response.data.map(project => project.name || project.projectName);
-      setProjects(projectNames);
-    } catch (error) {
-      console.error('Error loading projects from CRM:', error);
-      // Fallback to default projects if CRM is unavailable
-      setProjects(['Website Redesign', 'Mobile App', 'Marketing Campaign', 'Infrastructure']);
+  const addProject = () => {
+    if (newProjectName.trim() && !projects.includes(newProjectName.trim())) {
+      setProjects([...projects, newProjectName.trim()]);
+      setNewProjectName('');
+      setShowProjectModal(false);
+    }
+  };
+
+  const deleteProject = (projectName) => {
+    if (window.confirm(`Are you sure you want to delete the project "${projectName}"?`)) {
+      setProjects(projects.filter(p => p !== projectName));
     }
   };
 
@@ -1491,6 +1490,55 @@ const TaskManagementSystem = () => {
     );
   };
 
+  // Manage Projects View
+  const ManageProjectsView = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Manage Projects</h2>
+          <button
+            onClick={() => setShowProjectModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
+            Add Project
+          </button>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6">
+            <div className="grid gap-3">
+              {projects.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  No projects yet. Click "Add Project" to create one.
+                </div>
+              ) : (
+                projects.map((project, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FolderKanban className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-gray-900">{project}</span>
+                    </div>
+                    <button
+                      onClick={() => deleteProject(project)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete project"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Admin Reports View
   const AdminReportsView = () => {
     const [selectedQuarter, setSelectedQuarter] = useState(Math.floor((new Date().getMonth() + 3) / 3));
@@ -2139,17 +2187,30 @@ const TaskManagementSystem = () => {
               </button>
               
               {isAdmin() && (
-                <button
-                  onClick={() => { setCurrentView('admin-reports'); setShowAdvancedMenu(false); }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentView === 'admin-reports' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4" />
-                    Admin Reports
-                  </div>
-                </button>
+                <>
+                  <button
+                    onClick={() => { setCurrentView('admin-reports'); setShowAdvancedMenu(false); }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      currentView === 'admin-reports' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4" />
+                      Admin Reports
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { setCurrentView('manage-projects'); setShowAdvancedMenu(false); }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      currentView === 'manage-projects' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <FolderKanban className="w-4 h-4" />
+                      Manage Projects
+                    </div>
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -2162,10 +2223,53 @@ const TaskManagementSystem = () => {
         {currentView === 'all-tasks' && <AllTasksView />}
         {currentView === 'assigned-by-me' && <AssignedByMeView />}
         {currentView === 'admin-reports' && isAdmin() && <AdminReportsView />}
+        {currentView === 'manage-projects' && isAdmin() && <ManageProjectsView />}
       </div>
 
       {/* Notifications Panel */}
       {showNotifications && <NotificationsPanel />}
+
+      {/* Project Modal */}
+      {showProjectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full">
+            <div className="border-b border-gray-100 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Add New Project</h2>
+              <button onClick={() => { setShowProjectModal(false); setNewProjectName(''); }} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
+                <input
+                  type="text"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="Enter project name"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onKeyPress={(e) => e.key === 'Enter' && addProject()}
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => { setShowProjectModal(false); setNewProjectName(''); }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={addProject}
+                  disabled={!newProjectName.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  Add Project
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Task Modal */}
       {showTaskModal && (
