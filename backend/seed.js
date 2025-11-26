@@ -12,7 +12,7 @@ const DEMO_USERS = [
     name: 'Ketul Lathia',
     email: 'ketul.lathia@trido.com',
     role: 'Admin',
-    department: 'Administrative',
+    department: 'Owner',
     isActive: true
   },
   {
