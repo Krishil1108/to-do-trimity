@@ -40,6 +40,7 @@ const TaskManagementSystem = () => {
   const [projects, setProjects] = useState(['Website Redesign', 'Mobile App', 'Marketing Campaign', 'Infrastructure']);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [editingProject, setEditingProject] = useState(null);
   
   // App state
   const [currentView, setCurrentView] = useState('my-tasks');
@@ -152,18 +153,47 @@ const TaskManagementSystem = () => {
   };
 
   const addProject = () => {
-    if (newProjectName.trim() && !projects.includes(newProjectName.trim())) {
+    if (newProjectName.trim()) {
       const projectName = newProjectName.trim();
-      setProjects([...projects, projectName]);
-      setFormData({...formData, project: projectName}); // Auto-select the new project
+      
+      if (editingProject) {
+        // Editing existing project
+        if (projectName !== editingProject && projects.includes(projectName)) {
+          alert('A project with this name already exists');
+          return;
+        }
+        setProjects(projects.map(p => p === editingProject ? projectName : p));
+        if (formData.project === editingProject) {
+          setFormData({...formData, project: projectName});
+        }
+        setEditingProject(null);
+      } else {
+        // Adding new project
+        if (projects.includes(projectName)) {
+          alert('A project with this name already exists');
+          return;
+        }
+        setProjects([...projects, projectName]);
+        setFormData({...formData, project: projectName}); // Auto-select the new project
+      }
+      
       setNewProjectName('');
       setShowProjectModal(false);
     }
   };
 
+  const editProject = (projectName) => {
+    setEditingProject(projectName);
+    setNewProjectName(projectName);
+    setShowProjectModal(true);
+  };
+
   const deleteProject = (projectName) => {
     if (window.confirm(`Are you sure you want to delete the project "${projectName}"?`)) {
       setProjects(projects.filter(p => p !== projectName));
+      if (formData.project === projectName) {
+        setFormData({...formData, project: ''});
+      }
     }
   };
 
@@ -2233,40 +2263,83 @@ const TaskManagementSystem = () => {
 
       {/* Project Modal */}
       {showProjectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             <div className="border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Add New Project</h2>
-              <button onClick={() => { setShowProjectModal(false); setNewProjectName(''); }} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-xl font-semibold">{editingProject ? 'Edit Project' : 'Manage Projects'}</h2>
+              <button onClick={() => { setShowProjectModal(false); setNewProjectName(''); setEditingProject(null); }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
-                <input
-                  type="text"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder="Enter project name"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onKeyPress={(e) => e.key === 'Enter' && addProject()}
-                />
+            <div className="p-6 space-y-4 overflow-y-auto">
+              {/* Add/Edit Form */}
+              <div className="bg-blue-50 p-4 rounded-lg space-y-3">
+                <label className="block text-sm font-medium text-gray-700">Project Name *</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="Enter project name"
+                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onKeyPress={(e) => e.key === 'Enter' && addProject()}
+                  />
+                  <button
+                    onClick={addProject}
+                    disabled={!newProjectName.trim()}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    {editingProject ? 'Update' : 'Add'}
+                  </button>
+                  {editingProject && (
+                    <button
+                      onClick={() => { setEditingProject(null); setNewProjectName(''); }}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => { setShowProjectModal(false); setNewProjectName(''); }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={addProject}
-                  disabled={!newProjectName.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  Add Project
-                </button>
+
+              {/* Project List */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-700">Existing Projects ({projects.length})</h3>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {projects.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No projects yet. Add one above.
+                    </div>
+                  ) : (
+                    projects.map((project, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FolderKanban className="w-5 h-5 text-blue-600" />
+                          <span className="font-medium text-gray-900">{project}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => editProject(project)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit project"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteProject(project)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete project"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
