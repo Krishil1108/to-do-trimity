@@ -394,7 +394,9 @@ const TaskManagementSystem = () => {
       ? `${task.associateDetails.name}${task.associateDetails.company ? ` (${task.associateDetails.company})` : ''}`
       : task.assignedTo;
 
-    const taskInfo = `Task Name: ${task.title}
+    const taskInfo = `To: ${assignedToInfo}
+
+Task Name: ${task.title}
 
 Description: ${task.description || 'No description'}
 
@@ -402,9 +404,7 @@ Timeline: ${new Date(task.startDate || task.inDate).toLocaleDateString()} - ${ne
 
 Priority: ${task.priority}
 
-Severity: ${task.severity}
-
-To: ${assignedToInfo}`;
+Severity: ${task.severity}`;
     
     navigator.clipboard.writeText(taskInfo).then(() => {
       setCopiedTaskData(taskInfo);
@@ -1190,10 +1190,16 @@ To: ${assignedToInfo}`;
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
-                          {assignedUser?.name?.charAt(0) || 'U'}
+                          {task.isAssociate && task.associateDetails?.name 
+                            ? task.associateDetails.name.charAt(0).toUpperCase() 
+                            : (assignedUser?.name?.charAt(0) || 'U')}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{assignedUser?.name || task.assignedTo}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {task.isAssociate && task.associateDetails?.name 
+                              ? `${task.associateDetails.name}${task.associateDetails.company ? ` (${task.associateDetails.company})` : ''}`
+                              : (assignedUser?.name || task.assignedTo)}
+                          </div>
                         </div>
                       </div>
                     </td>
