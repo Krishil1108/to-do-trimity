@@ -48,6 +48,16 @@ const taskSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  isAssociate: {
+    type: Boolean,
+    default: false
+  },
+  associateDetails: {
+    name: { type: String, default: '' },
+    email: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    company: { type: String, default: '' }
+  },
   reminder: {
     type: Date
   },

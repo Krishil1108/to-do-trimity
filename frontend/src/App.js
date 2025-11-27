@@ -47,6 +47,7 @@ const TaskManagementSystem = () => {
   const [tasks, setTasks] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [copiedTaskData, setCopiedTaskData] = useState('');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
@@ -275,6 +276,13 @@ const TaskManagementSystem = () => {
     associates: [],
     assignedTo: '',
     assignedBy: '',
+    isAssociate: false,
+    associateDetails: {
+      name: '',
+      email: '',
+      phone: '',
+      company: ''
+    },
     reminder: '',
     whatsapp: false,
     status: 'Pending'
@@ -293,6 +301,13 @@ const TaskManagementSystem = () => {
       associates: [],
       assignedTo: '',
       assignedBy: currentUser?.username || '',
+      isAssociate: false,
+      associateDetails: {
+        name: '',
+        email: '',
+        phone: '',
+        company: ''
+      },
       reminder: '',
       whatsapp: false,
       status: 'Pending'
@@ -374,6 +389,34 @@ const TaskManagementSystem = () => {
     }
   };
 
+  const copyTaskToClipboard = (task) => {
+    const assignedToInfo = task.isAssociate && task.associateDetails 
+      ? `${task.associateDetails.name}${task.associateDetails.company ? ` (${task.associateDetails.company})` : ''}
+Email: ${task.associateDetails.email || 'N/A'}
+Phone: ${task.associateDetails.phone || 'N/A'}`
+      : task.assignedTo;
+
+    const taskInfo = `Task Name: ${task.title}
+
+Description: ${task.description || 'No description'}
+
+Timeline: ${new Date(task.startDate || task.inDate).toLocaleDateString()} - ${new Date(task.dueDate || task.outDate).toLocaleDateString()}
+
+Priority: ${task.priority}
+
+Severity: ${task.severity}
+
+Assigned To: ${assignedToInfo}`;
+    
+    navigator.clipboard.writeText(taskInfo).then(() => {
+      setCopiedTaskData(taskInfo);
+      alert('Task details copied to clipboard!');
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      alert('Failed to copy task details');
+    });
+  };
+
   const editTask = (task) => {
     setFormData({
       project: task.project,
@@ -387,6 +430,13 @@ const TaskManagementSystem = () => {
       associates: task.associates,
       assignedTo: task.assignedTo,
       assignedBy: task.assignedBy,
+      isAssociate: task.isAssociate || false,
+      associateDetails: task.associateDetails || {
+        name: '',
+        email: '',
+        phone: '',
+        company: ''
+      },
       reminder: task.reminder ? new Date(task.reminder).toISOString().slice(0, 16) : '',
       whatsapp: task.whatsapp,
       status: task.status
@@ -1016,7 +1066,7 @@ const TaskManagementSystem = () => {
 
   // Horizontal Task Card for list view
   // Table View Component
-  const TableView = ({ tasks, showActions = true, showStats = false, stats }) => {
+  const TableView = ({ tasks, showActions = true, showStats = false, stats, showCopyButton = false }) => {
     const formatDate = (dateString) => {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -1172,6 +1222,17 @@ const TaskManagementSystem = () => {
                     {showActions && (
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
+                            {/* Copy button for associate tasks */}
+                            {showCopyButton && (
+                              <button
+                                onClick={() => copyTaskToClipboard(task)}
+                                className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors"
+                                title="Copy Task Details"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
+                            )}
+                            
                             {/* View Details - Always visible */}
                             <button
                               onClick={() => {
@@ -1263,7 +1324,7 @@ const TaskManagementSystem = () => {
     );
   };
 
-  const HorizontalTaskCard = ({ task, showActions = true }) => {
+  const HorizontalTaskCard = ({ task, showActions = true, showCopyButton = false }) => {
     const isOverdue = new Date(task.outDate) < new Date() && task.status !== 'Completed';
     const daysUntilDue = Math.ceil((new Date(task.outDate) - new Date()) / (1000 * 60 * 60 * 24));
     const assignedUser = users.find(u => u.username === task.assignedTo);
@@ -1283,6 +1344,17 @@ const TaskManagementSystem = () => {
           </div>
           {showActions && (
             <div className="flex items-center gap-1 ml-4">
+              {/* Copy button for associate tasks */}
+              {showCopyButton && (
+                <button
+                  onClick={() => copyTaskToClipboard(task)}
+                  className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                  title="Copy Task Details"
+                >
+                  <FileText className="w-5 h-5" />
+                </button>
+              )}
+              
               {/* Tick and Cross buttons for task completion */}
               {task.assignedTo === currentUser?.username && task.status !== 'Completed' && (
                 <>
@@ -1334,7 +1406,15 @@ const TaskManagementSystem = () => {
           </div>
           <div>
             <span className="text-gray-500">Assigned To:</span>
-            <span className="ml-1 font-medium text-gray-900">{assignedUser?.name || task.assignedTo}</span>
+            <span className="ml-1 font-medium text-gray-900">
+              {task.isAssociate ? (
+                <span className="text-purple-700">
+                  {task.associateDetails?.name || 'Associate'} {task.associateDetails?.company ? `(${task.associateDetails.company})` : ''}
+                </span>
+              ) : (
+                assignedUser?.name || task.assignedTo
+              )}
+            </span>
           </div>
           <div>
             <span className="text-gray-500">Assigned By:</span>
@@ -2051,6 +2131,70 @@ const TaskManagementSystem = () => {
     );
   };
 
+  // Associate Tasks View
+  const AssociateTasksView = () => {
+    const associateTasks = tasks.filter(task => task.isAssociate === true);
+
+    return (
+      <div className="space-y-6">
+        {/* Export and View Toggle */}
+        <div className="flex justify-end items-center gap-4">
+          {/* Export Button */}
+          <button
+            onClick={() => exportTaskList(associateTasks, 'excel', 'associate_tasks')}
+            className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Export Excel
+          </button>
+          
+          {/* View Toggle */}
+          <div className="flex gap-2">
+            <button
+            onClick={() => setViewMode('cards')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${viewMode === 'cards' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            Cards View
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${viewMode === 'table' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+          >
+            <List className="w-4 h-4" />
+            Table View
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Associate Tasks ({associateTasks.length})
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">Tasks assigned to external partners and associates</p>
+        </div>
+
+        {viewMode === 'table' ? (
+          <TableView tasks={associateTasks} showCopyButton={true} />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {associateTasks.map(task => (
+                <HorizontalTaskCard key={task._id} task={task} showCopyButton={true} />
+              ))}
+            </div>
+
+            {associateTasks.length === 0 && (
+              <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
+                <p className="text-gray-500">No tasks assigned to associates yet</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
   // Notifications Panel
   const NotificationsPanel = () => (
     <div className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-96 bg-white shadow-2xl border-l border-gray-200 z-40 overflow-y-auto">
@@ -2206,6 +2350,14 @@ const TaskManagementSystem = () => {
               >
                 Assigned By Me
               </button>
+              <button
+                onClick={() => { setCurrentView('associate-tasks'); setShowAdvancedMenu(false); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  currentView === 'associate-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                Associate Tasks
+              </button>
               
               {isAdmin() && (
                 <button
@@ -2230,6 +2382,7 @@ const TaskManagementSystem = () => {
         {currentView === 'my-tasks' && <MyTasksDashboard />}
         {currentView === 'all-tasks' && <AllTasksView />}
         {currentView === 'assigned-by-me' && <AssignedByMeView />}
+        {currentView === 'associate-tasks' && <AssociateTasksView />}
         {currentView === 'admin-reports' && isAdmin() && <AdminReportsView />}
       </div>
 
@@ -2341,12 +2494,19 @@ const TaskManagementSystem = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Assign To *</label>
                 <select
-                  value={formData.assignedTo}
-                  onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
+                  value={formData.isAssociate ? 'ASSOCIATE' : formData.assignedTo}
+                  onChange={(e) => {
+                    if (e.target.value === 'ASSOCIATE') {
+                      setFormData({...formData, isAssociate: true, assignedTo: 'Associate'});
+                    } else {
+                      setFormData({...formData, isAssociate: false, assignedTo: e.target.value});
+                    }
+                  }}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
                   <option value="">Select User</option>
+                  <option value="ASSOCIATE">📋 Associate (External Partner)</option>
                   {users.map(user => (
                     <option key={user._id} value={user.username}>
                       {user.name} - {user.department}
@@ -2354,6 +2514,68 @@ const TaskManagementSystem = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Associate Details Form - shown only when Associate is selected */}
+              {formData.isAssociate && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-purple-900 mb-2">Associate Details</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Name *</label>
+                      <input
+                        type="text"
+                        value={formData.associateDetails.name}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          associateDetails: {...formData.associateDetails, name: e.target.value}
+                        })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                        placeholder="Associate name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
+                      <input
+                        type="text"
+                        value={formData.associateDetails.company}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          associateDetails: {...formData.associateDetails, company: e.target.value}
+                        })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                        placeholder="Company name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={formData.associateDetails.email}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          associateDetails: {...formData.associateDetails, email: e.target.value}
+                        })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                        placeholder="email@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                      <input
+                        type="tel"
+                        value={formData.associateDetails.phone}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          associateDetails: {...formData.associateDetails, phone: e.target.value}
+                        })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                        placeholder="+1 234 567 8900"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Project *</label>
