@@ -49,7 +49,12 @@ async function seedDatabase() {
     await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/taskmanagement');
     console.log('📦 Connected to MongoDB');
 
-    // Clear existing users and projects
+    // WARNING: This will delete all data!
+    console.log('⚠️  WARNING: This script will DELETE ALL USERS, PROJECTS, AND TASKS!');
+    console.log('⚠️  This should ONLY be run on a fresh/development database.');
+    console.log('⚠️  Use add-projects.js to add projects without deleting data.\n');
+
+    // Clear existing users and projects (NOT TASKS!)
     await User.deleteMany({});
     await Project.deleteMany({});
     console.log('🗑️  Cleared existing users and projects');
