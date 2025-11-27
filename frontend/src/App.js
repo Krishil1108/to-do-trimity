@@ -679,6 +679,7 @@ Severity: ${task.severity}`;
         },
         byUser: {},
         byProject: {},
+        byAssociate: {},
         byPriority: {
           High: reportTasks.filter(t => t.priority === 'High').length,
           Medium: reportTasks.filter(t => t.priority === 'Medium').length,
@@ -690,7 +691,7 @@ Severity: ${task.severity}`;
 
       // Group by user
       users.forEach(user => {
-        const userTasks = reportTasks.filter(t => t.assignedTo === user.name);
+        const userTasks = reportTasks.filter(t => !t.isAssociate && t.assignedTo === user.name);
         report.byUser[user.name] = {
           total: userTasks.length,
           completed: userTasks.filter(t => t.status === 'Completed').length,
@@ -702,6 +703,25 @@ Severity: ${task.severity}`;
           }).length,
           completionRate: userTasks.length > 0 ? 
             (userTasks.filter(t => t.status === 'Completed').length / userTasks.length * 100).toFixed(2) : 0
+        };
+      });
+
+      // Group by associate
+      const associateTasks = reportTasks.filter(t => t.isAssociate);
+      const uniqueAssociates = [...new Set(associateTasks.map(t => t.associateDetails?.name).filter(Boolean))];
+      uniqueAssociates.forEach(associateName => {
+        const assocTasks = associateTasks.filter(t => t.associateDetails?.name === associateName);
+        report.byAssociate[associateName] = {
+          total: assocTasks.length,
+          completed: assocTasks.filter(t => t.status === 'Completed').length,
+          pending: assocTasks.filter(t => t.status === 'Pending').length,
+          inProgress: assocTasks.filter(t => t.status === 'In Progress').length,
+          overdue: assocTasks.filter(t => {
+            const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
+            return isOverdue || t.status === 'Overdue';
+          }).length,
+          completionRate: assocTasks.length > 0 ? 
+            (assocTasks.filter(t => t.status === 'Completed').length / assocTasks.length * 100).toFixed(2) : 0
         };
       });
 
@@ -762,6 +782,16 @@ Severity: ${task.severity}`;
     });
     const userSheet = XLSX.utils.aoa_to_sheet(userData);
     XLSX.utils.book_append_sheet(wb, userSheet, 'User Analysis');
+
+    // Associate Analysis Sheet
+    if (data.byAssociate && Object.keys(data.byAssociate).length > 0) {
+      const associateData = [['Associate', 'Total Tasks', 'Completed', 'Pending', 'In Progress', 'Overdue', 'Completion Rate (%)']];
+      Object.entries(data.byAssociate).forEach(([associate, stats]) => {
+        associateData.push([associate, stats.total, stats.completed, stats.pending, stats.inProgress, stats.overdue, stats.completionRate]);
+      });
+      const associateSheet = XLSX.utils.aoa_to_sheet(associateData);
+      XLSX.utils.book_append_sheet(wb, associateSheet, 'Associate Analysis');
+    }
 
     // Project Analysis Sheet
     const projectData = [['Project', 'Total Tasks', 'Completed', 'Pending', 'In Progress', 'Overdue', 'Completion Rate (%)']];
@@ -836,6 +866,31 @@ Severity: ${task.severity}`;
       body: userRows,
       theme: 'grid'
     });
+
+    // Associate Analysis
+    if (data.byAssociate && Object.keys(data.byAssociate).length > 0) {
+      yPosition = doc.lastAutoTable.finalY + 20;
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text('Associate Analysis', 20, yPosition);
+      yPosition += 10;
+
+      const associateRows = Object.entries(data.byAssociate).map(([associate, stats]) => [
+        associate, stats.total, stats.completed, stats.pending, stats.inProgress, stats.overdue, stats.completionRate + '%'
+      ]);
+
+      doc.autoTable({
+        startY: yPosition,
+        head: [['Associate', 'Total', 'Completed', 'Pending', 'In Progress', 'Overdue', 'Completion Rate']],
+        body: associateRows,
+        theme: 'grid'
+      });
+    }
 
     // Project Analysis
     yPosition = doc.lastAutoTable.finalY + 20;
@@ -2019,6 +2074,52 @@ Severity: ${task.severity}`;
                 </table>
               </div>
             </div>
+
+            {/* Associate Analysis */}
+            {Object.keys(reportData.byAssociate).length > 0 && (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Associate Performance</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-2 px-4 font-medium text-gray-700">Associate</th>
+                        <th className="text-center py-2 px-4 font-medium text-gray-700">Total</th>
+                        <th className="text-center py-2 px-4 font-medium text-gray-700">Completed</th>
+                        <th className="text-center py-2 px-4 font-medium text-gray-700">Pending</th>
+                        <th className="text-center py-2 px-4 font-medium text-gray-700">In Progress</th>
+                        <th className="text-center py-2 px-4 font-medium text-gray-700">Overdue</th>
+                        <th className="text-center py-2 px-4 font-medium text-gray-700">Completion %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(reportData.byAssociate)
+                        .filter(([_, stats]) => stats.total > 0)
+                        .sort(([, a], [, b]) => parseFloat(b.completionRate) - parseFloat(a.completionRate))
+                        .map(([associate, stats]) => (
+                        <tr key={associate} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4 font-medium">{associate}</td>
+                          <td className="py-3 px-4 text-center">{stats.total}</td>
+                          <td className="py-3 px-4 text-center text-green-600">{stats.completed}</td>
+                          <td className="py-3 px-4 text-center text-yellow-600">{stats.pending}</td>
+                          <td className="py-3 px-4 text-center text-purple-600">{stats.inProgress}</td>
+                          <td className="py-3 px-4 text-center text-red-600">{stats.overdue}</td>
+                          <td className="py-3 px-4 text-center">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              parseFloat(stats.completionRate) >= 80 ? 'bg-green-100 text-green-800' :
+                              parseFloat(stats.completionRate) >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {stats.completionRate}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
