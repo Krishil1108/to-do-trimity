@@ -286,7 +286,14 @@ const TaskManagementSystem = () => {
 
   // Push Notification Functions
   const enablePushNotifications = async () => {
+    if (!('serviceWorker' in navigator && 'PushManager' in window)) {
+      alert('Push notifications are not supported in your browser.');
+      return;
+    }
+
     try {
+      setLoading(true);
+      
       // Initialize notification service first
       const initialized = await notificationService.initialize();
       if (!initialized) {
@@ -301,21 +308,25 @@ const TaskManagementSystem = () => {
         if (subscription) {
           setPushNotificationsEnabled(true);
           setNotificationPermission('granted');
-          alert('Push notifications enabled successfully!');
+          alert('Push notifications enabled successfully! You will now receive notifications for task updates.');
         } else {
           alert('Failed to enable push notifications. Please check the console and try again.');
         }
       } else {
-        alert('Notification permission denied. You can enable it in your browser settings.');
+        setNotificationPermission(Notification.permission);
+        alert('Notification permission denied. Please enable notifications in your browser settings and try again.');
       }
     } catch (error) {
       console.error('Error enabling push notifications:', error);
       alert('Failed to enable push notifications: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const disablePushNotifications = async () => {
     try {
+      setLoading(true);
       const success = await notificationService.unsubscribeFromPush();
       if (success) {
         setPushNotificationsEnabled(false);
@@ -326,6 +337,8 @@ const TaskManagementSystem = () => {
     } catch (error) {
       console.error('Error disabling push notifications:', error);
       alert('Failed to disable push notifications.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2098,17 +2111,17 @@ Status: ${task.status}`;
               <div>
                 <h4 className="font-medium text-gray-900">Browser Support</h4>
                 <p className="text-sm text-gray-600">
-                  {notificationService.isSupported ? 
+                  {'serviceWorker' in navigator && 'PushManager' in window ? 
                     'Your browser supports push notifications' : 
                     'Your browser does not support push notifications'
                   }
                 </p>
               </div>
               <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                notificationService.isSupported ? 
+                'serviceWorker' in navigator && 'PushManager' in window ? 
                 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
               }`}>
-                {notificationService.isSupported ? 'Supported' : 'Not Supported'}
+                {'serviceWorker' in navigator && 'PushManager' in window ? 'Supported' : 'Not Supported'}
               </div>
             </div>
 
@@ -2141,18 +2154,23 @@ Status: ${task.status}`;
                 {pushNotificationsEnabled ? (
                   <button
                     onClick={disablePushNotifications}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                    disabled={loading}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
                   >
-                    Disable
+                    {loading ? 'Disabling...' : 'Disable'}
                   </button>
                 ) : (
                   <button
                     onClick={enablePushNotifications}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    disabled={loading || !('serviceWorker' in navigator && 'PushManager' in window)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Enable
+                    {loading ? 'Enabling...' : 'Enable'}
                   </button>
                 )}
+                <span className="text-xs text-gray-500">
+                  Status: {pushNotificationsEnabled ? 'Enabled' : 'Disabled'}
+                </span>
               </div>
             </div>
 
