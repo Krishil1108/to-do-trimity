@@ -358,6 +358,10 @@ const TaskManagementSystem = () => {
 
   const sendTaskNotification = async (userId, taskData, type = 'task_assigned') => {
     try {
+      console.log('Sending push notification to userId:', userId);
+      console.log('Current user:', currentUser);
+      console.log('Notification type:', type);
+      
       const notificationData = {
         title: getNotificationTitle(type, taskData),
         body: getNotificationBody(type, taskData),
@@ -368,13 +372,42 @@ const TaskManagementSystem = () => {
         }
       };
 
-      // Send via API to backend
-      await axios.post(`${API_URL}/notifications/send-push`, {
-        userId,
-        ...notificationData
-      });
+      console.log('Notification data:', notificationData);
+
+      // Send via API to backend - try both userId formats
+      const pushRequests = [];
+      
+      // Try with username (userId as passed)
+      pushRequests.push(
+        axios.post(`${API_URL}/notifications/send-push`, {
+          userId,
+          ...notificationData
+        })
+      );
+      
+      // Also try with user._id if we can find it
+      const targetUser = users.find(u => u.username === userId);
+      if (targetUser && targetUser._id && targetUser._id !== userId) {
+        pushRequests.push(
+          axios.post(`${API_URL}/notifications/send-push`, {
+            userId: targetUser._id,
+            ...notificationData
+          })
+        );
+      }
+      
+      const results = await Promise.allSettled(pushRequests);
+      console.log('Push notification results:', results);
+      
+      // Check if any succeeded
+      const hasSuccess = results.some(result => result.status === 'fulfilled');
+      if (!hasSuccess) {
+        console.warn('All push notification attempts failed');
+      }
+      
     } catch (error) {
       console.error('Error sending task notification:', error);
+      console.error('Error details:', error.response?.data || error.message);
     }
   };
 

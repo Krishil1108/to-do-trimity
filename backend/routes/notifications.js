@@ -121,6 +121,7 @@ router.post('/subscribe', async (req, res) => {
     });
 
     console.log(`User ${userId} subscribed to push notifications`);
+    console.log(`Total subscriptions: ${subscriptions.size}`);
     
     // Send a welcome notification
     const payload = JSON.stringify({
@@ -252,14 +253,20 @@ router.get('/push-stats', (req, res) => {
 // Helper function to send push notifications
 async function sendPushNotification(userId, notificationData) {
   try {
-    const userSubscription = subscriptions.get(userId);
+    console.log(`Attempting to send push notification to userId: ${userId}`);
+    console.log(`Available subscriptions:`, Array.from(subscriptions.keys()));
+    
+    let userSubscription = subscriptions.get(userId);
     
     if (!userSubscription) {
+      console.log(`No subscription found for userId: ${userId}`);
       return { 
         success: false, 
-        error: 'User not subscribed to push notifications' 
+        error: `User not subscribed to push notifications. Available subscriptions: ${Array.from(subscriptions.keys()).join(', ')}` 
       };
     }
+    
+    console.log(`Found subscription for userId: ${userId}`);
 
     const payload = JSON.stringify({
       title: notificationData.title,
@@ -276,6 +283,7 @@ async function sendPushNotification(userId, notificationData) {
 
     await webpush.sendNotification(userSubscription.subscription, payload);
     
+    console.log(`Push notification sent successfully to userId: ${userId}`);
     return { 
       success: true, 
       message: 'Push notification sent successfully' 

@@ -171,19 +171,53 @@ class NotificationService {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/notifications/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          subscription: subscription.toJSON(),
-          userId: user._id || user.username,
-          userAgent: navigator.userAgent
-        })
+      console.log('Subscribing user to push notifications:', {
+        username: user.username,
+        _id: user._id,
+        name: user.name
       });
 
-      if (!response.ok) {
+      // Subscribe with both username and _id to ensure compatibility
+      const subscriptionRequests = [];
+      
+      // Primary subscription with username
+      subscriptionRequests.push(
+        fetch('http://localhost:5000/api/notifications/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            subscription: subscription.toJSON(),
+            userId: user.username,
+            userAgent: navigator.userAgent
+          })
+        })
+      );
+      
+      // Secondary subscription with _id if available
+      if (user._id && user._id !== user.username) {
+        subscriptionRequests.push(
+          fetch('http://localhost:5000/api/notifications/subscribe', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              subscription: subscription.toJSON(),
+              userId: user._id,
+              userAgent: navigator.userAgent
+            })
+          })
+        );
+      }
+      
+      const results = await Promise.allSettled(subscriptionRequests);
+      console.log('Subscription results:', results);
+      
+      // Check if at least one succeeded
+      const hasSuccess = results.some(result => result.status === 'fulfilled' && result.value.ok);
+      if (!hasSuccess) {
         throw new Error('Failed to send subscription to server');
       }
 
