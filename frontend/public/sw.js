@@ -185,6 +185,24 @@ self.addEventListener('push', (event) => {
       self.registration.getNotifications().then(notifications => {
         console.log('📋 VERIFICATION: Currently visible notifications:', notifications.length);
         
+        // Auto-cleanup: Keep only the 5 most recent notifications
+        if (notifications.length > 5) {
+          console.log('🧹 Cleaning up old notifications (keeping 5 most recent)');
+          
+          // Sort by timestamp (most recent first)
+          const sortedNotifications = notifications.sort((a, b) => {
+            const timeA = a.data?.timestamp || a.timestamp || 0;
+            const timeB = b.data?.timestamp || b.timestamp || 0;
+            return timeB - timeA;
+          });
+          
+          // Close older notifications
+          for (let i = 5; i < sortedNotifications.length; i++) {
+            sortedNotifications[i].close();
+            console.log('🗑️ Closed old notification:', sortedNotifications[i].title);
+          }
+        }
+        
         if (notifications.length === 0) {
           console.error('🚨 CRITICAL ISSUE: NO NOTIFICATIONS ARE VISIBLE TO USER!');
           console.error('🔧 BROWSER IS BLOCKING NOTIFICATIONS');
@@ -194,26 +212,18 @@ self.addEventListener('push', (event) => {
           console.error('   3. Check site permissions');
           console.error('   4. Try different browser or incognito mode');
           
-          // Send emergency visible notification
-          self.registration.showNotification('🚨 NOTIFICATIONS BLOCKED!', {
-            body: 'Your browser is blocking notifications! Check your settings.',
-            icon: '/favicon.ico',
-            requireInteraction: true,
-            vibrate: [1000, 500, 1000, 500, 1000],
-            tag: 'emergency-' + Date.now(),
-            silent: false
-          }).catch(() => console.error('💀 Even emergency notification blocked'));
-          
         } else {
           console.log('🎉 SUCCESS: Notifications are VISIBLE to user!');
-          notifications.forEach((notification, index) => {
-            console.log(`📌 Visible notification ${index + 1}:`, {
+          const recentNotifications = Math.min(notifications.length, 5);
+          for (let i = 0; i < recentNotifications; i++) {
+            const notification = notifications[i];
+            console.log(`📌 Visible notification ${i + 1}:`, {
               title: notification.title,
               body: notification.body,
               tag: notification.tag,
               timestamp: notification.timestamp
             });
-          });
+          }
         }
       }).catch(err => console.error('❌ Failed to check notifications:', err));
     }, 1000);

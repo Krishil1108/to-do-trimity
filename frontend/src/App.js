@@ -538,43 +538,54 @@ const TaskManagementSystem = () => {
 
       console.log('📤 Sending notification data:', notificationData);
 
-      // Send via API to backend - try both userId formats
-      const pushRequests = [];
+      // Send single push notification (no duplicates) 
+      // Priority: username first, then _id as fallback
+      let targetUserId = userId;
+      let fallbackUserId = null;
+      let results = [];
       
-      // Try with username (userId as passed)
-      console.log(`📨 Attempting push to username: ${userId}`);
-      pushRequests.push(
-        axios.post(`${API_URL}/notifications/send-push`, {
-          userId,
-          ...notificationData
-        }).then(response => {
-          console.log(`✅ Push success for username ${userId}:`, response.data);
-          return response;
-        }).catch(error => {
-          console.log(`❌ Push failed for username ${userId}:`, error.response?.data || error.message);
-          throw error;
-        })
-      );
-      
-      // Also try with user._id if we can find it
+      // Check if we have user._id as fallback
       const targetUser = users.find(u => u.username === userId);
       if (targetUser && targetUser._id && targetUser._id !== userId) {
-        console.log(`📨 Attempting push to user._id: ${targetUser._id}`);
-        pushRequests.push(
-          axios.post(`${API_URL}/notifications/send-push`, {
-            userId: targetUser._id,
-            ...notificationData
-          }).then(response => {
-            console.log(`✅ Push success for _id ${targetUser._id}:`, response.data);
-            return response;
-          }).catch(error => {
-            console.log(`❌ Push failed for _id ${targetUser._id}:`, error.response?.data || error.message);
-            throw error;
-          })
-        );
+        fallbackUserId = targetUser._id;
       }
       
-      const results = await Promise.allSettled(pushRequests);
+      console.log(`📨 Sending single push to: ${targetUserId}`);
+      
+      try {
+        // Try primary target first
+        const response = await axios.post(`${API_URL}/notifications/send-push`, {
+          userId: targetUserId,
+          ...notificationData
+        }, { timeout: 5000 });
+        
+        console.log(`✅ Push notification sent successfully to ${targetUserId}:`, response.data);
+        results = [{ status: 'fulfilled', value: response }];
+        
+      } catch (primaryError) {
+        console.warn(`⚠️ Primary push failed for ${targetUserId}:`, primaryError.response?.data || primaryError.message);
+        
+        // Try fallback if available
+        if (fallbackUserId) {
+          console.log(`📨 Trying fallback target: ${fallbackUserId}`);
+          try {
+            const fallbackResponse = await axios.post(`${API_URL}/notifications/send-push`, {
+              userId: fallbackUserId,
+              ...notificationData
+            }, { timeout: 5000 });
+            
+            console.log(`✅ Fallback push succeeded for ${fallbackUserId}:`, fallbackResponse.data);
+            results = [{ status: 'fulfilled', value: fallbackResponse }];
+            
+          } catch (fallbackError) {
+            console.error(`❌ Both push attempts failed:`, { primary: primaryError.message, fallback: fallbackError.message });
+            results = [{ status: 'rejected', reason: primaryError }];
+          }
+        } else {
+          console.error(`❌ Push notification failed and no fallback available`);
+          results = [{ status: 'rejected', reason: primaryError }];
+        }
+      }
       console.log('📊 Push notification results summary:', results.map(r => ({
         status: r.status,
         success: r.status === 'fulfilled' ? r.value?.data?.success : false,
