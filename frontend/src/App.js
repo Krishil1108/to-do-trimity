@@ -349,10 +349,30 @@ const TaskManagementSystem = () => {
         return;
       }
 
+      console.log('Testing push notification...');
+      
+      // First test local notification
       await notificationService.testNotification();
+      
+      // Then test server-side push notification
+      const response = await axios.post(`${API_URL}/notifications/test-push`, {
+        userId: currentUser.username
+      });
+      
+      console.log('Server push test response:', response.data);
+      
+      // Also try with user._id if different
+      if (currentUser._id && currentUser._id !== currentUser.username) {
+        const response2 = await axios.post(`${API_URL}/notifications/test-push`, {
+          userId: currentUser._id
+        });
+        console.log('Server push test response (with _id):', response2.data);
+      }
+      
     } catch (error) {
       console.error('Error sending test notification:', error);
-      alert('Failed to send test notification.');
+      console.error('Error details:', error.response?.data);
+      alert('Failed to send test notification: ' + (error.response?.data?.error || error.message));
     }
   };
 

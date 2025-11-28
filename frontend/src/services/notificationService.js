@@ -1,4 +1,5 @@
 // Notification Service for PWA Push Notifications
+import API_URL from '../config';
 
 class NotificationService {
   constructor() {
@@ -182,7 +183,7 @@ class NotificationService {
       
       // Primary subscription with username
       subscriptionRequests.push(
-        fetch('http://localhost:5000/api/notifications/subscribe', {
+        fetch(`${API_URL}/notifications/subscribe`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -198,7 +199,7 @@ class NotificationService {
       // Secondary subscription with _id if available
       if (user._id && user._id !== user.username) {
         subscriptionRequests.push(
-          fetch('http://localhost:5000/api/notifications/subscribe', {
+          fetch(`${API_URL}/notifications/subscribe`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -233,7 +234,7 @@ class NotificationService {
       const user = JSON.parse(localStorage.getItem('currentUser'));
       if (!user) return;
 
-      await fetch('http://localhost:5000/api/notifications/unsubscribe', {
+      await fetch(`${API_URL}/notifications/unsubscribe`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

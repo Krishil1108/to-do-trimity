@@ -1,5 +1,5 @@
 // Service Worker for Task Management System
-const CACHE_NAME = 'task-manager-v2';
+const CACHE_NAME = 'task-manager-v3';
 const urlsToCache = [
   '/'
 ];
@@ -105,38 +105,43 @@ self.addEventListener('activate', (event) => {
 
 // Push event listener for notifications
 self.addEventListener('push', (event) => {
-  console.log('Push event received:', event);
+  console.log('🔔 Push event received in service worker:', event);
+  console.log('Push data available:', !!event.data);
   
   let notificationData = {
-    title: 'Task Management System',
+    title: 'TriDo - Task Management',
     body: 'You have a new notification',
-    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%236366f1"/%3E%3Cpath d="M25 50L40 65L75 30" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/svg%3E',
-    badge: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%236366f1"/%3E%3Cpath d="M25 50L40 65L75 30" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/svg%3E',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
     tag: 'task-notification',
-    requireInteraction: true,
-    actions: [
-      {
-        action: 'view',
-        title: 'View Task'
-      },
-      {
-        action: 'dismiss',
-        title: 'Dismiss'
-      }
-    ]
+    requireInteraction: false, // Changed to false for better visibility
+    silent: false,
+    vibrate: [200, 100, 200]
   };
 
+  // Parse push data
   if (event.data) {
     try {
-      const data = event.data.json();
-      notificationData = { ...notificationData, ...data };
+      const pushData = event.data.json();
+      console.log('Parsed push data:', pushData);
+      notificationData = { ...notificationData, ...pushData };
     } catch (e) {
-      console.log('Failed to parse push data:', e);
-      notificationData.body = event.data.text();
+      console.error('Failed to parse push data as JSON:', e);
+      try {
+        const textData = event.data.text();
+        console.log('Push data as text:', textData);
+        notificationData.body = textData;
+      } catch (textError) {
+        console.error('Failed to parse push data as text:', textError);
+      }
     }
+  } else {
+    console.log('No push data received, using default notification');
   }
 
-  const notificationPromise = self.registration.showNotification(
+  console.log('Final notification data:', notificationData);
+
+  const showNotificationPromise = self.registration.showNotification(
     notificationData.title,
     {
       body: notificationData.body,
@@ -144,12 +149,31 @@ self.addEventListener('push', (event) => {
       badge: notificationData.badge,
       tag: notificationData.tag,
       requireInteraction: notificationData.requireInteraction,
-      actions: notificationData.actions,
+      silent: notificationData.silent,
+      vibrate: notificationData.vibrate,
+      actions: notificationData.actions || [
+        { action: 'view', title: '👀 View' },
+        { action: 'dismiss', title: '❌ Dismiss' }
+      ],
       data: notificationData.data || {}
     }
-  );
+  ).then(() => {
+    console.log('✅ Notification displayed successfully');
+  }).catch((error) => {
+    console.error('❌ Failed to show notification:', error);
+    
+    // Fallback: try showing a basic notification
+    return self.registration.showNotification(
+      'TriDo - New Task',
+      {
+        body: 'You have received a new task notification',
+        icon: '/favicon.ico',
+        tag: 'fallback-notification'
+      }
+    );
+  });
 
-  event.waitUntil(notificationPromise);
+  event.waitUntil(showNotificationPromise);
 });
 
 // Notification click event
