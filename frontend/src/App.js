@@ -521,6 +521,24 @@ const TaskManagementSystem = () => {
         pushNotificationsEnabled
       });
       
+      // Prevent rapid duplicate calls (5-second window)
+      const notificationKey = `${userId}_${taskData._id || taskData.id}_${type}`;
+      const now = Date.now();
+      const lastSent = window.recentNotificationCalls?.get(notificationKey);
+      
+      if (lastSent && (now - lastSent) < 5000) {
+        console.log(`⏭️ Skipping duplicate notification call for ${userId} (${type}) - sent ${now - lastSent}ms ago`);
+        return { success: true, message: 'Duplicate call skipped' };
+      }
+      
+      // Initialize tracking if not exists
+      if (!window.recentNotificationCalls) {
+        window.recentNotificationCalls = new Map();
+      }
+      
+      // Record this call
+      window.recentNotificationCalls.set(notificationKey, now);
+      
       if (!pushNotificationsEnabled) {
         console.log('❌ Push notifications not enabled, skipping...');
         return;

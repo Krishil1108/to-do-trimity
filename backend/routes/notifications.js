@@ -25,6 +25,9 @@ try {
 // In-memory storage for subscriptions (in production, use a database)
 const subscriptions = new Map();
 
+// Track recent notifications to prevent rapid duplicates (5-second window)
+const recentNotifications = new Map();
+
 // Get notifications for a user
 router.get('/user/:userId', async (req, res) => {
   try {
@@ -109,15 +112,34 @@ router.post('/subscribe', async (req, res) => {
       });
     }
 
-    // Store subscription
+    // Check if this subscription already exists to prevent duplicates
+    const subscriptionEndpoint = subscription.endpoint;
+    let existingUserId = null;
+    
+    // Look for existing subscription with same endpoint
+    for (const [storedUserId, storedData] of subscriptions.entries()) {
+      if (storedData.subscription.endpoint === subscriptionEndpoint) {
+        existingUserId = storedUserId;
+        break;
+      }
+    }
+    
+    // If subscription exists for different userId, remove the old one
+    if (existingUserId && existingUserId !== userId) {
+      console.log(`🔄 Removing duplicate subscription for ${existingUserId}, keeping ${userId}`);
+      subscriptions.delete(existingUserId);
+    }
+
+    // Store subscription (will overwrite if same userId)
     subscriptions.set(userId, {
       subscription,
       userAgent: userAgent || 'Unknown',
-      subscribedAt: new Date()
+      subscribedAt: new Date(),
+      endpoint: subscriptionEndpoint
     });
 
-    console.log(`User ${userId} subscribed to push notifications`);
-    console.log(`Total subscriptions: ${subscriptions.size}`);
+    console.log(`✅ User ${userId} subscribed to push notifications`);
+    console.log(`📊 Total unique subscriptions: ${subscriptions.size}`);
     
     // Send a welcome notification
     const payload = JSON.stringify({
@@ -253,17 +275,40 @@ router.get('/push-stats', (req, res) => {
 // Helper function to send push notifications
 async function sendPushNotification(userId, notificationData) {
   try {
-    console.log(`Attempting to send push notification to userId: ${userId}`);
-    console.log(`Available subscriptions:`, Array.from(subscriptions.keys()));
+    console.log(`📤 Attempting to send push notification to userId: ${userId}`);
+    console.log(`📋 Available subscriptions:`, Array.from(subscriptions.keys()));
     
     let userSubscription = subscriptions.get(userId);
     
     if (!userSubscription) {
-      console.log(`No subscription found for userId: ${userId}`);
+      console.log(`❌ No subscription found for userId: ${userId}`);
       return { 
         success: false, 
         error: `User not subscribed to push notifications. Available subscriptions: ${Array.from(subscriptions.keys()).join(', ')}` 
       };
+    }
+    
+    // Check if we already sent this notification recently (prevent rapid-fire duplicates)
+    const notificationKey = `${userId}_${notificationData.title}_${notificationData.body}`;
+    const now = Date.now();
+    const lastSent = recentNotifications.get(notificationKey);
+    
+    if (lastSent && (now - lastSent) < 5000) { // 5 second deduplication window
+      console.log(`⏭️ Skipping duplicate notification for ${userId} (sent ${now - lastSent}ms ago)`);
+      return { 
+        success: true, 
+        message: 'Duplicate notification skipped (too recent)' 
+      };
+    }
+    
+    // Record this notification
+    recentNotifications.set(notificationKey, now);
+    
+    // Clean up old entries (keep only last 5 minutes)
+    for (const [key, timestamp] of recentNotifications.entries()) {
+      if (now - timestamp > 300000) { // 5 minutes
+        recentNotifications.delete(key);
+      }
     }
     
     console.log(`Found subscription for userId: ${userId}`);
