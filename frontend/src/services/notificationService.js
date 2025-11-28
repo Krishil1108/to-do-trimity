@@ -307,9 +307,9 @@ class NotificationService {
     
     // Check if browser supports notifications
     console.log('🌐 Browser support check:', {
-      'Notification' in window: 'Notification' in window,
-      'serviceWorker' in navigator: 'serviceWorker' in navigator,
-      'PushManager' in window: 'PushManager' in window
+      notificationSupport: 'Notification' in window,
+      serviceWorkerSupport: 'serviceWorker' in navigator,
+      pushManagerSupport: 'PushManager' in window
     });
     
     // Check current visible notifications
