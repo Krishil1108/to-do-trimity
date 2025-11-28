@@ -257,17 +257,27 @@ class NotificationService {
 
     try {
       if (this.registration) {
-        // Use service worker to show notification (recommended when SW is active)
-        console.log('Showing notification via service worker:', title);
+        // Use service worker to show notification (WhatsApp-style)
+        console.log('📢 Showing active notification via service worker:', title);
         return await this.registration.showNotification(title, {
-          body: options.body || 'Task Management notification',
+          body: options.body || '📋 You have a new task notification',
           icon: options.icon || '/favicon.ico',
           badge: options.badge || '/favicon.ico',
-          tag: options.tag || 'task-notification',
-          requireInteraction: false,
-          silent: false,
-          vibrate: [200, 100, 200],
-          data: options.data || {},
+          tag: (options.tag || 'task-notification') + '_' + Date.now(), // Unique to avoid replacement
+          requireInteraction: true, // Force interaction like WhatsApp
+          silent: false, // Never silent
+          vibrate: options.vibrate || [300, 100, 300, 100, 300], // Strong vibration
+          renotify: true, // Re-alert user
+          persistent: true,
+          actions: [
+            { action: 'view', title: '👁️ Open', icon: '/favicon.ico' },
+            { action: 'dismiss', title: '❌ Close', icon: '/favicon.ico' }
+          ],
+          data: {
+            url: '/',
+            timestamp: Date.now(),
+            ...options.data
+          },
           ...options
         });
       } else {
@@ -330,11 +340,13 @@ class NotificationService {
     }
 
     console.log('🚀 Showing test notification...');
-    const result = await this.showLocalNotification('🧪 Test Notification', {
-      body: 'This is a test notification from Task Manager! If you can see this, notifications are working.',
-      requireInteraction: true, // Force it to stay visible
+    const result = await this.showLocalNotification('🔔 TriDo Notification Test', {
+      body: '📱 This is a test push notification! If you see this, notifications are working perfectly.',
+      requireInteraction: true, // Stay visible like WhatsApp
       silent: false,
-      vibrate: [200, 100, 200, 100, 200]
+      vibrate: [300, 100, 300, 100, 300, 100, 300], // Strong vibration
+      renotify: true,
+      tag: 'test_notification_' + Date.now() // Unique tag
     });
     
     if (result) {
@@ -359,6 +371,119 @@ class NotificationService {
       }, 1000);
     } else {
       console.error('❌ Failed to show test notification');
+    }
+  }
+
+  async diagnoseNotificationIssues() {
+    console.log('🔍 COMPREHENSIVE NOTIFICATION DIAGNOSTICS');
+    console.log('=' .repeat(50));
+    
+    // Basic browser support
+    console.log('🌐 Browser Support:');
+    console.log('  - Notifications:', 'Notification' in window);
+    console.log('  - Service Workers:', 'serviceWorker' in navigator);
+    console.log('  - Push Manager:', 'PushManager' in window);
+    
+    // Permission status
+    console.log('🔐 Permission Status:', Notification.permission);
+    
+    // Browser info
+    console.log('🖥️ Browser Info:');
+    console.log('  - User Agent:', navigator.userAgent.substring(0, 100) + '...');
+    console.log('  - Platform:', navigator.platform);
+    console.log('  - Language:', navigator.language);
+    
+    // Page visibility
+    console.log('👁️ Page Visibility:');
+    console.log('  - Document Hidden:', document.hidden);
+    console.log('  - Has Focus:', document.hasFocus ? document.hasFocus() : 'unknown');
+    console.log('  - Visibility State:', document.visibilityState);
+    
+    // Check for Do Not Disturb or Focus Assist
+    if (navigator.permissions) {
+      try {
+        const permission = await navigator.permissions.query({name: 'notifications'});
+        console.log('📋 Detailed Permission:', permission.state);
+      } catch (e) {
+        console.log('📋 Detailed Permission: Not available');
+      }
+    }
+    
+    // Current notifications
+    if (this.registration) {
+      try {
+        const notifications = await this.registration.getNotifications();
+        console.log('📱 Current Notifications:', notifications.length);
+        notifications.forEach((notif, i) => {
+          console.log(`  ${i + 1}. ${notif.title} (${notif.tag})`);
+        });
+      } catch (e) {
+        console.log('📱 Current Notifications: Error checking');
+      }
+    }
+    
+    // System info that might affect notifications
+    console.log('⚙️ Potential Issues:');
+    if (document.hidden) console.warn('  ⚠️ Page is hidden - may affect notifications');
+    if (Notification.permission !== 'granted') console.warn('  ⚠️ Permission not granted');
+    if (navigator.userAgent.includes('Mobile')) console.log('  📱 Mobile device detected');
+    if (navigator.userAgent.includes('iPhone')) console.warn('  🍎 iOS - notifications may be limited');
+    
+    console.log('=' .repeat(50));
+    
+    return {
+      supported: 'Notification' in window,
+      permission: Notification.permission,
+      hidden: document.hidden,
+      mobile: navigator.userAgent.includes('Mobile')
+    };
+  }
+
+  async showActiveNotification() {
+    console.log('⚡ Showing WhatsApp-style active notification...');
+    
+    try {
+      // Method 1: Try direct browser notification first (most reliable)
+      try {
+        const directNotif = new Notification('🚨 DIRECT WhatsApp-Style Notification!', {
+          body: 'This is a DIRECT notification that should be VERY visible!',
+          icon: '/favicon.ico',
+          requireInteraction: true,
+          vibrate: [500, 200, 500, 200, 500, 200, 500],
+          silent: false,
+          tag: 'direct-active-' + Date.now()
+        });
+        
+        directNotif.onclick = () => {
+          console.log('🖱️ Direct notification clicked!');
+          window.focus();
+        };
+        
+        console.log('✅ Direct active notification created successfully');
+      } catch (directError) {
+        console.error('❌ Direct notification failed:', directError);
+      }
+      
+      // Method 2: Service worker notification as backup
+      await this.showLocalNotification(
+        '🚨 SERVICE WORKER Active Notification!', 
+        'This notification demands your attention like WhatsApp!',
+        {
+          requireInteraction: true,
+          vibrate: [500, 200, 500, 200, 500, 200, 500],
+          silent: false,
+          renotify: true,
+          tag: 'sw-active-notification-' + Date.now()
+        }
+      );
+      
+    } catch (error) {
+      console.error('Failed to show active notification:', error);
+      
+      // Last resort: Alert user about notification issues
+      setTimeout(() => {
+        alert('🚨 NOTIFICATION TEST\n\nIf you\'re seeing this alert but NO notification popup, your browser is blocking notifications!\n\nTo fix:\n1. Check browser notification settings\n2. Disable Do Not Disturb mode\n3. Enable site notifications\n4. Try a different browser');
+      }, 1000);
     }
   }
 

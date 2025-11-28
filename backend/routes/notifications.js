@@ -273,11 +273,22 @@ async function sendPushNotification(userId, notificationData) {
       body: notificationData.body || '',
       icon: notificationData.icon || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%236366f1"/%3E%3Cpath d="M25 50L40 65L75 30" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/svg%3E',
       badge: notificationData.badge || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%236366f1"/%3E%3Cpath d="M25 50L40 65L75 30" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/%3E%3C/svg%3E',
-      tag: notificationData.tag || 'task-notification',
-      data: notificationData.data || {},
+      tag: (notificationData.tag || 'task-notification') + '_' + Date.now(),
+      requireInteraction: true, // Force interaction like WhatsApp/Teams
+      silent: false,
+      vibrate: [300, 100, 300, 100, 300, 100, 300], // Strong vibration pattern
+      renotify: true,
+      persistent: true,
+      data: {
+        url: '/',
+        timestamp: Date.now(),
+        urgent: true,
+        ...notificationData.data
+      },
       actions: notificationData.actions || [
-        { action: 'view', title: 'View' },
-        { action: 'dismiss', title: 'Dismiss' }
+        { action: 'view', title: '👁️ Open Task', icon: '/favicon.ico' },
+        { action: 'mark_read', title: '✅ Mark Read', icon: '/favicon.ico' },
+        { action: 'dismiss', title: '❌ Dismiss', icon: '/favicon.ico' }
       ]
     });
 
@@ -302,5 +313,87 @@ async function sendPushNotification(userId, notificationData) {
     };
   }
 }
+
+// WhatsApp-style burst active notification test
+router.post('/burst-test', async (req, res) => {
+  console.log('💥 Received burst test notification request');
+  
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      // Send to all users if no specific user
+      const allUsers = Array.from(subscriptions.keys());
+      if (allUsers.length === 0) {
+        return res.json({ success: false, message: 'No subscriptions found' });
+      }
+    }
+
+    const notifications = [
+      {
+        title: '🚨 URGENT: Task Reminder',
+        body: 'You have an important task due soon! This notification should be very noticeable.',
+        vibrate: [500, 200, 500, 200, 500, 200, 500]
+      },
+      {
+        title: '📋 Task Update Alert',
+        body: 'Your task list has been updated - check it now!',
+        vibrate: [200, 100, 200, 100, 400]
+      },
+      {
+        title: '⚡ Quick Action Required',
+        body: 'Tap to complete your pending task - just like WhatsApp!',
+        vibrate: [300, 150, 300, 150, 300, 150, 600]
+      }
+    ];
+
+    let totalSuccess = 0;
+    const targetUsers = userId ? [userId] : Array.from(subscriptions.keys());
+    
+    // Send notifications with delays to simulate WhatsApp-style attention
+    for (const [index, notif] of notifications.entries()) {
+      setTimeout(async () => {
+        for (const targetUserId of targetUsers) {
+          try {
+            const result = await sendPushNotification(targetUserId, {
+              title: notif.title,
+              body: notif.body,
+              icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" fill="%23ff6b35"/%3E%3Ctext x="50" y="60" font-size="40" text-anchor="middle" fill="white"%3E⚡%3C/text%3E%3C/svg%3E',
+              tag: 'burst_' + index + '_' + Date.now(),
+              vibrate: notif.vibrate,
+              data: {
+                burst: true,
+                sequence: index + 1,
+                total: notifications.length,
+                urgent: true
+              },
+              actions: [
+                { action: 'view', title: '👀 View Now', icon: '/favicon.ico' },
+                { action: 'snooze', title: '⏰ Snooze 5min', icon: '/favicon.ico' },
+                { action: 'dismiss', title: '🚫 Dismiss All', icon: '/favicon.ico' }
+              ]
+            });
+            
+            if (result.success) {
+              totalSuccess++;
+              console.log(`✅ Burst notification ${index + 1} sent to ${targetUserId}`);
+            }
+          } catch (error) {
+            console.error(`❌ Burst notification ${index + 1} failed for ${targetUserId}:`, error);
+          }
+        }
+      }, index * 3000); // Send every 3 seconds for maximum attention
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Burst of ${notifications.length} WhatsApp-style active notifications initiated for ${targetUsers.length} user(s)`,
+      targetUsers: targetUsers.length
+    });
+  } catch (error) {
+    console.error('❌ Burst notification error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 module.exports = { router, sendPushNotification };

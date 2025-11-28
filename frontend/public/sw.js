@@ -113,10 +113,12 @@ self.addEventListener('push', (event) => {
     body: 'You have a new notification',
     icon: '/favicon.ico',
     badge: '/favicon.ico',
-    tag: 'task-notification',
-    requireInteraction: false, // Changed to false for better visibility
-    silent: false,
-    vibrate: [200, 100, 200]
+    tag: 'task-notification_' + Date.now(), // Force unique tags
+    requireInteraction: true, // FORCE interaction like WhatsApp
+    silent: false, // NEVER silent  
+    vibrate: [500, 200, 500, 200, 500, 200, 500], // Strong vibration like WhatsApp
+    renotify: true, // Always renotify
+    sticky: true // Try to make persistent
   };
 
   // Parse push data
@@ -146,16 +148,27 @@ self.addEventListener('push', (event) => {
     body: notificationData.body,
     icon: notificationData.icon || '/favicon.ico',
     badge: notificationData.badge || '/favicon.ico',
-    tag: notificationData.tag,
-    requireInteraction: notificationData.requireInteraction || false,
-    silent: notificationData.silent || false,
-    vibrate: notificationData.vibrate || [200, 100, 200],
-    actions: notificationData.actions || [
-      { action: 'view', title: '👀 View' },
-      { action: 'dismiss', title: '❌ Dismiss' }
+    tag: notificationData.tag + '_' + Date.now(), // Unique tag to avoid replacement
+    requireInteraction: true, // Force user interaction like WhatsApp
+    silent: false, // Never silent
+    vibrate: [300, 100, 300, 100, 300, 100, 300], // Strong vibration pattern
+    renotify: true, // Re-alert even if notification exists
+    persistent: true, // Stay visible
+    actions: [
+      { action: 'view', title: '👁️ Open Task', icon: '/favicon.ico' },
+      { action: 'mark_read', title: '✅ Mark Read', icon: '/favicon.ico' },
+      { action: 'dismiss', title: '❌ Dismiss', icon: '/favicon.ico' }
     ],
-    data: notificationData.data || {},
-    timestamp: Date.now()
+    data: {
+      ...notificationData.data,
+      url: '/', // URL to open when clicked
+      timestamp: Date.now(),
+      urgent: true
+    },
+    timestamp: Date.now(),
+    // Make it more attention-grabbing
+    dir: 'auto',
+    lang: 'en'
   };
   
   console.log('🔔 About to show notification with options:', notificationOptions);
@@ -164,24 +177,50 @@ self.addEventListener('push', (event) => {
     notificationData.title,
     notificationOptions
   ).then((result) => {
-    console.log('✅ Notification displayed successfully via service worker');
+    console.log('✅ AGGRESSIVE notification displayed successfully via service worker');
     console.log('📱 Notification result:', result);
     
-    // Check if there are any visible notifications
-    return self.registration.getNotifications().then(notifications => {
-      console.log('📋 Currently visible notifications:', notifications.length);
-      notifications.forEach((notification, index) => {
-        console.log(`📌 Notification ${index + 1}:`, {
-          title: notification.title,
-          body: notification.body,
-          tag: notification.tag,
-          timestamp: notification.timestamp
-        });
-      });
-      return true;
-    });
+    // Immediate verification that notification is actually visible
+    setTimeout(() => {
+      self.registration.getNotifications().then(notifications => {
+        console.log('📋 VERIFICATION: Currently visible notifications:', notifications.length);
+        
+        if (notifications.length === 0) {
+          console.error('🚨 CRITICAL ISSUE: NO NOTIFICATIONS ARE VISIBLE TO USER!');
+          console.error('🔧 BROWSER IS BLOCKING NOTIFICATIONS');
+          console.error('💡 User must check:');
+          console.error('   1. Browser Settings > Notifications > Allow');
+          console.error('   2. Disable Do Not Disturb mode');
+          console.error('   3. Check site permissions');
+          console.error('   4. Try different browser or incognito mode');
+          
+          // Send emergency visible notification
+          self.registration.showNotification('🚨 NOTIFICATIONS BLOCKED!', {
+            body: 'Your browser is blocking notifications! Check your settings.',
+            icon: '/favicon.ico',
+            requireInteraction: true,
+            vibrate: [1000, 500, 1000, 500, 1000],
+            tag: 'emergency-' + Date.now(),
+            silent: false
+          }).catch(() => console.error('💀 Even emergency notification blocked'));
+          
+        } else {
+          console.log('🎉 SUCCESS: Notifications are VISIBLE to user!');
+          notifications.forEach((notification, index) => {
+            console.log(`📌 Visible notification ${index + 1}:`, {
+              title: notification.title,
+              body: notification.body,
+              tag: notification.tag,
+              timestamp: notification.timestamp
+            });
+          });
+        }
+      }).catch(err => console.error('❌ Failed to check notifications:', err));
+    }, 1000);
+    
+    return true;
   }).catch((error) => {
-    console.error('❌ Failed to show notification via service worker:', error);
+    console.error('❌ AGGRESSIVE notification failed:', error);
     
     // Fallback: try showing a very basic notification
     console.log('🔄 Attempting fallback notification...');
@@ -205,26 +244,55 @@ self.addEventListener('push', (event) => {
   event.waitUntil(showNotificationPromise);
 });
 
-// Notification click event
+// Enhanced notification click event with focus and action handling
 self.addEventListener('notificationclick', (event) => {
-  console.log('Notification clicked:', event);
+  console.log('🔔 Notification clicked:', event.action || 'default', event);
   
   event.notification.close();
   
-  if (event.action === 'view') {
-    // Open the app when notification is clicked
+  const notificationData = event.notification.data || {};
+  const urlToOpen = notificationData.url || '/';
+  
+  if (event.action === 'view' || !event.action) {
+    // Open the app and focus on it (like WhatsApp)
     event.waitUntil(
-      clients.openWindow('/')
+      clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientList) => {
+          // Try to focus existing window first
+          for (const client of clientList) {
+            if (client.url.includes('trido-pm78.onrender.com') || client.url.includes('localhost')) {
+              console.log('🎯 Focusing existing window');
+              return client.focus();
+            }
+          }
+          // If no existing window, open new one
+          console.log('🆕 Opening new window');
+          return clients.openWindow(urlToOpen).then(client => {
+            if (client) {
+              // Send message to the client about the notification
+              client.postMessage({
+                type: 'NOTIFICATION_CLICKED',
+                data: notificationData
+              });
+            }
+            return client;
+          });
+        })
     );
+  } else if (event.action === 'mark_read') {
+    // Mark as read without opening
+    console.log('📖 Marking notification as read');
+    // Could send API call here to mark as read
   } else if (event.action === 'dismiss') {
     // Just close the notification
+    console.log('❌ Notification dismissed');
     return;
-  } else {
-    // Default click - open the app
-    event.waitUntil(
-      clients.openWindow('/')
-    );
   }
+});
+
+// Handle notification close event
+self.addEventListener('notificationclose', (event) => {
+  console.log('🔕 Notification closed:', event.notification.tag);
 });
 
 // Background sync for offline functionality

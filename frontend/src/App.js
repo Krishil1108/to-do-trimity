@@ -10,6 +10,39 @@ import 'react-datepicker/dist/react-datepicker.css';
 import './datepicker-styles.css';
 import notificationService from './services/notificationService';
 
+// Server optimization for render.com deployment
+const keepServerAlive = () => {
+  if (process.env.NODE_ENV === 'production') {
+    // Ping server every 4 minutes to prevent sleep
+    setInterval(() => {
+      fetch(API_URL.replace('/api', '/health')).catch(() => {
+        console.log('🏥 Server keep-alive ping');
+      });
+    }, 240000); // 4 minutes
+  }
+};
+
+// Wake up server immediately for faster notifications
+const wakeServer = async () => {
+  if (process.env.NODE_ENV === 'production') {
+    console.log('⏰ Waking up render server for faster notifications...');
+    try {
+      const start = Date.now();
+      await fetch(API_URL.replace('/api', '/health'), { 
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const duration = Date.now() - start;
+      console.log(`✅ Server awake in ${duration}ms`);
+      return true;
+    } catch (error) {
+      console.warn('⚠️ Server wake-up failed:', error.message);
+      return false;
+    }
+  }
+  return true;
+};
+
 const PRIORITY_COLORS = {
   Low: 'bg-green-100 text-green-800 border-green-300',
   Medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -143,10 +176,32 @@ const TaskManagementSystem = () => {
       }
     };
 
+    // Listen for messages from service worker (notification clicks)
+    const handleServiceWorkerMessage = (event) => {
+      if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
+        console.log('🔔 Notification clicked, received in app:', event.data);
+        // Could auto-navigate to relevant task or refresh notifications
+        loadNotifications();
+        
+        // Visual feedback - flash the notification icon
+        const notificationIcon = document.querySelector('[title="Notifications"]');
+        if (notificationIcon) {
+          notificationIcon.style.animation = 'pulse 0.5s ease-in-out 3';
+        }
+      }
+    };
+
     // Only initialize if browser supports service workers
     if ('serviceWorker' in navigator && currentUser) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
       initializePushNotifications();
     }
+
+    return () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
+    };
   }, [currentUser]);
 
 
@@ -202,12 +257,18 @@ const TaskManagementSystem = () => {
   useEffect(() => {
     const initializeNotifications = async () => {
       if (isLoggedIn && currentUser) {
+        // Wake up server first for faster notification response
+        await wakeServer();
+        
         const initialized = await notificationService.initialize();
         if (initialized) {
           const status = await notificationService.getSubscriptionStatus();
           setPushNotificationsEnabled(status.subscribed);
           setNotificationPermission(status.permission);
         }
+        
+        // Start keep-alive pings
+        keepServerAlive();
       }
     };
 
@@ -360,15 +421,27 @@ const TaskManagementSystem = () => {
 
       console.log('Testing push notification...');
       
-      // First test local notification
+      // Show immediate local notification for instant feedback
       await notificationService.testNotification();
       
-      // Then test server-side push notification
-      const response = await axios.post(`${API_URL}/notifications/test-push`, {
-        userId: currentUser.username
-      });
+      // Test server-side push notification with timeout
+      console.log('⏱️ Testing server push with 10s timeout...');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      console.log('Server push test response:', response.data);
+      try {
+        const response = await axios.post(`${API_URL}/notifications/test-push`, {
+          userId: currentUser.username
+        }, {
+          timeout: 8000,
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        console.log('✅ Server push test response:', response.data);
+      } catch (serverError) {
+        console.warn('⚠️ Server push failed or timed out:', serverError.message);
+      }
       
       // Also try with user._id if different
       if (currentUser._id && currentUser._id !== currentUser.username) {
@@ -390,6 +463,52 @@ const TaskManagementSystem = () => {
       console.error('Error sending test notification:', error);
       console.error('Error details:', error.response?.data);
       alert('Failed to send test notification: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const testBurstNotifications = async () => {
+    try {
+      if (!pushNotificationsEnabled) {
+        alert('Please enable push notifications first.');
+        return;
+      }
+
+      console.log('💥 Testing WhatsApp-style burst notifications...');
+      
+      // Show immediate local feedback first (no waiting)
+      notificationService.showActiveNotification().catch(console.error);
+      
+      // Start server-side burst notifications in parallel with timeout
+      const serverPromise = axios.post(`${API_URL}/notifications/burst-test`, {
+        userId: currentUser.username
+      }, {
+        timeout: 12000 // Longer timeout for burst
+      }).then(response => {
+        console.log('✅ Server burst test result:', response.data);
+        return response.data;
+      }).catch(error => {
+        console.warn('⚠️ Server burst failed, using local fallback:', error.message);
+        return { success: false, error: 'Server timeout - used local notifications' };
+      });
+      
+      // Show local burst immediately while server processes
+      setTimeout(() => notificationService.showActiveNotification(), 1000);
+      setTimeout(() => notificationService.showActiveNotification(), 3000);
+      setTimeout(() => notificationService.showActiveNotification(), 6000);
+      
+      const result = await serverPromise;
+      console.log('🎯 Final burst result:', result);
+      
+      if (response.data.success) {
+        alert(`💥 WhatsApp-style burst notifications initiated!\n\n${response.data.message}\n\n⚡ These should be VERY noticeable - just like WhatsApp or Teams!\n\nYou'll receive 3 notifications over 9 seconds with strong vibration.`);
+      } else {
+        alert('❌ Failed to send burst notifications: ' + response.data.error);
+      }
+      
+    } catch (error) {
+      console.error('Error sending burst notifications:', error);
+      console.error('Error details:', error.response?.data);
+      alert('Failed to send burst notifications: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -2293,21 +2412,81 @@ Status: ${task.status}`;
               </div>
             </div>
 
-            {/* Test Notification */}
+            {/* Test Notifications */}
             {pushNotificationsEnabled && (
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                <div>
-                  <h4 className="font-medium text-gray-900">Test Notification</h4>
-                  <p className="text-sm text-gray-600">
-                    Send a test notification to verify everything is working
-                  </p>
+                <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                  <div>
+                    <h4 className="font-medium text-gray-900">Test Notification</h4>
+                    <p className="text-sm text-gray-600">
+                      Send a single test notification to verify everything is working
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={testPushNotification}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      Send Test
+                    </button>
+                    <button
+                      onClick={async () => {
+                        // Direct browser notification - most aggressive
+                        try {
+                          const permission = await Notification.requestPermission();
+                          if (permission === 'granted') {
+                            const notif = new Notification('🚨 DIRECT Browser Test!', {
+                              body: 'This is a DIRECT browser notification - should be VERY visible!',
+                              icon: '/favicon.ico',
+                              requireInteraction: true,
+                              vibrate: [500, 200, 500, 200, 500, 200, 500],
+                              tag: 'direct-test-' + Date.now()
+                            });
+                            notif.onclick = () => window.focus();
+                            console.log('✅ Direct notification sent');
+                          } else {
+                            alert('❌ Notification permission denied');
+                          }
+                        } catch (error) {
+                          alert('❌ Direct notification failed: ' + error.message);
+                        }
+                      }}
+                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    >
+                      🚨 Direct
+                    </button>
+                  </div>
+                </div>                <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border-l-4 border-orange-400">
+                  <div>
+                    <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                      💥 WhatsApp-Style Active Notifications
+                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-semibold">HOT</span>
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Send 3 attention-grabbing notifications like WhatsApp/Teams with strong vibration
+                    </p>
+                    <p className="text-xs text-orange-600 font-medium mt-1">
+                      ⚡ These will be VERY noticeable and persistent!
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={testBurstNotifications}
+                      className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all text-sm font-medium transform hover:scale-105 shadow-lg"
+                    >
+                      💥 Test Burst
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const diagnostics = await notificationService.diagnoseNotificationIssues();
+                        console.log('📊 Diagnostics complete:', diagnostics);
+                      }}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      🔍 Diagnose
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={testPushNotification}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  Send Test
-                </button>
               </div>
             )}
           </div>
