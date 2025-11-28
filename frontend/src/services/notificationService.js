@@ -19,10 +19,25 @@ class NotificationService {
       this.registration = await navigator.serviceWorker.register('/sw.js');
       console.log('Service Worker registered successfully');
       
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.ready;
+      // Wait for service worker to be ready and active
+      const registration = await navigator.serviceWorker.ready;
+      this.registration = registration;
       
-      return true;
+      // Ensure the service worker is active
+      if (registration.active) {
+        console.log('Service Worker is active and ready');
+        return true;
+      } else {
+        console.log('Waiting for Service Worker to activate...');
+        return new Promise((resolve) => {
+          registration.addEventListener('statechange', () => {
+            if (registration.active) {
+              console.log('Service Worker activated');
+              resolve(true);
+            }
+          });
+        });
+      }
     } catch (error) {
       console.error('Service Worker registration failed:', error);
       return false;
@@ -54,23 +69,34 @@ class NotificationService {
     }
 
     try {
+      // Ensure service worker is ready and active
+      await navigator.serviceWorker.ready;
+      
+      // Wait a bit more to ensure the service worker is fully active
+      if (!this.registration.active) {
+        console.log('Waiting for service worker to activate...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
       // Check if already subscribed
       const existingSubscription = await this.registration.pushManager.getSubscription();
       if (existingSubscription) {
         this.subscription = existingSubscription;
+        console.log('Using existing subscription:', existingSubscription);
         return existingSubscription;
       }
 
       // Create new subscription
       const vapidPublicKey = 'BFNVI-J2_zF_ZzZtk49ZwfFfq-HiePDgJRzXm2vP-ar2ABnfVI-wJmSKJTAyWKKZkRH-Og77s4_1ER-7fAES3xU';
       
+      console.log('Creating new push subscription...');
       const subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey)
       });
 
       this.subscription = subscription;
-      console.log('Push subscription created:', subscription);
+      console.log('Push subscription created successfully:', subscription);
       
       // Send subscription to server
       await this.sendSubscriptionToServer(subscription);
@@ -78,6 +104,26 @@ class NotificationService {
       return subscription;
     } catch (error) {
       console.error('Failed to subscribe to push notifications:', error);
+      
+      // If it's an AbortError, try once more after a delay
+      if (error.name === 'AbortError') {
+        console.log('Retrying subscription after service worker activation...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        try {
+          const retrySubscription = await this.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: this.urlBase64ToUint8Array('BFNVI-J2_zF_ZzZtk49ZwfFfq-HiePDgJRzXm2vP-ar2ABnfVI-wJmSKJTAyWKKZkRH-Og77s4_1ER-7fAES3xU')
+          });
+          
+          this.subscription = retrySubscription;
+          await this.sendSubscriptionToServer(retrySubscription);
+          return retrySubscription;
+        } catch (retryError) {
+          console.error('Retry also failed:', retryError);
+        }
+      }
+      
       return null;
     }
   }

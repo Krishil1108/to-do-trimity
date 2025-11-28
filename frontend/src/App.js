@@ -112,6 +112,34 @@ const TaskManagementSystem = () => {
     }
   }, [isLoggedIn, currentUser]);
 
+  // Initialize push notifications when app loads
+  useEffect(() => {
+    const initializePushNotifications = async () => {
+      try {
+        // Initialize notification service
+        const initialized = await notificationService.initialize();
+        
+        if (initialized) {
+          // Check current subscription status
+          const status = await notificationService.getSubscriptionStatus();
+          setPushNotificationsEnabled(status.subscribed);
+          setNotificationPermission(status.permission);
+          
+          if (status.subscribed) {
+            console.log('Push notifications are already enabled');
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing push notifications:', error);
+      }
+    };
+
+    // Only initialize if browser supports service workers
+    if ('serviceWorker' in navigator) {
+      initializePushNotifications();
+    }
+  }, []);
+
 
   // Helper function to safely get project name
   const getProjectName = (project) => {
@@ -259,6 +287,13 @@ const TaskManagementSystem = () => {
   // Push Notification Functions
   const enablePushNotifications = async () => {
     try {
+      // Initialize notification service first
+      const initialized = await notificationService.initialize();
+      if (!initialized) {
+        alert('Failed to initialize notification service. Please try again.');
+        return;
+      }
+
       const hasPermission = await notificationService.requestPermission();
       
       if (hasPermission) {
@@ -268,14 +303,14 @@ const TaskManagementSystem = () => {
           setNotificationPermission('granted');
           alert('Push notifications enabled successfully!');
         } else {
-          alert('Failed to enable push notifications. Please try again.');
+          alert('Failed to enable push notifications. Please check the console and try again.');
         }
       } else {
         alert('Notification permission denied. You can enable it in your browser settings.');
       }
     } catch (error) {
       console.error('Error enabling push notifications:', error);
-      alert('Failed to enable push notifications.');
+      alert('Failed to enable push notifications: ' + error.message);
     }
   };
 

@@ -16,6 +16,11 @@ self.addEventListener('install', (event) => {
         console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
+      .then(() => {
+        console.log('Service Worker installed successfully');
+        // Force the waiting service worker to become the active service worker
+        return self.skipWaiting();
+      })
   );
 });
 
@@ -44,6 +49,10 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      console.log('Service Worker activated and ready for push notifications');
+      // Claim all clients to ensure this SW is used immediately
+      return self.clients.claim();
     })
   );
 });
