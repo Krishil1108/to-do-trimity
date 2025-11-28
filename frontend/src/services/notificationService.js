@@ -300,14 +300,63 @@ class NotificationService {
       return;
     }
 
-    console.log('Showing test notification...');
-    const result = await this.showLocalNotification('Test Notification', {
-      body: 'This is a test notification from Task Manager!',
-      requireInteraction: false
+    console.log('🧪 Testing notification system...');
+    
+    // Check notification permission status
+    console.log('📋 Notification permission:', Notification.permission);
+    
+    // Check if browser supports notifications
+    console.log('🌐 Browser support check:', {
+      'Notification' in window: 'Notification' in window,
+      'serviceWorker' in navigator: 'serviceWorker' in navigator,
+      'PushManager' in window: 'PushManager' in window
+    });
+    
+    // Check current visible notifications
+    if (this.registration) {
+      try {
+        const notifications = await this.registration.getNotifications();
+        console.log('📱 Currently visible notifications:', notifications.length);
+        notifications.forEach((notification, index) => {
+          console.log(`📌 Visible notification ${index + 1}:`, {
+            title: notification.title,
+            body: notification.body,
+            tag: notification.tag
+          });
+        });
+      } catch (error) {
+        console.log('❌ Could not get visible notifications:', error);
+      }
+    }
+
+    console.log('🚀 Showing test notification...');
+    const result = await this.showLocalNotification('🧪 Test Notification', {
+      body: 'This is a test notification from Task Manager! If you can see this, notifications are working.',
+      requireInteraction: true, // Force it to stay visible
+      silent: false,
+      vibrate: [200, 100, 200, 100, 200]
     });
     
     if (result) {
-      console.log('✅ Test notification shown successfully');
+      console.log('✅ Test notification API call successful');
+      
+      // Wait a moment and check if notification is visible
+      setTimeout(async () => {
+        if (this.registration) {
+          try {
+            const notifications = await this.registration.getNotifications();
+            console.log('📊 Notifications after test:', notifications.length);
+            if (notifications.length === 0) {
+              console.warn('⚠️ Notification was created but is not visible - likely suppressed by browser/device settings');
+              alert('🔔 Notification was sent but may be suppressed by your device settings. Please check:\n\n1. Browser notification settings for this site\n2. Device "Do Not Disturb" mode\n3. System notification settings');
+            } else {
+              console.log('✅ Notification is visible in the system');
+            }
+          } catch (error) {
+            console.log('Could not check notification visibility:', error);
+          }
+        }
+      }, 1000);
     } else {
       console.error('❌ Failed to show test notification');
     }

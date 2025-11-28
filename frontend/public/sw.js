@@ -1,5 +1,5 @@
 // Service Worker for Task Management System
-const CACHE_NAME = 'task-manager-v4';
+const CACHE_NAME = 'task-manager-v5';
 const urlsToCache = [
   '/'
 ];
@@ -141,25 +141,45 @@ self.addEventListener('push', (event) => {
 
   console.log('Final notification data:', notificationData);
 
+  // Log the exact notification options being used
+  const notificationOptions = {
+    body: notificationData.body,
+    icon: notificationData.icon || '/favicon.ico',
+    badge: notificationData.badge || '/favicon.ico',
+    tag: notificationData.tag,
+    requireInteraction: notificationData.requireInteraction || false,
+    silent: notificationData.silent || false,
+    vibrate: notificationData.vibrate || [200, 100, 200],
+    actions: notificationData.actions || [
+      { action: 'view', title: '👀 View' },
+      { action: 'dismiss', title: '❌ Dismiss' }
+    ],
+    data: notificationData.data || {},
+    timestamp: Date.now()
+  };
+  
+  console.log('🔔 About to show notification with options:', notificationOptions);
+
   const showNotificationPromise = self.registration.showNotification(
     notificationData.title,
-    {
-      body: notificationData.body,
-      icon: notificationData.icon || '/favicon.ico',
-      badge: notificationData.badge || '/favicon.ico',
-      tag: notificationData.tag,
-      requireInteraction: notificationData.requireInteraction || false,
-      silent: notificationData.silent || false,
-      vibrate: notificationData.vibrate || [200, 100, 200],
-      actions: notificationData.actions || [
-        { action: 'view', title: '👀 View' },
-        { action: 'dismiss', title: '❌ Dismiss' }
-      ],
-      data: notificationData.data || {}
-    }
-  ).then(() => {
+    notificationOptions
+  ).then((result) => {
     console.log('✅ Notification displayed successfully via service worker');
-    return true;
+    console.log('📱 Notification result:', result);
+    
+    // Check if there are any visible notifications
+    return self.registration.getNotifications().then(notifications => {
+      console.log('📋 Currently visible notifications:', notifications.length);
+      notifications.forEach((notification, index) => {
+        console.log(`📌 Notification ${index + 1}:`, {
+          title: notification.title,
+          body: notification.body,
+          tag: notification.tag,
+          timestamp: notification.timestamp
+        });
+      });
+      return true;
+    });
   }).catch((error) => {
     console.error('❌ Failed to show notification via service worker:', error);
     
