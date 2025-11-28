@@ -296,6 +296,28 @@ class NotificationService {
     return outputArray;
   }
 
+  // Re-register existing subscription with backend (for server restarts)
+  async reRegisterSubscription() {
+    if (!this.registration) {
+      return false;
+    }
+
+    try {
+      const subscription = await this.registration.pushManager.getSubscription();
+      if (subscription) {
+        console.log('Found existing subscription, re-registering with backend...');
+        await this.sendSubscriptionToServer(subscription);
+        return true;
+      } else {
+        console.log('No existing subscription found');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error re-registering subscription:', error);
+      return false;
+    }
+  }
+
   // Get subscription status
   async getSubscriptionStatus() {
     if (!this.registration) {

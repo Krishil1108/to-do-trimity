@@ -236,14 +236,18 @@ router.post('/test-push', async (req, res) => {
 
 // Get push notification stats
 router.get('/push-stats', (req, res) => {
-  res.json({
+  const stats = {
     totalSubscriptions: subscriptions.size,
+    subscriptionKeys: Array.from(subscriptions.keys()),
     subscriptions: Array.from(subscriptions.entries()).map(([userId, data]) => ({
       userId,
       subscribedAt: data.subscribedAt,
-      userAgent: data.userAgent
+      userAgent: data.userAgent ? data.userAgent.substring(0, 50) + '...' : 'Unknown'
     }))
-  });
+  };
+  
+  console.log('📊 Current push notification stats:', stats);
+  res.json(stats);
 });
 
 // Helper function to send push notifications

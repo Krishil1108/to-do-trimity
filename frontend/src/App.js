@@ -127,6 +127,15 @@ const TaskManagementSystem = () => {
           
           if (status.subscribed) {
             console.log('Push notifications are already enabled');
+            
+            // Re-register subscription with backend in case server restarted
+            console.log('Re-registering subscription with backend...');
+            const reRegistered = await notificationService.reRegisterSubscription();
+            if (reRegistered) {
+              console.log('✅ Subscription re-registered successfully');
+            } else {
+              console.warn('⚠️ Failed to re-register subscription, may need to re-enable');
+            }
           }
         }
       } catch (error) {
@@ -135,10 +144,10 @@ const TaskManagementSystem = () => {
     };
 
     // Only initialize if browser supports service workers
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && currentUser) {
       initializePushNotifications();
     }
-  }, []);
+  }, [currentUser]);
 
 
   // Helper function to safely get project name
@@ -367,6 +376,14 @@ const TaskManagementSystem = () => {
           userId: currentUser._id
         });
         console.log('Server push test response (with _id):', response2.data);
+      }
+      
+      // Also check server subscription stats
+      try {
+        const statsResponse = await axios.get(`${API_URL}/notifications/push-stats`);
+        console.log('📊 Server subscription stats:', statsResponse.data);
+      } catch (error) {
+        console.log('Could not fetch subscription stats:', error.response?.data);
       }
       
     } catch (error) {
