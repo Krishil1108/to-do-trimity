@@ -62,7 +62,7 @@ class NotificationService {
       }
 
       // Create new subscription
-      const vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa40HI0OPtToAu4AFT8-nwE3zVB1yVLRKtPf3k3YgO8tAsX5v_stXx6Z4T6w4c'; // You'll need to generate this
+      const vapidPublicKey = 'BFNVI-J2_zF_ZzZtk49ZwfFfq-HiePDgJRzXm2vP-ar2ABnfVI-wJmSKJTAyWKKZkRH-Og77s4_1ER-7fAES3xU';
       
       const subscription = await this.registration.pushManager.subscribe({
         userVisibleOnly: true,

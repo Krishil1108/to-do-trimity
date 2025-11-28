@@ -358,12 +358,6 @@ const TaskManagementSystem = () => {
       default:
         return `Update for task: ${taskData.title}`;
     }
-      
-      setAssociates(updatedAssociates);
-      localStorage.setItem('associates', JSON.stringify(updatedAssociates));
-    } catch (error) {
-      console.error('Error saving associate:', error);
-    }
   };
 
   const addProject = async () => {

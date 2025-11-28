@@ -5,8 +5,8 @@ const Notification = require('../models/Notification');
 
 // VAPID Keys - In production, these should be environment variables
 const vapidKeys = {
-  publicKey: 'BEl62iUYgUivxIkv69yViEuiBIa40HI0OPtToAu4AFT8-nwE3zVB1yVLRKtPf3k3YgO8tAsX5v_stXx6Z4T6w4c',
-  privateKey: 'yFtKAT5r8h7g8w8J9k5K6L7M8N9O0P1Q2R3S4T5U6V7W'
+  publicKey: 'BFNVI-J2_zF_ZzZtk49ZwfFfq-HiePDgJRzXm2vP-ar2ABnfVI-wJmSKJTAyWKKZkRH-Og77s4_1ER-7fAES3xU',
+  privateKey: 'ryUh3Js6fhVUJURfr1WOb8boWO7MbcIxjhMb7rvB7DU'
 };
 
 // Configure web-push
