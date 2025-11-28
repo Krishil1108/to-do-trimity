@@ -44,6 +44,7 @@ const TaskManagementSystem = () => {
   const [associates, setAssociates] = useState([]);
   const [showAssociateModal, setShowAssociateModal] = useState(false);
   const [selectedAssociate, setSelectedAssociate] = useState('new');
+  const [newAssociate, setNewAssociate] = useState({ name: '', company: '', email: '', phone: '' });
   
   // App state
   const [currentView, setCurrentView] = useState('my-tasks');
@@ -358,9 +359,10 @@ const TaskManagementSystem = () => {
       return;
     }
     
-    // Save associate to list if it's a new associate
-    if (formData.isAssociate && selectedAssociate === 'new' && formData.associateDetails.name) {
-      saveAssociateToList(formData.associateDetails);
+    // Check if associate is selected when isAssociate is true
+    if (formData.isAssociate && selectedAssociate === 'new') {
+      alert('Please select an associate from the dropdown or add a new one using the Add button');
+      return;
     }
     
     try {
@@ -2872,14 +2874,75 @@ Severity: ${task.severity}`;
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto">
+            <div className="p-6 space-y-4 overflow-y-auto">
+              {/* Add Associate Form */}
+              <div className="bg-purple-50 p-4 rounded-lg space-y-3">
+                <h3 className="text-sm font-semibold text-purple-900">Add New Associate</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Name *</label>
+                    <input
+                      type="text"
+                      value={newAssociate.name}
+                      onChange={(e) => setNewAssociate({...newAssociate, name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      placeholder="Associate name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
+                    <input
+                      type="text"
+                      value={newAssociate.company}
+                      onChange={(e) => setNewAssociate({...newAssociate, company: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      placeholder="Company name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={newAssociate.email}
+                      onChange={(e) => setNewAssociate({...newAssociate, email: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                    <input
+                      type="tel"
+                      value={newAssociate.phone}
+                      onChange={(e) => setNewAssociate({...newAssociate, phone: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      placeholder="+1 234 567 8900"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (newAssociate.name.trim()) {
+                      saveAssociateToList(newAssociate);
+                      setNewAssociate({ name: '', company: '', email: '', phone: '' });
+                    } else {
+                      alert('Please enter associate name');
+                    }
+                  }}
+                  disabled={!newAssociate.name.trim()}
+                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+                >
+                  Save Associate
+                </button>
+              </div>
+
               {/* Associate List */}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-gray-700">Saved Associates ({associates.length})</h3>
-                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
                   {associates.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
-                      No associates saved yet. They will be automatically saved when you assign tasks.
+                      No associates saved yet. Add one above.
                     </div>
                   ) : (
                     associates.map((assoc, index) => (
@@ -3020,68 +3083,6 @@ Severity: ${task.severity}`;
                       </button>
                     </div>
                   </div>
-
-                  {/* Associate Details Form - shown when New Associate is selected */}
-                  {selectedAssociate === 'new' && (
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-semibold text-purple-900 mb-2">Associate Details</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Name *</label>
-                      <input
-                        type="text"
-                        value={formData.associateDetails.name}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          associateDetails: {...formData.associateDetails, name: e.target.value}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                        placeholder="Associate name"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Company</label>
-                      <input
-                        type="text"
-                        value={formData.associateDetails.company}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          associateDetails: {...formData.associateDetails, company: e.target.value}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                        placeholder="Company name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                      <input
-                        type="email"
-                        value={formData.associateDetails.email}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          associateDetails: {...formData.associateDetails, email: e.target.value}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                        placeholder="email@example.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
-                      <input
-                        type="tel"
-                        value={formData.associateDetails.phone}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          associateDetails: {...formData.associateDetails, phone: e.target.value}
-                        })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                        placeholder="+1 234 567 8900"
-                      />
-                    </div>
-                  </div>
-                    </div>
-                  )}
                 </div>
               )}
 
