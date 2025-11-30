@@ -219,6 +219,13 @@ const TaskManagementSystem = () => {
       setIsInstalled(isStandalone || isInWebAppiOS);
     };
 
+    // Check if mobile device
+    const isMobile = () => {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+             window.innerWidth <= 768;
+    };
+
     checkInstalled();
 
     // Listen for beforeinstallprompt event
@@ -227,11 +234,19 @@ const TaskManagementSystem = () => {
       e.preventDefault();
       setDeferredPrompt(e);
       
-      // Show install prompt after a delay if not installed
+      // For mobile devices, show install prompt immediately and more prominently
       if (!isInstalled) {
-        setTimeout(() => {
-          setShowInstallPrompt(true);
-        }, 3000);
+        if (isMobile()) {
+          // Show immediately on mobile for better user experience
+          setTimeout(() => {
+            setShowInstallPrompt(true);
+          }, 1500);
+        } else {
+          // Delay for desktop
+          setTimeout(() => {
+            setShowInstallPrompt(true);
+          }, 3000);
+        }
       }
     };
 
@@ -246,16 +261,38 @@ const TaskManagementSystem = () => {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    // For mobile devices that don't trigger beforeinstallprompt (like iOS Safari)
+    // Show install prompt anyway if on mobile and not installed
+    if (!isInstalled && isMobile() && !deferredPrompt) {
+      setTimeout(() => {
+        console.log('📱 Mobile device detected, showing install prompt');
+        setShowInstallPrompt(true);
+      }, 2000);
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [isInstalled]);
+  }, [isInstalled, deferredPrompt]);
 
   // Handle PWA installation
   const handleInstallPWA = async () => {
-    if (!deferredPrompt) {
+    // Check if it's iOS Safari (which doesn't support standard PWA installation)
+    const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    if (!deferredPrompt && !isIOSSafari) {
       console.log('No install prompt available');
+      // Show manual installation instructions
+      alert('To install this app:\n\n• Chrome/Edge: Look for the install icon in the address bar\n• Firefox: Menu → Install this site as an app\n• Safari: Share → Add to Home Screen');
+      setShowInstallPrompt(false);
+      return;
+    }
+
+    if (isIOSSafari) {
+      // iOS Safari manual installation instructions
+      alert('To install TriDo on iOS:\n\n1. Tap the Share button (square with arrow)\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm\n\nTriDo will then appear as an app icon on your home screen!');
+      setShowInstallPrompt(false);
       return;
     }
 
@@ -280,6 +317,9 @@ const TaskManagementSystem = () => {
       setDeferredPrompt(null);
     } catch (error) {
       console.error('PWA installation failed:', error);
+      // Fallback: show manual instructions
+      alert('To install this app:\n\n• Look for the install icon in your browser address bar\n• Or check your browser menu for "Install" or "Add to Home Screen" option');
+      setShowInstallPrompt(false);
     }
   };
 
@@ -4961,33 +5001,77 @@ Project: ${task.project}`;
         </div>
       </div>
 
-      {/* PWA Installation Prompt */}
+      {/* PWA Installation Prompt - Enhanced for Mobile */}
       {showInstallPrompt && !isInstalled && (
-        <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-80 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl shadow-2xl z-50 p-4 animate-slide-up">
-          <div className="flex items-start gap-3">
-            <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2L2 7v10c0 5.55 3.84 9.95 9 11 5.16-1.05 9-5.45 9-11V7l-10-5z"/>
-                <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" fill="none"/>
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-lg mb-1">Install TriDo App</h3>
-              <p className="text-blue-100 text-sm mb-3">
-                Get the full app experience with offline access, push notifications, and home screen icon!
+        <div className="install-prompt fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50 p-0 animate-fade-in">
+          {/* Mobile-first install modal */}
+          <div className="bg-white rounded-t-3xl md:rounded-2xl w-full md:w-96 md:max-w-md mx-0 md:mx-4 shadow-2xl animate-slide-up">
+            {/* Header with app icon */}
+            <div className="p-6 text-center border-b border-gray-100">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Add TriDo to Home Screen</h2>
+              <p className="text-gray-600 text-sm">
+                Install TriDo for the best mobile experience with offline access and notifications
               </p>
-              <div className="flex gap-2">
+            </div>
+
+            {/* Features */}
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-medium text-gray-900">Offline Access</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 bg-green-50 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 010-15c2.5 0 4.5 1 6 2.5L15 7.5z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-medium text-gray-900">Fast Loading</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 bg-purple-50 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 010-15c2.5 0 4.5 1 6 2.5L15 7.5z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-medium text-gray-900">Notifications</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 mx-auto mb-2 bg-orange-50 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-medium text-gray-900">Home Icon</p>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="space-y-3 pt-4">
                 <button
                   onClick={handleInstallPWA}
-                  className="flex-1 bg-white text-blue-600 font-semibold py-2 px-4 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg flex items-center justify-center gap-2"
                 >
-                  📱 Install App
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Add to Home Screen
                 </button>
                 <button
                   onClick={() => setShowInstallPrompt(false)}
-                  className="px-3 py-2 text-white hover:bg-white hover:bg-opacity-10 rounded-lg transition-colors"
+                  className="w-full bg-gray-100 text-gray-700 font-medium py-3 px-6 rounded-xl hover:bg-gray-200 transition-colors"
                 >
-                  ✕
+                  Maybe Later
                 </button>
               </div>
             </div>

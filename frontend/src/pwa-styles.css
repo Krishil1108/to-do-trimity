@@ -2,7 +2,7 @@
 @keyframes slide-up {
   from {
     opacity: 0;
-    transform: translateY(100px);
+    transform: translateY(100%);
   }
   to {
     opacity: 1;
@@ -10,8 +10,27 @@
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .animate-slide-up {
-  animation: slide-up 0.5s ease-out;
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Mobile-first install modal */
+.install-modal {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* PWA Specific Styles */
@@ -25,6 +44,20 @@
   body {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+    user-select: none; /* Prevent text selection for app-like feel */
+    -webkit-touch-callout: none; /* Disable iOS callout */
+    -webkit-user-select: none;
+  }
+  
+  /* Ensure full viewport coverage */
+  #root {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Hide install prompts when in standalone mode */
+  .install-prompt {
+    display: none !important;
   }
 }
 
