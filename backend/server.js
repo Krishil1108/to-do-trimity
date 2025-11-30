@@ -36,11 +36,13 @@ const taskRoutes = require('./routes/tasks');
 const userRoutes = require('./routes/users');
 const { router: notificationRoutes } = require('./routes/notifications');
 const projectRoutes = require('./routes/projects');
+const associateRoutes = require('./routes/associates');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/associates', associateRoutes);
 
 // Health check endpoints for keep-alive
 app.get('/health', (req, res) => {

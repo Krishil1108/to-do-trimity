@@ -322,35 +322,79 @@ const TaskManagementSystem = () => {
     }
   };
 
-  const loadAssociates = () => {
+  const loadAssociates = async () => {
     try {
-      const savedAssociates = localStorage.getItem('associates');
-      if (savedAssociates) {
-        setAssociates(JSON.parse(savedAssociates));
-      }
+      if (!currentUser?.username) return;
+      
+      const response = await axios.get(`${API_URL}/associates`, {
+        params: { createdBy: currentUser.username }
+      });
+      setAssociates(response.data);
+      console.log('📋 Fetched associates from database:', response.data);
     } catch (error) {
       console.error('Error loading associates:', error);
+      // Fallback to localStorage for backward compatibility
+      try {
+        const savedAssociates = localStorage.getItem('associates');
+        if (savedAssociates) {
+          setAssociates(JSON.parse(savedAssociates));
+        }
+      } catch (localError) {
+        console.error('Error loading associates from localStorage:', localError);
+      }
     }
   };
 
-  const saveAssociateToList = (associateData) => {
+  const saveAssociate = async (associateData) => {
     try {
-      const existingIndex = associates.findIndex(a => a.name === associateData.name);
-      let updatedAssociates;
-      
-      if (existingIndex >= 0) {
-        // Update existing associate
-        updatedAssociates = [...associates];
-        updatedAssociates[existingIndex] = associateData;
-      } else {
-        // Add new associate
-        updatedAssociates = [...associates, associateData];
+      if (!currentUser?.username) {
+        alert('Please log in to save associates');
+        return;
       }
 
-      setAssociates(updatedAssociates);
-      localStorage.setItem('associates', JSON.stringify(updatedAssociates));
+      const dataToSend = {
+        ...associateData,
+        createdBy: currentUser.username
+      };
+
+      const response = await axios.post(`${API_URL}/associates`, dataToSend);
+      
+      console.log('✅ Associate saved to database:', response.data);
+      
+      // Refresh associates list
+      await loadAssociates();
+      
+      return response.data;
+      
     } catch (error) {
       console.error('Error saving associate:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to save associate';
+      throw new Error(errorMessage);
+    }
+  };
+
+  const deleteAssociate = async (associateId) => {
+    try {
+      await axios.delete(`${API_URL}/associates/${associateId}`);
+      
+      // Refresh associates list
+      await loadAssociates();
+      
+      console.log('✅ Associate deleted from database');
+      
+    } catch (error) {
+      console.error('Error deleting associate:', error);
+      throw new Error(error.response?.data?.message || 'Failed to delete associate');
+    }
+  };
+
+  const saveAssociateToList = async (associateData) => {
+    try {
+      await saveAssociate(associateData);
+      console.log('✅ Associate saved successfully');
+    } catch (error) {
+      console.error('❌ Error saving associate:', error);
+      alert('Failed to save associate: ' + error.message);
     }
   };
 
@@ -4110,10 +4154,22 @@ Status: ${task.status}`;
                           </div>
                         </div>
                         <button
-                          onClick={() => {
-                            const updatedAssociates = associates.filter((_, i) => i !== index);
-                            setAssociates(updatedAssociates);
-                            localStorage.setItem('associates', JSON.stringify(updatedAssociates));
+                          onClick={async () => {
+                            try {
+                              if (assoc._id) {
+                                // Delete from database if it has an ID
+                                await deleteAssociate(assoc._id);
+                                alert('Associate deleted successfully');
+                              } else {
+                                // Handle old localStorage entries without _id
+                                const updatedAssociates = associates.filter((_, i) => i !== index);
+                                setAssociates(updatedAssociates);
+                                localStorage.setItem('associates', JSON.stringify(updatedAssociates));
+                              }
+                            } catch (error) {
+                              console.error('Error deleting associate:', error);
+                              alert('Failed to delete associate: ' + error.message);
+                            }
                           }}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete associate"
@@ -4179,10 +4235,12 @@ Status: ${task.status}`;
                           const value = e.target.value;
                           setSelectedAssociate(value);
                           if (value) {
-                            const assoc = associates.find(a => a.name === value);
+                            // Find associate by ID first, then fallback to name for old entries
+                            const assoc = associates.find(a => a._id === value || a.name === value);
                             if (assoc) {
                               setFormData({
                                 ...formData,
+                                associateId: assoc._id, // Store the database ID
                                 associateDetails: {
                                   name: assoc.name,
                                   company: assoc.company || '',
@@ -4194,6 +4252,7 @@ Status: ${task.status}`;
                           } else {
                             setFormData({
                               ...formData,
+                              associateId: null,
                               associateDetails: { name: '', company: '', email: '', phone: '' }
                             });
                           }
@@ -4202,8 +4261,8 @@ Status: ${task.status}`;
                         required
                       >
                         <option value="">Select Associate</option>
-                        {associates.map((assoc, idx) => (
-                          <option key={idx} value={assoc.name}>
+                        {associates.map((assoc) => (
+                          <option key={assoc._id || assoc.name} value={assoc._id || assoc.name}>
                             {assoc.name}{assoc.company ? ` (${assoc.company})` : ''}
                           </option>
                         ))}
