@@ -987,7 +987,7 @@ Project: ${task.project}`;
     const taskInfo = `To: ${assignedToInfo}
 Task Name: ${task.title}
 Description: ${task.description || 'No description'}
-Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString()}
+Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
 Priority: ${task.priority}
 Project: ${task.project}`;
     
@@ -1019,7 +1019,7 @@ Project: ${task.project}`;
       return `To: ${assignedToInfo}
 Task Name: ${task.title}
 Description: ${task.description || 'No description'}
-Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString()}
+Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
 Priority: ${task.priority}
 Project: ${task.project}`;
     }).filter(Boolean).join('\n' + '='.repeat(49) + '\n');
