@@ -45,36 +45,38 @@ router.post('/', async (req, res) => {
     const { name, company, email, phone, createdBy } = req.body;
     
     // Validate required fields
-    if (!name || !company || !email || !createdBy) {
+    if (!name || !createdBy) {
       return res.status(400).json({ 
-        message: 'Name, company, email, and createdBy are required' 
+        message: 'Name and createdBy are required' 
       });
     }
     
-    // Check if associate with this email already exists for this user
-    const existingAssociate = await Associate.findOne({ 
-      email: email.toLowerCase(),
-      createdBy: createdBy,
-      isActive: true
-    });
-    
-    if (existingAssociate) {
-      return res.status(400).json({ 
-        message: 'An associate with this email already exists' 
+    // Check if associate with this email already exists for this user (only if email is provided)
+    if (email) {
+      const existingAssociate = await Associate.findOne({ 
+        email: email.toLowerCase(),
+        createdBy: createdBy,
+        isActive: true
       });
+      
+      if (existingAssociate) {
+        return res.status(400).json({ 
+          message: 'An associate with this email already exists' 
+        });
+      }
     }
     
     const associate = new Associate({
       name: name.trim(),
-      company: company.trim(),
-      email: email.toLowerCase().trim(),
+      company: company ? company.trim() : '',
+      email: email ? email.toLowerCase().trim() : '',
       phone: phone ? phone.trim() : '',
       createdBy: createdBy
     });
     
     const savedAssociate = await associate.save();
     
-    console.log(`✅ New associate created: ${savedAssociate.name} (${savedAssociate.email})`);
+    console.log(`✅ New associate created: ${savedAssociate.name}${savedAssociate.email ? ` (${savedAssociate.email})` : ''}`);
     
     res.status(201).json(savedAssociate);
   } catch (error) {
@@ -126,7 +128,7 @@ router.put('/:id', async (req, res) => {
     
     const updatedAssociate = await associate.save();
     
-    console.log(`✅ Associate updated: ${updatedAssociate.name} (${updatedAssociate.email})`);
+    console.log(`✅ Associate updated: ${updatedAssociate.name}${updatedAssociate.email ? ` (${updatedAssociate.email})` : ''}`);
     
     res.json(updatedAssociate);
   } catch (error) {
@@ -148,7 +150,7 @@ router.delete('/:id', async (req, res) => {
     associate.isActive = false;
     await associate.save();
     
-    console.log(`🗑️ Associate soft deleted: ${associate.name} (${associate.email})`);
+    console.log(`🗑️ Associate soft deleted: ${associate.name}${associate.email ? ` (${associate.email})` : ''}`);
     
     res.json({ message: 'Associate deleted successfully' });
   } catch (error) {

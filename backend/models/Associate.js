@@ -8,18 +8,16 @@ const associateSchema = new mongoose.Schema({
   },
   company: {
     type: String,
-    required: true,
     trim: true
   },
   email: {
     type: String,
-    required: true,
-    unique: true,
     lowercase: true,
     trim: true,
     validate: {
       validator: function(v) {
-        return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v);
+        // Only validate if email is provided
+        return !v || /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(v);
       },
       message: 'Please enter a valid email address'
     }
@@ -41,7 +39,7 @@ const associateSchema = new mongoose.Schema({
 });
 
 // Add index for faster queries
-associateSchema.index({ email: 1 });
+associateSchema.index({ email: 1 }, { sparse: true }); // Sparse index for optional email
 associateSchema.index({ createdBy: 1 });
 associateSchema.index({ company: 1 });
 
