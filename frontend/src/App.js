@@ -4972,13 +4972,23 @@ Project: ${task.project}`;
             <span className="text-xs font-medium whitespace-nowrap">All Tasks</span>
           </button>
           <button
+            onClick={() => {
+              setFormData({...formData, assignedBy: currentUser.username});
+              setShowTaskModal(true);
+            }}
+            className="flex flex-col items-center justify-center py-2 px-3 bg-blue-600 text-white rounded-lg min-w-max"
+          >
+            <Plus className="w-4 h-4 mb-1" />
+            <span className="text-xs font-medium whitespace-nowrap">Add</span>
+          </button>
+          <button
             onClick={() => setCurrentView('assigned-by-me')}
             className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
               currentView === 'assigned-by-me' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
             <UserPlus className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium whitespace-nowrap">Assigned</span>
+            <span className="text-xs font-medium whitespace-nowrap">Assigned by Me</span>
           </button>
           <button
             onClick={() => setCurrentView('associate-tasks')}
@@ -5000,16 +5010,6 @@ Project: ${task.project}`;
               <span className="text-xs font-medium whitespace-nowrap">Reports</span>
             </button>
           )}
-          <button
-            onClick={() => {
-              setFormData({...formData, assignedBy: currentUser.username});
-              setShowTaskModal(true);
-            }}
-            className="flex flex-col items-center justify-center py-2 px-3 bg-blue-600 text-white rounded-lg min-w-max"
-          >
-            <Plus className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium whitespace-nowrap">Add</span>
-          </button>
           <button
             onClick={() => setCurrentView('settings')}
             className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
