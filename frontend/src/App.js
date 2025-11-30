@@ -261,13 +261,14 @@ const TaskManagementSystem = () => {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // For mobile devices that don't trigger beforeinstallprompt (like iOS Safari)
-    // Show install prompt anyway if on mobile and not installed
-    if (!isInstalled && isMobile() && !deferredPrompt) {
+    // Always show install prompt on mobile if not already installed
+    // This ensures popup appears even if beforeinstallprompt doesn't fire
+    if (!isInstalled) {
+      const showDelay = isMobile() ? 1000 : 3000; // Faster on mobile
       setTimeout(() => {
-        console.log('📱 Mobile device detected, showing install prompt');
+        console.log('📱 Showing install prompt - Mobile:', isMobile(), 'Installed:', isInstalled);
         setShowInstallPrompt(true);
-      }, 2000);
+      }, showDelay);
     }
 
     return () => {
@@ -4067,6 +4068,18 @@ Project: ${task.project}`;
             </div>
             
             <div className="flex items-center gap-1 sm:gap-3">
+              {!isInstalled && (
+                <button
+                  onClick={() => setShowInstallPrompt(true)}
+                  className="flex items-center gap-1 px-2 sm:px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-xs sm:text-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Install App</span>
+                  <span className="sm:hidden">📱</span>
+                </button>
+              )}
               <button
                 onClick={() => {
                   setFormData({...formData, assignedBy: currentUser.username});
