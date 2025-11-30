@@ -4952,52 +4952,52 @@ Project: ${task.project}`;
 
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-30">
-        <div className={`grid gap-1 px-1 py-2 ${currentUser?.name === 'Ketul Lathia' ? 'grid-cols-7' : 'grid-cols-6'}`}>
+        <div className={`grid gap-0.5 px-0.5 py-1.5 ${currentUser?.name === 'Ketul Lathia' ? 'grid-cols-7' : 'grid-cols-6'}`}>
           <button
             onClick={() => setCurrentView('my-tasks')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+            className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded transition-colors ${
               currentView === 'my-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
-            <User className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium">My Tasks</span>
+            <User className="w-3.5 h-3.5 mb-0.5" />
+            <span className="text-xs font-medium leading-tight">My Tasks</span>
           </button>
           <button
             onClick={() => setCurrentView('all-tasks')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+            className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded transition-colors ${
               currentView === 'all-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
-            <LayoutGrid className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium">All Tasks</span>
+            <LayoutGrid className="w-3.5 h-3.5 mb-0.5" />
+            <span className="text-xs font-medium leading-tight">All Tasks</span>
           </button>
           <button
             onClick={() => setCurrentView('assigned-by-me')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+            className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded transition-colors ${
               currentView === 'assigned-by-me' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
-            <UserPlus className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium">Assigned</span>
+            <UserPlus className="w-3.5 h-3.5 mb-0.5" />
+            <span className="text-xs font-medium leading-tight">Assigned</span>
           </button>
           <button
             onClick={() => setCurrentView('associate-tasks')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+            className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded transition-colors ${
               currentView === 'associate-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
-            <Users className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium">Associates</span>
+            <Users className="w-3.5 h-3.5 mb-0.5" />
+            <span className="text-xs font-medium leading-tight">Associates</span>
           </button>
           {currentUser?.name === 'Ketul Lathia' && (
             <button
               onClick={() => setCurrentView('admin-reports')}
-              className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+              className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded transition-colors ${
                 currentView === 'admin-reports' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
               }`}
             >
-              <BarChart3 className="w-4 h-4 mb-1" />
-              <span className="text-xs font-medium">Reports</span>
+              <BarChart3 className="w-3.5 h-3.5 mb-0.5" />
+              <span className="text-xs font-medium leading-tight">Reports</span>
             </button>
           )}
           <button
@@ -5005,19 +5005,19 @@ Project: ${task.project}`;
               setFormData({...formData, assignedBy: currentUser.username});
               setShowTaskModal(true);
             }}
-            className="flex flex-col items-center justify-center py-2 px-1 bg-blue-600 text-white rounded-lg"
+            className="flex flex-col items-center justify-center py-1.5 px-0.5 bg-blue-600 text-white rounded"
           >
-            <Plus className="w-5 h-5 mb-1" />
-            <span className="text-xs font-medium">Add</span>
+            <Plus className="w-4 h-4 mb-0.5" />
+            <span className="text-xs font-medium leading-tight">Add</span>
           </button>
           <button
             onClick={() => setCurrentView('settings')}
-            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+            className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded transition-colors ${
               currentView === 'settings' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
-            <Bell className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium">Settings</span>
+            <Bell className="w-3.5 h-3.5 mb-0.5" />
+            <span className="text-xs font-medium leading-tight">Settings</span>
           </button>
         </div>
       </div>
