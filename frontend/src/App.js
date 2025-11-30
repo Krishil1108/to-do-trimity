@@ -1806,32 +1806,32 @@ Project: ${task.project}`;
     return (
       <div className="space-y-6">
         {showStats && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-6 text-white shadow-lg">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-4 sm:p-6 text-white shadow-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-yellow-100 text-sm font-medium">Pending</p>
-                  <p className="text-4xl font-bold mt-2">{stats.pending}</p>
+                  <p className="text-yellow-100 text-xs sm:text-sm font-medium">Pending</p>
+                  <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">{stats.pending}</p>
                 </div>
-                <Clock className="w-12 h-12 opacity-50" />
+                <Clock className="w-8 h-8 sm:w-12 sm:h-12 opacity-50" />
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl p-4 sm:p-6 text-white shadow-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium">In Progress</p>
-                  <p className="text-4xl font-bold mt-2">{stats.inProgress}</p>
+                  <p className="text-blue-100 text-xs sm:text-sm font-medium">In Progress</p>
+                  <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">{stats.inProgress}</p>
                 </div>
-                <Users className="w-12 h-12 opacity-50" />
+                <Users className="w-8 h-8 sm:w-12 sm:h-12 opacity-50" />
               </div>
             </div>
-            <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-4 sm:p-6 text-white shadow-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium">Completed</p>
-                  <p className="text-4xl font-bold mt-2">{stats.completed}</p>
+                  <p className="text-green-100 text-xs sm:text-sm font-medium">Completed</p>
+                  <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">{stats.completed}</p>
                 </div>
-                <Check className="w-12 h-12 opacity-50" />
+                <Check className="w-8 h-8 sm:w-12 sm:h-12 opacity-50" />
               </div>
             </div>
             <div className="bg-gradient-to-br from-red-400 to-red-500 rounded-xl p-6 text-white shadow-lg">
@@ -2053,52 +2053,52 @@ Project: ${task.project}`;
     const assignedByUser = users.find(u => u.username === task.assignedBy);
 
     return (
-      <div className={`bg-white rounded-lg border-2 p-4 hover:shadow-md transition-all ${STATUS_COLORS[task.status]}`}>
+      <div className={`bg-white rounded-lg border-2 p-3 sm:p-4 hover:shadow-md transition-all ${STATUS_COLORS[task.status]}`}>
         <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h4 className="font-semibold text-gray-900">{task.title}</h4>
-              <span className={`px-2 py-1 rounded text-xs font-medium ${PRIORITY_COLORS[task.priority]} border`}>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
+              <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{task.title}</h4>
+              <span className={`px-2 py-1 rounded text-xs font-medium ${PRIORITY_COLORS[task.priority]} border inline-block w-fit`}>
                 {task.priority}
               </span>
             </div>
-            <p className="text-sm text-gray-600 mb-2 line-clamp-2">{task.description || 'No description'}</p>
+            <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{task.description || 'No description'}</p>
           </div>
           {showActions && (
-            <div className="flex items-center gap-1 ml-4">
+            <div className="flex items-center gap-1 ml-2 sm:ml-4 flex-shrink-0">
               {/* Copy and WhatsApp buttons for associate tasks */}
               {showCopyButton && (
                 <>
                   <button
                     onClick={() => copyTaskToClipboard(task)}
-                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    className="p-1.5 sm:p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                     title="Copy Task Details"
                   >
-                    <FileText className="w-5 h-5" />
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                   <button
                     onClick={() => sendToWhatsApp(task)}
-                    className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    className="p-1.5 sm:p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                     title="Send via WhatsApp"
                   >
-                    <MessageCircle className="w-5 h-5" />
+                    <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                   {/* Done and Cross buttons for associate tasks - anyone can mark */}
                   {task.status !== 'Completed' && (
                     <>
                       <button
                         onClick={() => handleCompleteTask(task)}
-                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                         title="Mark as Complete"
                       >
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                       <button
                         onClick={() => handleMarkOverdue(task)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Mark as Overdue"
                       >
-                        <XCircle className="w-5 h-5" />
+                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                       </button>
                     </>
                   )}
@@ -2172,8 +2172,8 @@ Project: ${task.project}`;
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
             <span className="flex items-center gap-1 text-gray-600">
               <Calendar className="w-3 h-3" />
               {new Date(task.outDate).toLocaleDateString()}
@@ -2184,11 +2184,11 @@ Project: ${task.project}`;
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className={`px-2 py-1 rounded text-xs font-medium ${SEVERITY_BADGES[task.severity]}`}>
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium ${SEVERITY_BADGES[task.severity]}`}>
               {task.severity}
             </span>
-            <span className={`px-2 py-1 rounded text-xs font-medium border ${STATUS_COLORS[task.status]}`}>
+            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium border ${STATUS_COLORS[task.status]}`}>
               {task.status}
             </span>
           </div>
@@ -3803,39 +3803,45 @@ Project: ${task.project}`;
       )}
       
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-900">TriDo</h1>
-              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-lg">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">TriDo</h1>
+              <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-lg">
                 <User className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-900">{currentUser.name}</span>
                 <span className="text-xs text-blue-600 px-2 py-0.5 bg-blue-100 rounded">
                   {currentUser.department}
                 </span>
               </div>
+              {/* Mobile user info */}
+              <div className="lg:hidden flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs">
+                <User className="w-3 h-3 text-blue-600" />
+                <span className="text-blue-900 font-medium">{currentUser.name.split(' ')[0]}</span>
+              </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 sm:gap-3">
               <button
                 onClick={() => {
                   setFormData({...formData, assignedBy: currentUser.username});
                   setShowTaskModal(true);
                 }}
-                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Assign Task</span>
+                <span className="sm:hidden">Add</span>
               </button>
               
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="relative p-2 sm:p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -3843,23 +3849,24 @@ Project: ${task.project}`;
 
               <button
                 onClick={() => setShowAdvancedMenu(!showAdvancedMenu)}
-                className="p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="hidden md:block p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Menu className="w-5 h-5" />
               </button>
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm sm:text-base"
                 title="Logout"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>
           
           {showAdvancedMenu && (
-            <div className="mt-3 flex gap-2 pb-2 border-t pt-3">
+            <div className="mt-3 flex flex-wrap gap-1 sm:gap-2 pb-2 border-t pt-3 overflow-x-auto">
               <button
                 onClick={() => { setCurrentView('my-tasks'); setShowAdvancedMenu(false); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -3924,7 +3931,7 @@ Project: ${task.project}`;
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-20 sm:pb-8">
         {currentView === 'my-tasks' && <MyTasksDashboard />}
         {currentView === 'all-tasks' && <AllTasksView />}
         {currentView === 'assigned-by-me' && <AssignedByMeView />}
@@ -4169,17 +4176,17 @@ Project: ${task.project}`;
 
       {/* Task Modal */}
       {showTaskModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-semibold">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-2xl w-full h-[95vh] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-100 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+              <h2 className="text-lg sm:text-xl font-semibold">
                 {editingTask ? 'Edit Task' : 'Assign New Task'}
               </h2>
-              <button onClick={() => { setShowTaskModal(false); resetForm(); }} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
+              <button onClick={() => { setShowTaskModal(false); resetForm(); }} className="text-gray-400 hover:text-gray-600 p-1">
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4 pb-20 sm:pb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Assign To *</label>
                 <select
@@ -4191,7 +4198,7 @@ Project: ${task.project}`;
                       setFormData({...formData, isAssociate: false, assignedTo: e.target.value});
                     }
                   }}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                   required
                 >
                   <option value="">Select User</option>
@@ -4697,6 +4704,58 @@ Project: ${task.project}`;
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-30">
+        <div className="grid grid-cols-5 gap-1 px-2 py-2">
+          <button
+            onClick={() => setCurrentView('my-tasks')}
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+              currentView === 'my-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
+            }`}
+          >
+            <User className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">My Tasks</span>
+          </button>
+          <button
+            onClick={() => setCurrentView('all-tasks')}
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+              currentView === 'all-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
+            }`}
+          >
+            <LayoutGrid className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">All Tasks</span>
+          </button>
+          <button
+            onClick={() => {
+              setFormData({...formData, assignedBy: currentUser.username});
+              setShowTaskModal(true);
+            }}
+            className="flex flex-col items-center justify-center py-2 px-1 bg-blue-600 text-white rounded-lg"
+          >
+            <Plus className="w-6 h-6 mb-1" />
+            <span className="text-xs font-medium">Add Task</span>
+          </button>
+          <button
+            onClick={() => setCurrentView('associate-tasks')}
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+              currentView === 'associate-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
+            }`}
+          >
+            <Users className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">Associates</span>
+          </button>
+          <button
+            onClick={() => setCurrentView('settings')}
+            className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
+              currentView === 'settings' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
+            }`}
+          >
+            <Bell className="w-5 h-5 mb-1" />
+            <span className="text-xs font-medium">Settings</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
