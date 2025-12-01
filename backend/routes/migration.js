@@ -60,7 +60,7 @@ router.post('/fix-indexes', async (req, res) => {
         { 
           unique: true,
           partialFilterExpression: { 
-            email: { $type: 'string', $ne: null, $ne: '' } 
+            email: { $type: 'string', $exists: true, $gt: '' } 
           },
           name: 'email_createdBy_unique_partial'
         }

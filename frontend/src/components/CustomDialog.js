@@ -69,7 +69,7 @@ const CustomDialog = ({ isOpen, onClose, title, message, type = 'info', onConfir
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fadeIn">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fadeIn">
       <div className="bg-white rounded-lg shadow-2xl max-w-md w-full animate-slideUp">
         {/* Header */}
         <div className={`${colors.bg} ${colors.border} border-b px-6 py-4 rounded-t-lg flex items-center justify-between`}>

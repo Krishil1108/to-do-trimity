@@ -47,7 +47,7 @@ associateSchema.index(
   { 
     unique: true,
     partialFilterExpression: { 
-      email: { $type: 'string', $ne: null, $ne: '' }
+      email: { $type: 'string', $exists: true, $gt: '' }
     }
   }
 );
