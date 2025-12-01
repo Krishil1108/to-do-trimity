@@ -1140,16 +1140,12 @@ Priority: ${task.priority}`;
   };
 
   const sendToWhatsApp = (task) => {
-    const assignedToInfo = task.isAssociate && task.associateDetails 
-      ? `${task.associateDetails.name}${task.associateDetails.company ? ` (${task.associateDetails.company})` : ''}`
-      : task.assignedTo;
-
-    const taskInfo = `To: ${assignedToInfo}
+    // Use same format as copy function
+    const taskInfo = `Project: ${task.project}
 Task Name: ${task.title}
 Description: ${task.description || 'No description'}
 Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
-Priority: ${task.priority}
-Project: ${task.project}`;
+Priority: ${task.priority}`;
     
     const phoneNumber = task.isAssociate && task.associateDetails?.phone 
       ? task.associateDetails.phone.replace(/\D/g, '')
