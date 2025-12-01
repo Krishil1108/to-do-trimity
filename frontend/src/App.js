@@ -929,6 +929,19 @@ const TaskManagementSystem = () => {
     }
   };
 
+  const clearAllNotifications = async () => {
+    if (!window.confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      await axios.delete(`${API_URL}/notifications/user/${currentUser.username}/clear-all`);
+      loadNotifications();
+    } catch (error) {
+      console.error('Error clearing all notifications:', error);
+      alert('Failed to clear notifications');
+    }
+  };
+
   const createNotification = async (taskId, userId, message, type, assignedBy) => {
     try {
       console.log('📢 createNotification called with:', {
@@ -1316,13 +1329,31 @@ Priority: ${task.priority}`;
   const handleStatusChange = async (task, newStatus) => {
     try {
       setLoading(true);
-      const updatedTask = {
-        ...task,
+      
+      // Clean task data - only send necessary fields for update
+      const taskUpdateData = {
+        project: task.project,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        severity: task.severity,
+        inDate: task.inDate,
+        outDate: task.outDate,
+        team: task.team,
+        associates: task.associates || [],
+        assignedBy: task.assignedBy,
+        assignedTo: task.assignedTo,
+        isAssociate: task.isAssociate,
+        associateDetails: task.associateDetails,
+        reminder: task.reminder || null,
+        whatsapp: task.whatsapp,
         status: newStatus,
+        completionReason: task.completionReason || '',
+        overdueReason: task.overdueReason || '',
         ...(newStatus === 'Completed' && { completedAt: new Date().toISOString() })
       };
       
-      await axios.put(`${API_URL}/tasks/${task._id}`, updatedTask);
+      await axios.put(`${API_URL}/tasks/${task._id}`, taskUpdateData);
       
       // Notify task creator about status change
       await createNotification(
@@ -1336,7 +1367,8 @@ Priority: ${task.priority}`;
       await loadTasks();
     } catch (error) {
       console.error('Error updating task status:', error);
-      alert('Failed to update task status');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update task status';
+      alert(`Failed to update task status: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -2385,10 +2417,20 @@ Priority: ${task.priority}`;
   // My Tasks Dashboard
   const MyTasksDashboard = () => {
     const myTasks = getMyTasks();
-    const pendingTasks = myTasks.filter(t => t.status === 'Pending');
-    const inProgressTasks = myTasks.filter(t => t.status === 'In Progress');
-    const completedTasks = myTasks.filter(t => t.status === 'Completed');
-    const overdueTasks = myTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
+    
+    // Apply filters to my tasks
+    const filteredMyTasks = myTasks.filter(task => {
+      if (filters.project && task.project !== filters.project) return false;
+      if (filters.priority && task.priority !== filters.priority) return false;
+      if (filters.severity && task.severity !== filters.severity) return false;
+      if (filters.status && task.status !== filters.status) return false;
+      return true;
+    });
+    
+    const pendingTasks = filteredMyTasks.filter(t => t.status === 'Pending');
+    const inProgressTasks = filteredMyTasks.filter(t => t.status === 'In Progress');
+    const completedTasks = filteredMyTasks.filter(t => t.status === 'Completed');
+    const overdueTasks = filteredMyTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
 
     return (
       <div className="space-y-6">
@@ -2432,11 +2474,88 @@ Priority: ${task.priority}`;
           </div>
         </div>
 
+        {/* Filters */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filters
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
+              <select
+                value={filters.project || ''}
+                onChange={(e) => setFilters({...filters, project: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                {projects.map((p, idx) => {
+                  const projectName = typeof p === 'string' ? p : p?.name || '';
+                  const projectKey = typeof p === 'object' ? p?._id : idx;
+                  return <option key={projectKey} value={projectName}>{projectName}</option>;
+                })}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+              <select
+                value={filters.priority || ''}
+                onChange={(e) => setFilters({...filters, priority: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
+              <select
+                value={filters.severity || ''}
+                onChange={(e) => setFilters({...filters, severity: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Minor">Minor</option>
+                <option value="Major">Major</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select
+                value={filters.status || ''}
+                onChange={(e) => setFilters({...filters, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Overdue">Overdue</option>
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <button 
+                onClick={() => setFilters({})}
+                className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
           {/* Export Button */}
           <button
-            onClick={() => exportTaskList(myTasks, 'excel', 'my_tasks')}
+            onClick={() => exportTaskList(filteredMyTasks, 'excel', 'my_tasks')}
             className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
             <Download className="w-4 h-4" />
@@ -2464,7 +2583,7 @@ Priority: ${task.priority}`;
 
         {viewMode === 'table' ? (
           <TableView 
-            tasks={myTasks} 
+            tasks={filteredMyTasks} 
             showActions={true}
             showStats={false}
           />
@@ -4028,21 +4147,29 @@ Priority: ${task.priority}`;
   const NotificationsPanel = () => (
     <div className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-96 bg-white shadow-2xl border-l border-gray-200 z-40 overflow-y-auto">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-gray-900">Notifications</h3>
-          <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllNotificationsAsRead}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Mark all read
-              </button>
-            )}
-            <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-gray-600">
-              <X className="w-5 h-5" />
+          <button onClick={() => setShowNotifications(false)} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllNotificationsAsRead}
+              className="flex-1 text-xs text-blue-600 hover:text-blue-700 font-medium py-1.5 px-3 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              Mark all read
             </button>
-          </div>
+          )}
+          {notifications.length > 0 && (
+            <button
+              onClick={clearAllNotifications}
+              className="flex-1 text-xs text-red-600 hover:text-red-700 font-medium py-1.5 px-3 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Clear all
+            </button>
+          )}
         </div>
       </div>
 
