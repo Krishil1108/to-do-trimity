@@ -545,12 +545,24 @@ const TaskManagementSystem = () => {
         return;
       }
 
-      const dataToSend = {
-        ...associateData,
+      // Clean the data - remove empty strings and convert to undefined
+      const cleanedData = {
+        name: associateData.name.trim(),
         createdBy: currentUser.username
       };
 
-      const response = await axios.post(`${API_URL}/associates`, dataToSend);
+      // Only add optional fields if they have actual values
+      if (associateData.company && associateData.company.trim()) {
+        cleanedData.company = associateData.company.trim();
+      }
+      if (associateData.email && associateData.email.trim()) {
+        cleanedData.email = associateData.email.trim();
+      }
+      if (associateData.phone && associateData.phone.trim()) {
+        cleanedData.phone = associateData.phone.trim();
+      }
+
+      const response = await axios.post(`${API_URL}/associates`, cleanedData);
       
       console.log('✅ Associate saved to database:', response.data);
       
