@@ -14,58 +14,95 @@ async function fixAssociates() {
 
     console.log('✅ Connected to MongoDB');
 
-    // 1. Drop any unique index on email field
-    try {
-      const collection = mongoose.connection.collection('associates');
-      const indexes = await collection.indexes();
-      console.log('📋 Current indexes:', indexes);
+    const collection = mongoose.connection.collection('associates');
 
-      // Drop any unique index on email
+    // 1. Drop ALL indexes on email field (including unique ones)
+    try {
+      const indexes = await collection.indexes();
+      console.log('📋 Current indexes:', indexes.map(i => i.name));
+
       for (const index of indexes) {
-        if (index.key.email && index.unique) {
-          console.log('🗑️ Dropping unique index on email:', index.name);
+        if (index.key.email !== undefined && index.name !== '_id_') {
+          console.log('🗑️ Dropping index:', index.name);
           await collection.dropIndex(index.name);
         }
       }
+      console.log('✅ All email indexes dropped');
     } catch (error) {
-      console.log('ℹ️ No unique email index to drop or error:', error.message);
+      console.log('ℹ️ No email indexes to drop or error:', error.message);
     }
 
-    // 2. Update all associates with empty strings to undefined
-    const result = await Associate.updateMany(
+    // 2. Update ALL associates: convert empty strings to null (MongoDB treats null differently than undefined)
+    const updateResult = await collection.updateMany(
       { 
         $or: [
           { email: '' },
-          { company: '' },
-          { phone: '' }
+          { email: { $exists: false } }
         ]
       },
       {
-        $unset: {
-          email: '',
-          company: '',
-          phone: ''
-        }
+        $set: { email: null }
       }
     );
+    console.log(`✅ Updated ${updateResult.modifiedCount} associates with empty/missing emails to null`);
 
-    console.log(`✅ Updated ${result.modifiedCount} associates - converted empty strings to undefined`);
+    // Do the same for company and phone
+    await collection.updateMany(
+      { $or: [{ company: '' }, { company: { $exists: false } }] },
+      { $set: { company: null } }
+    );
+    
+    await collection.updateMany(
+      { $or: [{ phone: '' }, { phone: { $exists: false } }] },
+      { $set: { phone: null } }
+    );
+    console.log('✅ Updated company and phone fields');
 
-    // 3. Recreate the sparse index (allows multiple documents with undefined email)
-    await Associate.collection.createIndex({ email: 1 }, { sparse: true });
+    // 3. Create a partial unique index - only indexes non-null emails
+    await collection.createIndex(
+      { email: 1, createdBy: 1 },
+      { 
+        unique: true,
+        partialFilterExpression: { 
+          email: { $type: 'string', $ne: null, $ne: '' } 
+        },
+        name: 'email_createdBy_unique_partial'
+      }
+    );
+    console.log('✅ Created partial unique index on email (only for non-null/non-empty emails)');
+
+    // 4. Recreate the sparse index for queries
+    await collection.createIndex(
+      { email: 1 },
+      { 
+        sparse: true,
+        name: 'email_sparse'
+      }
+    );
     console.log('✅ Created sparse index on email field');
 
-    // 4. Show summary
+    // 5. Show summary
     const total = await Associate.countDocuments();
-    const withEmail = await Associate.countDocuments({ email: { $exists: true, $ne: null } });
+    const withEmail = await collection.countDocuments({ 
+      email: { $ne: null, $ne: '', $exists: true } 
+    });
     const withoutEmail = total - withEmail;
 
     console.log('\n📊 Summary:');
     console.log(`   Total associates: ${total}`);
     console.log(`   With email: ${withEmail}`);
-    console.log(`   Without email: ${withoutEmail}`);
+    console.log(`   Without email (null): ${withoutEmail}`);
 
-    console.log('\n✅ Migration complete!');
+    // 6. Show final indexes
+    const finalIndexes = await collection.indexes();
+    console.log('\n📋 Final indexes:');
+    finalIndexes.forEach(idx => {
+      console.log(`   - ${idx.name}: ${JSON.stringify(idx.key)}`);
+    });
+
+    console.log('\n✅ Migration complete! You can now add associates without email.');
+    console.log('💡 Only associates with actual email addresses will be checked for duplicates.');
+    
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);

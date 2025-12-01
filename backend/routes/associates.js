@@ -51,10 +51,10 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // Clean email - convert empty strings to undefined
-    const cleanEmail = email && email.trim() ? email.trim().toLowerCase() : undefined;
+    // Clean email - convert empty strings to null (not undefined)
+    const cleanEmail = email && email.trim() ? email.trim().toLowerCase() : null;
     
-    // Check if associate with this email already exists for this user (only if email is provided and not empty)
+    // Check if associate with this email already exists for this user (only if email is provided and not null)
     if (cleanEmail) {
       const existingAssociate = await Associate.findOne({ 
         email: cleanEmail,
@@ -71,9 +71,9 @@ router.post('/', async (req, res) => {
     
     const associate = new Associate({
       name: name.trim(),
-      company: company && company.trim() ? company.trim() : undefined,
+      company: company && company.trim() ? company.trim() : null,
       email: cleanEmail,
-      phone: phone && phone.trim() ? phone.trim() : undefined,
+      phone: phone && phone.trim() ? phone.trim() : null,
       createdBy: createdBy
     });
     
@@ -86,9 +86,11 @@ router.post('/', async (req, res) => {
     console.error('Error creating associate:', error);
     
     if (error.code === 11000) {
-      // Duplicate key error
+      // Duplicate key error - this should not happen with partial index
+      // But if it does, provide helpful message
+      const field = Object.keys(error.keyPattern || {})[0];
       return res.status(400).json({ 
-        message: 'An associate with this email already exists in the system' 
+        message: `An associate with this ${field || 'information'} already exists. Please run the database migration script (node fix-associates.js) to fix index issues.`
       });
     }
     
@@ -107,8 +109,8 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Associate not found' });
     }
     
-    // Clean email - convert empty strings to undefined
-    const cleanEmail = email && email.trim() ? email.trim().toLowerCase() : undefined;
+    // Clean email - convert empty strings to null
+    const cleanEmail = email && email.trim() ? email.trim().toLowerCase() : null;
     
     // Check if email is being changed to one that already exists
     if (cleanEmail && cleanEmail !== associate.email) {
@@ -126,11 +128,11 @@ router.put('/:id', async (req, res) => {
       }
     }
     
-    // Update fields - use undefined for empty values
+    // Update fields - use null for empty values
     if (name) associate.name = name.trim();
-    associate.company = company && company.trim() ? company.trim() : undefined;
+    associate.company = company && company.trim() ? company.trim() : null;
     associate.email = cleanEmail;
-    associate.phone = phone && phone.trim() ? phone.trim() : undefined;
+    associate.phone = phone && phone.trim() ? phone.trim() : null;
     
     const updatedAssociate = await associate.save();
     
