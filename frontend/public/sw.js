@@ -1,8 +1,12 @@
 // Service Worker for Task Management System
-const CACHE_NAME = 'task-manager-v5';
+// UPDATE THIS VERSION NUMBER AFTER EVERY DEPLOYMENT TO FORCE CACHE REFRESH
+const CACHE_VERSION = 'v1.0.0-' + Date.now(); // Add timestamp for unique version
+const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
 ];
+
+console.log('🚀 Service Worker starting with cache version:', CACHE_NAME);
 
 // Install Service Worker
 self.addEventListener('install', (event) => {
@@ -84,21 +88,34 @@ self.addEventListener('fetch', (event) => {
 
 // Activate Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
+  console.log('🔄 Service Worker activating with version:', CACHE_VERSION);
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      console.log('📦 Found caches:', cacheNames);
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
+            console.log('🗑️ Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      console.log('Service Worker activated and ready for push notifications');
-      // Claim all clients to ensure this SW is used immediately
+      console.log('✅ All old caches cleared');
+      console.log('✅ Service Worker activated with latest version');
+      // Claim all clients immediately to apply updates
       return self.clients.claim();
+    }).then(() => {
+      // Notify all clients about the update
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            version: CACHE_VERSION,
+            message: 'New version available - page will reload'
+          });
+        });
+      });
     })
   );
 });
@@ -316,6 +333,31 @@ self.addEventListener('sync', (event) => {
         .then(response => response.json())
         .then(data => console.log('Background sync completed:', data))
         .catch(err => console.log('Background sync failed:', err))
+    );
+  }
+});
+
+// Handle messages from clients
+self.addEventListener('message', (event) => {
+  console.log('📨 Service Worker received message:', event.data);
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('⏭️ Skipping waiting - activating new service worker immediately');
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    console.log('🗑️ Clearing all caches on demand');
+    event.waitUntil(
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      }).then(() => {
+        console.log('✅ All caches cleared');
+        // Notify client that cache is cleared
+        event.ports[0].postMessage({ success: true });
+      })
     );
   }
 });

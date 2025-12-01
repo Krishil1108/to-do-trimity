@@ -10,6 +10,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import './datepicker-styles.css';
 import './pwa-styles.css';
 import notificationService from './services/notificationService';
+import UpdateChecker from './components/UpdateChecker';
 
 // Server optimization for render.com deployment
 const keepServerAlive = () => {
@@ -4229,6 +4230,9 @@ Priority: ${task.priority}`;
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Auto-update checker component */}
+      <UpdateChecker />
+      
       {loading && (
         <div className="fixed top-0 left-0 right-0 h-1 bg-blue-500 z-50">
           <div className="h-full bg-blue-600 animate-pulse"></div>
