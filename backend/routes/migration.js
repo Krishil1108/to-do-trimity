@@ -1,13 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const Associate = require('../models/Associate');
+const mongoose = require('mongoose');
 
 // Migration endpoint to fix email indexes
 router.post('/fix-indexes', async (req, res) => {
   try {
     console.log('🔧 Starting database migration for associates...');
     
-    const collection = req.app.locals.db.collection('associates');
+    // Use mongoose connection to get the collection
+    const collection = mongoose.connection.db.collection('associates');
     const results = {
       steps: [],
       success: false
