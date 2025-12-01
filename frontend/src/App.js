@@ -1334,26 +1334,36 @@ Priority: ${task.priority}`;
       const taskUpdateData = {
         project: task.project,
         title: task.title,
-        description: task.description,
+        description: task.description || '',
         priority: task.priority,
         severity: task.severity,
         inDate: task.inDate,
         outDate: task.outDate,
-        team: task.team,
-        associates: task.associates || [],
+        team: task.team || '',
+        associates: Array.isArray(task.associates) ? task.associates : [],
         assignedBy: task.assignedBy,
         assignedTo: task.assignedTo,
-        isAssociate: task.isAssociate,
-        associateDetails: task.associateDetails,
-        reminder: task.reminder || null,
-        whatsapp: task.whatsapp,
+        isAssociate: task.isAssociate || false,
+        associateDetails: task.associateDetails || { name: '', email: '', phone: '', company: '' },
+        whatsapp: task.whatsapp || false,
         status: newStatus,
         completionReason: task.completionReason || '',
-        overdueReason: task.overdueReason || '',
-        ...(newStatus === 'Completed' && { completedAt: new Date().toISOString() })
+        overdueReason: task.overdueReason || ''
       };
       
-      await axios.put(`${API_URL}/tasks/${task._id}`, taskUpdateData);
+      // Only include reminder if it's a valid date
+      if (task.reminder && task.reminder !== '') {
+        taskUpdateData.reminder = task.reminder;
+      }
+      
+      // Add completedAt for completed status
+      if (newStatus === 'Completed') {
+        taskUpdateData.completedAt = new Date().toISOString();
+      }
+      
+      console.log('Sending task update:', taskUpdateData);
+      
+      const response = await axios.put(`${API_URL}/tasks/${task._id}`, taskUpdateData);
       
       // Notify task creator about status change
       await createNotification(
@@ -1367,7 +1377,8 @@ Priority: ${task.priority}`;
       await loadTasks();
     } catch (error) {
       console.error('Error updating task status:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to update task status';
+      console.error('Error response:', error.response?.data);
+      const errorMessage = error.response?.data?.message || error.response?.data?.details || error.message || 'Failed to update task status';
       alert(`Failed to update task status: ${errorMessage}`);
     } finally {
       setLoading(false);
