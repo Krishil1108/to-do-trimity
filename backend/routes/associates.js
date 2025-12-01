@@ -143,20 +143,29 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete (soft delete) an associate
+// Delete an associate (hard delete by default, soft delete with query param)
 router.delete('/:id', async (req, res) => {
   try {
+    const { soft } = req.query; // ?soft=true for soft delete
     const associate = await Associate.findById(req.params.id);
     
-    if (!associate || !associate.isActive) {
+    if (!associate) {
       return res.status(404).json({ message: 'Associate not found' });
     }
     
-    // Soft delete by setting isActive to false
-    associate.isActive = false;
-    await associate.save();
-    
-    console.log(`🗑️ Associate soft deleted: ${associate.name}${associate.email ? ` (${associate.email})` : ''}`);
+    if (soft === 'true') {
+      // Soft delete by setting isActive to false
+      if (!associate.isActive) {
+        return res.status(404).json({ message: 'Associate already deleted' });
+      }
+      associate.isActive = false;
+      await associate.save();
+      console.log(`🗑️ Associate soft deleted: ${associate.name}${associate.email ? ` (${associate.email})` : ''}`);
+    } else {
+      // Hard delete - permanently remove from database
+      await Associate.findByIdAndDelete(req.params.id);
+      console.log(`💀 Associate permanently deleted: ${associate.name}${associate.email ? ` (${associate.email})` : ''}`);
+    }
     
     res.json({ message: 'Associate deleted successfully' });
   } catch (error) {

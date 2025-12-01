@@ -11,6 +11,7 @@ import './datepicker-styles.css';
 import './pwa-styles.css';
 import notificationService from './services/notificationService';
 import UpdateChecker from './components/UpdateChecker';
+import CustomDialog from './components/CustomDialog';
 
 // Server optimization for render.com deployment
 const keepServerAlive = () => {
@@ -127,6 +128,51 @@ const TaskManagementSystem = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmDialogData, setConfirmDialogData] = useState({ title: '', message: '', onConfirm: null });
+  
+  // Custom Dialog state
+  const [dialog, setDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info', // 'info', 'success', 'error', 'warning', 'confirm', 'delete'
+    onConfirm: null,
+    confirmText: 'OK',
+    cancelText: 'Cancel'
+  });
+
+  // Dialog helper functions
+  const showDialog = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', cancelText = 'Cancel') => {
+    setDialog({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm,
+      confirmText,
+      cancelText
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'info',
+      onConfirm: null,
+      confirmText: 'OK',
+      cancelText: 'Cancel'
+    });
+  };
+
+  // Convenience methods for different dialog types
+  const showSuccess = (message, title = 'Success') => showDialog(title, message, 'success');
+  const showError = (message, title = 'Error') => showDialog(title, message, 'error');
+  const showWarning = (message, title = 'Warning') => showDialog(title, message, 'warning');
+  const showInfo = (message, title = 'Information') => showDialog(title, message, 'info');
+  const showConfirm = (message, onConfirm, title = 'Confirm Action') => showDialog(title, message, 'confirm', onConfirm, 'Confirm', 'Cancel');
+  const showDeleteConfirm = (message, onConfirm, title = 'Confirm Delete') => showDialog(title, message, 'delete', onConfirm, 'Delete', 'Cancel');
+  
   
   // Check if user is logged in
   useEffect(() => {
@@ -286,14 +332,14 @@ const TaskManagementSystem = () => {
     if (!deferredPrompt && !isIOSSafari) {
       console.log('No install prompt available');
       // Show manual installation instructions
-      alert('To install this app:\n\n• Chrome/Edge: Look for the install icon in the address bar\n• Firefox: Menu → Install this site as an app\n• Safari: Share → Add to Home Screen');
+      showInfo('To install this app:\n\n• Chrome/Edge: Look for the install icon in the address bar\n• Firefox: Menu → Install this site as an app\n• Safari: Share → Add to Home Screen', 'Installation Instructions');
       setShowInstallPrompt(false);
       return;
     }
 
     if (isIOSSafari) {
       // iOS Safari manual installation instructions
-      alert('To install TriDo on iOS:\n\n1. Tap the Share button (square with arrow)\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm\n\nTriDo will then appear as an app icon on your home screen!');
+      showInfo('To install TriDo on iOS:\n\n1. Tap the Share button (square with arrow)\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to confirm\n\nTriDo will then appear as an app icon on your home screen!', 'Install TriDo on iOS');
       setShowInstallPrompt(false);
       return;
     }
@@ -320,7 +366,7 @@ const TaskManagementSystem = () => {
     } catch (error) {
       console.error('PWA installation failed:', error);
       // Fallback: show manual instructions
-      alert('To install this app:\n\n• Look for the install icon in your browser address bar\n• Or check your browser menu for "Install" or "Add to Home Screen" option');
+      showInfo('To install this app:\n\n• Look for the install icon in your browser address bar\n• Or check your browser menu for "Install" or "Add to Home Screen" option', 'Installation Instructions');
       setShowInstallPrompt(false);
     }
   };
@@ -495,7 +541,7 @@ const TaskManagementSystem = () => {
   const saveAssociate = async (associateData) => {
     try {
       if (!currentUser?.username) {
-        alert('Please log in to save associates');
+        showError('Please log in to save associates', 'Login Required');
         return;
       }
 
@@ -539,16 +585,17 @@ const TaskManagementSystem = () => {
     try {
       await saveAssociate(associateData);
       console.log('✅ Associate saved successfully');
+      showSuccess('Associate saved successfully!');
     } catch (error) {
       console.error('❌ Error saving associate:', error);
-      alert('Failed to save associate: ' + error.message);
+      showError('Failed to save associate: ' + error.message);
     }
   };
 
   // Push Notification Functions
   const enablePushNotifications = async () => {
     if (!('serviceWorker' in navigator && 'PushManager' in window)) {
-      alert('Push notifications are not supported in your browser.');
+      showWarning('Push notifications are not supported in your browser.', 'Not Supported');
       return;
     }
 
@@ -558,7 +605,7 @@ const TaskManagementSystem = () => {
       // Initialize notification service first
       const initialized = await notificationService.initialize();
       if (!initialized) {
-        alert('Failed to initialize notification service. Please try again.');
+        showError('Failed to initialize notification service. Please try again.');
         return;
       }
 
@@ -569,17 +616,17 @@ const TaskManagementSystem = () => {
         if (subscription) {
           setPushNotificationsEnabled(true);
           setNotificationPermission('granted');
-          alert('Push notifications enabled successfully! You will now receive notifications for task updates.');
+          showSuccess('Push notifications enabled successfully! You will now receive notifications for task updates.');
         } else {
-          alert('Failed to enable push notifications. Please check the console and try again.');
+          showError('Failed to enable push notifications. Please check the console and try again.');
         }
       } else {
         setNotificationPermission(Notification.permission);
-        alert('Notification permission denied. Please enable notifications in your browser settings and try again.');
+        showWarning('Notification permission denied. Please enable notifications in your browser settings and try again.', 'Permission Denied');
       }
     } catch (error) {
       console.error('Error enabling push notifications:', error);
-      alert('Failed to enable push notifications: ' + error.message);
+      showError('Failed to enable push notifications: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -591,13 +638,13 @@ const TaskManagementSystem = () => {
       const success = await notificationService.unsubscribeFromPush();
       if (success) {
         setPushNotificationsEnabled(false);
-        alert('Push notifications disabled successfully!');
+        showSuccess('Push notifications disabled successfully!');
       } else {
-        alert('Failed to disable push notifications.');
+        showError('Failed to disable push notifications.');
       }
     } catch (error) {
       console.error('Error disabling push notifications:', error);
-      alert('Failed to disable push notifications.');
+      showError('Failed to disable push notifications.');
     } finally {
       setLoading(false);
     }
@@ -606,7 +653,7 @@ const TaskManagementSystem = () => {
   const testPushNotification = async () => {
     try {
       if (!pushNotificationsEnabled) {
-        alert('Please enable push notifications first.');
+        showWarning('Please enable push notifications first.', 'Notifications Not Enabled');
         return;
       }
 
@@ -653,14 +700,14 @@ const TaskManagementSystem = () => {
     } catch (error) {
       console.error('Error sending test notification:', error);
       console.error('Error details:', error.response?.data);
-      alert('Failed to send test notification: ' + (error.response?.data?.error || error.message));
+      showError('Failed to send test notification: ' + (error.response?.data?.error || error.message));
     }
   };
 
   const testBurstNotifications = async () => {
     try {
       if (!pushNotificationsEnabled) {
-        alert('Please enable push notifications first.');
+        showWarning('Please enable push notifications first.', 'Notifications Not Enabled');
         return;
       }
 
@@ -691,15 +738,15 @@ const TaskManagementSystem = () => {
       console.log('🎯 Final burst result:', result);
       
       if (result.success) {
-        alert(`💥 WhatsApp-style burst notifications initiated!\n\n${result.message}\n\n⚡ These should be VERY noticeable - just like WhatsApp or Teams!\n\nYou'll receive 3 notifications over 9 seconds with strong vibration.`);
+        showSuccess(`💥 WhatsApp-style burst notifications initiated!\n\n${result.message}\n\n⚡ These should be VERY noticeable - just like WhatsApp or Teams!\n\nYou'll receive 3 notifications over 9 seconds with strong vibration.`, 'Burst Notifications Sent');
       } else {
-        alert('❌ Failed to send burst notifications: ' + result.error);
+        showError('❌ Failed to send burst notifications: ' + result.error);
       }
       
     } catch (error) {
       console.error('Error sending burst notifications:', error);
       console.error('Error details:', error.response?.data);
-      alert('Failed to send burst notifications: ' + (error.response?.data?.error || error.message));
+      showError('Failed to send burst notifications: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -881,9 +928,9 @@ const TaskManagementSystem = () => {
       } catch (error) {
         console.error('Error saving project:', error);
         if (error.response?.data?.message) {
-          alert(error.response.data.message);
+          showError(error.response.data.message);
         } else {
-          alert('Failed to save project');
+          showError('Failed to save project');
         }
       }
     }
@@ -896,7 +943,9 @@ const TaskManagementSystem = () => {
   };
 
   const deleteProject = async (projectObj) => {
-    if (window.confirm(`Are you sure you want to delete the project "${projectObj.name}"?`)) {
+    showDeleteConfirm(
+      `Are you sure you want to delete the project "${projectObj.name}"?\n\nThis action cannot be undone.`,
+      async () => {
       try {
         await axios.delete(`${API_URL}/projects/${projectObj._id}`);
         await loadProjects();
@@ -907,9 +956,9 @@ const TaskManagementSystem = () => {
         }
       } catch (error) {
         console.error('Error deleting project:', error);
-        alert('Failed to delete project');
+        showError('Failed to delete project');
       }
-    }
+    });
   };
 
   const markNotificationAsRead = async (notificationId) => {
@@ -931,16 +980,17 @@ const TaskManagementSystem = () => {
   };
 
   const clearAllNotifications = async () => {
-    if (!window.confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
-      return;
-    }
+    showDeleteConfirm(
+      'Are you sure you want to delete all notifications? This action cannot be undone.',
+      async () => {
     try {
       await axios.delete(`${API_URL}/notifications/user/${currentUser.username}/clear-all`);
       loadNotifications();
     } catch (error) {
       console.error('Error clearing all notifications:', error);
-      alert('Failed to clear notifications');
+      showError('Failed to clear notifications');
     }
+  });
   };
 
   const createNotification = async (taskId, userId, message, type, assignedBy) => {
@@ -1040,13 +1090,13 @@ const TaskManagementSystem = () => {
 
   const handleSubmit = async () => {
     if (!formData.project || !formData.title || !formData.inDate || !formData.outDate || !formData.assignedTo) {
-      alert('Please fill in all required fields including Assigned To');
+      showError('Please fill in all required fields including Assigned To', 'Missing Required Fields');
       return;
     }
     
     // Check if associate is selected when isAssociate is true
     if (formData.isAssociate && !selectedAssociate) {
-      alert('Please select an associate from the dropdown or add a new one using the Add button');
+      showError('Please select an associate from the dropdown or add a new one using the Add button', 'Associate Required');
       return;
     }
     
@@ -1094,7 +1144,7 @@ const TaskManagementSystem = () => {
     } catch (error) {
       console.error('Error saving task:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to save task';
-      alert(`Failed to save task: ${errorMessage}`);
+      showError(`Failed to save task: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -1117,7 +1167,7 @@ const TaskManagementSystem = () => {
       await loadTasks();
     } catch (error) {
       console.error('Error deleting task:', error);
-      alert('Failed to delete task');
+      showError('Failed to delete task');
     } finally {
       setLoading(false);
     }
@@ -1132,10 +1182,10 @@ Priority: ${task.priority}`;
     
     navigator.clipboard.writeText(taskInfo).then(() => {
       setCopiedTaskData(taskInfo);
-      alert('Task details copied to clipboard!');
+      showSuccess('Task details copied to clipboard!');
     }).catch(err => {
       console.error('Failed to copy:', err);
-      alert('Failed to copy task details');
+      showError('Failed to copy task details');
     });
   };
 
@@ -1160,7 +1210,7 @@ Priority: ${task.priority}`;
 
   const copyBulkTasksToClipboard = () => {
     if (selectedAssociateTasks.length === 0) {
-      alert('Please select tasks to copy');
+      showWarning('Please select tasks to copy', 'No Tasks Selected');
       return;
     }
 
@@ -1176,11 +1226,11 @@ Priority: ${task.priority}`;
     }).filter(Boolean).join('\n' + '='.repeat(49) + '\n');
 
     navigator.clipboard.writeText(tasksInfo).then(() => {
-      alert(`${selectedAssociateTasks.length} tasks copied to clipboard!`);
+      showSuccess(`${selectedAssociateTasks.length} tasks copied to clipboard!`);
       setSelectedAssociateTasks([]);
     }).catch(err => {
       console.error('Failed to copy:', err);
-      alert('Failed to copy tasks');
+      showError('Failed to copy tasks');
     });
   };
 
@@ -1250,7 +1300,7 @@ Priority: ${task.priority}`;
 
   const submitCompleteTask = async () => {
     if (!completionReason.trim()) {
-      alert('Please provide a reason for task completion');
+      showError('Please provide a reason for task completion', 'Reason Required');
       return;
     }
 
@@ -1280,7 +1330,7 @@ Priority: ${task.priority}`;
       setCompletionReason('');
     } catch (error) {
       console.error('Error completing task:', error);
-      alert('Failed to complete task');
+      showError('Failed to complete task');
     } finally {
       setLoading(false);
     }
@@ -1288,7 +1338,7 @@ Priority: ${task.priority}`;
 
   const submitMarkOverdue = async () => {
     if (!overdueReason.trim()) {
-      alert('Please provide a reason for marking as overdue');
+      showError('Please provide a reason for marking as overdue', 'Reason Required');
       return;
     }
 
@@ -1317,7 +1367,7 @@ Priority: ${task.priority}`;
       setOverdueReason('');
     } catch (error) {
       console.error('Error marking task as overdue:', error);
-      alert('Failed to mark task as overdue');
+      showError('Failed to mark task as overdue');
     } finally {
       setLoading(false);
     }
@@ -1376,7 +1426,7 @@ Priority: ${task.priority}`;
       console.error('Error updating task status:', error);
       console.error('Error response:', error.response?.data);
       const errorMessage = error.response?.data?.message || error.response?.data?.details || error.message || 'Failed to update task status';
-      alert(`Failed to update task status: ${errorMessage}`);
+      showError(`Failed to update task status: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -1778,7 +1828,7 @@ Priority: ${task.priority}`;
         setCurrentUser(user);
         setIsLoggedIn(true);
       } catch (error) {
-        alert(error.response?.data?.message || 'Login failed');
+        showError(error.response?.data?.message || 'Login failed', 'Login Failed');
       } finally {
         setLoading(false);
       }
@@ -1789,7 +1839,7 @@ Priority: ${task.priority}`;
       try {
         setLoading(true);
         await axios.post(`${API_URL}/users/register`, registerData);
-        alert('Registration successful! Please login.');
+        showSuccess('Registration successful! Please login.');
         setIsRegistering(false);
         setRegisterData({
           username: '',
@@ -1800,7 +1850,7 @@ Priority: ${task.priority}`;
           department: ''
         });
       } catch (error) {
-        alert(error.response?.data?.message || 'Registration failed');
+        showError(error.response?.data?.message || 'Registration failed', 'Registration Failed');
       } finally {
         setLoading(false);
       }
@@ -2796,10 +2846,10 @@ Priority: ${task.priority}`;
                             notif.onclick = () => window.focus();
                             console.log('✅ Direct notification sent');
                           } else {
-                            alert('❌ Notification permission denied');
+                            showError('❌ Notification permission denied');
                           }
                         } catch (error) {
-                          alert('❌ Direct notification failed: ' + error.message);
+                          showError('❌ Direct notification failed: ' + error.message);
                         }
                       }}
                       className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
@@ -4105,9 +4155,9 @@ Priority: ${task.priority}`;
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (window.confirm('Are you sure you want to delete this task?')) {
+                                  showDeleteConfirm('Are you sure you want to delete this task?', () => {
                                     deleteTask(task._id);
-                                  }
+                                  });
                                   document.getElementById(`menu-${task._id}`).classList.add('hidden');
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
@@ -4228,6 +4278,18 @@ Priority: ${task.priority}`;
     <div className="min-h-screen bg-gray-50">
       {/* Auto-update checker component */}
       <UpdateChecker />
+      
+      {/* Custom Dialog Component */}
+      <CustomDialog
+        isOpen={dialog.isOpen}
+        onClose={closeDialog}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        onConfirm={dialog.onConfirm}
+        confirmText={dialog.confirmText}
+        cancelText={dialog.cancelText}
+      />
       
       {loading && (
         <div className="fixed top-0 left-0 right-0 h-1 bg-blue-500 z-50">
@@ -4527,7 +4589,7 @@ Priority: ${task.priority}`;
                       saveAssociateToList(newAssociate);
                       setNewAssociate({ name: '', company: '', email: '', phone: '' });
                     } else {
-                      alert('Please enter associate name');
+                      showError('Please enter associate name', 'Name Required');
                     }
                   }}
                   disabled={!newAssociate.name.trim()}
@@ -4580,7 +4642,7 @@ Priority: ${task.priority}`;
                               if (assoc._id) {
                                 // Delete from database if it has an ID
                                 await deleteAssociate(assoc._id);
-                                alert('Associate deleted successfully');
+                                showSuccess('Associate deleted successfully');
                               } else {
                                 // Handle old localStorage entries without _id
                                 const updatedAssociates = associates.filter((_, i) => i !== index);
@@ -4589,7 +4651,7 @@ Priority: ${task.priority}`;
                               }
                             } catch (error) {
                               console.error('Error deleting associate:', error);
-                              alert('Failed to delete associate: ' + error.message);
+                              showError('Failed to delete associate: ' + error.message);
                             }
                           }}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
