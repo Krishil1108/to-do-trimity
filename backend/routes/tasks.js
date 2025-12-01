@@ -27,21 +27,38 @@ router.get('/:id', async (req, res) => {
 
 // Create task
 router.post('/', async (req, res) => {
-  const task = new Task(req.body);
   try {
+    // Clean up the request body
+    const taskData = { ...req.body };
+    
+    // Handle empty reminder field
+    if (taskData.reminder === '' || taskData.reminder === null) {
+      delete taskData.reminder;
+    }
+    
+    const task = new Task(taskData);
     const newTask = await task.save();
     res.status(201).json(newTask);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error creating task:', error);
+    res.status(400).json({ message: error.message, details: error.errors });
   }
 });
 
 // Update task
 router.put('/:id', async (req, res) => {
   try {
+    // Clean up the request body
+    const updateData = { ...req.body };
+    
+    // Handle empty reminder field
+    if (updateData.reminder === '' || updateData.reminder === null) {
+      delete updateData.reminder;
+    }
+    
     const task = await Task.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
     if (!task) {
@@ -49,7 +66,8 @@ router.put('/:id', async (req, res) => {
     }
     res.json(task);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error updating task:', error);
+    res.status(400).json({ message: error.message, details: error.errors });
   }
 });
 

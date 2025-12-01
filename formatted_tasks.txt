@@ -1,13 +1,11 @@
-To: Ashraf Vadia (RAV)
+Project: Mandsaur hospital
 Task Name: First floor slab
 Description: conduit layout and lighting layout. no false ceiling
 Target Date: 29/11/2025
 Priority: High
-Project: Mandsaur hospital
 =================================================
-To: Ashraf Vadia (RAV engineers)
+Project: Hastinapur
 Task Name: foyer lighting layout
 Description: Interior layout to be refer
 Target Date: 05/12/2025
 Priority: Medium
-Project: Hastinapur

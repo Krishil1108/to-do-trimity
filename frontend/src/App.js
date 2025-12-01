@@ -1012,9 +1012,13 @@ const TaskManagementSystem = () => {
     
     try {
       setLoading(true);
+      
+      // Clean up the task data before sending
       const taskData = {
         ...formData,
-        assignedBy: currentUser.username
+        assignedBy: currentUser.username,
+        reminder: formData.reminder && formData.reminder !== '' ? formData.reminder : null,
+        associates: Array.isArray(formData.associates) ? formData.associates : []
       };
       
       let savedTask;
@@ -1049,7 +1053,8 @@ const TaskManagementSystem = () => {
       resetForm();
     } catch (error) {
       console.error('Error saving task:', error);
-      alert('Failed to save task');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to save task';
+      alert(`Failed to save task: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -1079,16 +1084,11 @@ const TaskManagementSystem = () => {
   };
 
   const copyTaskToClipboard = (task) => {
-    const assignedToInfo = task.isAssociate && task.associateDetails 
-      ? `${task.associateDetails.name}${task.associateDetails.company ? ` (${task.associateDetails.company})` : ''}`
-      : task.assignedTo;
-
-    const taskInfo = `To: ${assignedToInfo}
+    const taskInfo = `Project: ${task.project}
 Task Name: ${task.title}
 Description: ${task.description || 'No description'}
-Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString()}
-Priority: ${task.priority}
-Project: ${task.project}`;
+Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
+Priority: ${task.priority}`;
     
     navigator.clipboard.writeText(taskInfo).then(() => {
       setCopiedTaskData(taskInfo);
@@ -1132,16 +1132,11 @@ Project: ${task.project}`;
       const task = tasks.find(t => t._id === taskId);
       if (!task) return '';
 
-      const assignedToInfo = task.isAssociate && task.associateDetails 
-        ? `${task.associateDetails.name}${task.associateDetails.company ? ` (${task.associateDetails.company})` : ''}`
-        : task.assignedTo;
-
-      return `To: ${assignedToInfo}
+      return `Project: ${task.project}
 Task Name: ${task.title}
 Description: ${task.description || 'No description'}
 Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
-Priority: ${task.priority}
-Project: ${task.project}`;
+Priority: ${task.priority}`;
     }).filter(Boolean).join('\n' + '='.repeat(49) + '\n');
 
     navigator.clipboard.writeText(tasksInfo).then(() => {
