@@ -102,7 +102,7 @@ const TaskManagementSystem = () => {
   const [showAdvancedMenu, setShowAdvancedMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'table'
+  const [viewMode, setViewMode] = useState('table'); // 'cards' or 'table'
   
   // Admin reporting states
   const [showAdminReports, setShowAdminReports] = useState(false);
@@ -355,6 +355,32 @@ const TaskManagementSystem = () => {
       <span className={`px-2 py-1 rounded text-xs font-medium ${colors[status]}`}>
         {status}
       </span>
+    );
+  };
+
+  const getStatusDropdown = (task) => {
+    const isPastDue = new Date(task.outDate) < new Date() && task.status !== 'Completed';
+    const currentStatus = isPastDue ? 'Overdue' : task.status;
+    
+    const statusColors = {
+      'Pending': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      'In Progress': 'bg-blue-100 text-blue-700 border-blue-200',
+      'Completed': 'bg-green-100 text-green-700 border-green-200',
+      'Overdue': 'bg-red-100 text-red-700 border-red-200'
+    };
+    
+    return (
+      <select
+        value={currentStatus}
+        onChange={(e) => handleStatusChange(task, e.target.value)}
+        className={`px-3 py-1.5 rounded text-xs font-medium border cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${statusColors[currentStatus]}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+        <option value="Overdue">Overdue</option>
+      </select>
     );
   };
 
@@ -1287,6 +1313,35 @@ Priority: ${task.priority}`;
     }
   };
 
+  const handleStatusChange = async (task, newStatus) => {
+    try {
+      setLoading(true);
+      const updatedTask = {
+        ...task,
+        status: newStatus,
+        ...(newStatus === 'Completed' && { completedAt: new Date().toISOString() })
+      };
+      
+      await axios.put(`${API_URL}/tasks/${task._id}`, updatedTask);
+      
+      // Notify task creator about status change
+      await createNotification(
+        task._id,
+        task.assignedBy,
+        `Task "${task.title}" status changed to ${newStatus} by ${currentUser.name}`,
+        'task_updated',
+        currentUser.username
+      );
+      
+      await loadTasks();
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      alert('Failed to update task status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getFilteredTasks = () => {
     return tasks.filter(task => {
       if (filters.project && task.project !== filters.project) return false;
@@ -2022,7 +2077,7 @@ Priority: ${task.priority}`;
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {task.outDate ? formatDate(task.outDate) : '-'}
                     </td>
-                    <td className="px-4 py-3">{getStatusBadge(task)}</td>
+                    <td className="px-4 py-3">{getStatusDropdown(task)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-gray-400" />
@@ -3833,7 +3888,7 @@ Priority: ${task.priority}`;
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {task.outDate ? formatDate(task.outDate) : '-'}
                       </td>
-                      <td className="px-4 py-3">{getStatusBadge(task)}</td>
+                      <td className="px-4 py-3">{getStatusDropdown(task)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-400" />
