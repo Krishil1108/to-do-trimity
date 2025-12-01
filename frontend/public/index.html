@@ -6,6 +6,11 @@
     <meta name="theme-color" content="#6366f1" />
     <meta name="description" content="TriDo - Task Management System with Push Notifications" />
     
+    <!-- Prevent caching for PWA updates -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
     
@@ -37,17 +42,53 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration with Aggressive Updates -->
     <script>
       if ('serviceWorker' in navigator) {
+        // Force check for updates on every page load
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          // Register with updateViaCache: 'none' to prevent SW file caching
+          navigator.serviceWorker.register('/sw.js', { 
+            updateViaCache: 'none',
+            scope: '/'
+          })
             .then((registration) => {
-              console.log('SW registered: ', registration);
+              console.log('✅ SW registered:', registration);
+              
+              // Force update check immediately
+              registration.update();
+              
+              // Check for updates every 10 seconds (very aggressive)
+              setInterval(() => {
+                console.log('🔄 Forcing SW update check...');
+                registration.update();
+              }, 10000);
+              
+              // Listen for new service worker waiting
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('🆕 New service worker found!');
+                
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('⚡ New service worker installed - reloading in 2 seconds...');
+                    // New service worker available, reload page
+                    setTimeout(() => {
+                      window.location.reload(true);
+                    }, 2000);
+                  }
+                });
+              });
             })
             .catch((registrationError) => {
-              console.log('SW registration failed: ', registrationError);
+              console.log('❌ SW registration failed:', registrationError);
             });
+        });
+        
+        // Handle controller change (new SW activated)
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('🔄 New SW controller - reloading now!');
+          window.location.reload(true);
         });
       }
     </script>

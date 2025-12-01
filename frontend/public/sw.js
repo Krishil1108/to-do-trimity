@@ -1,40 +1,44 @@
 // Service Worker for Task Management System
-// UPDATE THIS VERSION NUMBER AFTER EVERY DEPLOYMENT TO FORCE CACHE REFRESH
-const CACHE_VERSION = 'v1.0.0-' + Date.now(); // Add timestamp for unique version
+// AUTO-VERSIONED - Updates automatically on every deployment
+const CACHE_VERSION = 'v1.0.0-' + Date.now(); // Unique timestamp for each deployment
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
 ];
 
 console.log('🚀 Service Worker starting with cache version:', CACHE_NAME);
+console.log('⏰ Timestamp:', Date.now());
+
+// IMMEDIATELY skip waiting - don't wait for old SW to close
+self.skipWaiting();
 
 // Install Service Worker
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
+  console.log('⬇️ Service Worker installing...', CACHE_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(async (cache) => {
-        console.log('Opened cache');
+        console.log('📦 Opened cache:', CACHE_NAME);
         
         // Cache essential resources one by one with error handling
         const cachePromises = urlsToCache.map(async (url) => {
           try {
             await cache.add(url);
-            console.log(`Cached: ${url}`);
+            console.log(`✅ Cached: ${url}`);
           } catch (error) {
-            console.warn(`Failed to cache ${url}:`, error);
+            console.warn(`⚠️ Failed to cache ${url}:`, error);
             // Continue with other resources even if one fails
           }
         });
         
         await Promise.all(cachePromises);
-        console.log('Service Worker installed successfully');
+        console.log('✅ Service Worker installed successfully:', CACHE_VERSION);
         
-        // Force the waiting service worker to become the active service worker
+        // Force the waiting service worker to become the active service worker IMMEDIATELY
         return self.skipWaiting();
       })
       .catch((error) => {
-        console.error('Service Worker installation failed:', error);
+        console.error('❌ Service Worker installation failed:', error);
         // Still proceed with SW installation for push notifications
         return self.skipWaiting();
       })
