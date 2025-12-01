@@ -768,6 +768,28 @@ const TaskManagementSystem = () => {
         userId,
         taskData,
         type,
+
+  // Database Migration Function
+  const runDatabaseMigration = async () => {
+    try {
+      setLoading(true);
+      showInfo('Running database migration... This may take a few moments.', 'Migration Started');
+      
+      const response = await axios.post(`${API_URL}/migration/fix-indexes`);
+      
+      if (response.data.success) {
+        const message = `${response.data.message}\n\n${response.data.steps.join('\n')}\n\n📊 Summary:\n- Total associates: ${response.data.summary.total}\n- With email: ${response.data.summary.withEmail}\n- Without email: ${response.data.summary.withoutEmail}`;
+        showSuccess(message, 'Migration Successful');
+      } else {
+        showError('Migration failed: ' + response.data.message);
+      }
+    } catch (error) {
+      console.error('Migration error:', error);
+      showError('Failed to run migration: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
         pushNotificationsEnabled
       });
       
@@ -3089,6 +3111,58 @@ Priority: ${task.priority}`;
             )}
           </div>
         </div>
+
+        {/* Database Migration - Admin Only */}
+        {currentUser?.department === 'Owner' && (
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-6 shadow-sm border-2 border-orange-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+              </svg>
+              Database Migration (Admin)
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="p-4 bg-white rounded-lg border border-orange-200">
+                <h4 className="font-medium text-gray-900 mb-2">🔧 Fix Associate Email Indexes</h4>
+                <p className="text-sm text-gray-600 mb-3">
+                  If you're experiencing errors when creating associates without email addresses (like "An associate with this email already exists"), click the button below to fix the database indexes.
+                </p>
+                <p className="text-sm text-orange-700 mb-4">
+                  <strong>⚠️ Admin Only:</strong> This will update database indexes and convert empty email fields to null. Safe to run multiple times.
+                </p>
+                <button
+                  onClick={runDatabaseMigration}
+                  disabled={loading}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:from-orange-700 hover:to-red-700 transition-all font-medium shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Running Migration...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Run Database Migration
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-800">
+                  <strong>ℹ️ What this does:</strong> Drops old email indexes, converts empty emails to null, and creates a partial unique index that only checks duplicates for actual email addresses.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
