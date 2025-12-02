@@ -1522,6 +1522,8 @@ Priority: ${task.priority}`;
 
   const getFilteredTasks = () => {
     return tasks.filter(task => {
+      // Filter out subtasks if the filter is set to 'false'
+      if (filters.showSubtasks === 'false' && task.isSubtask) return false;
       if (filters.project && task.project !== filters.project) return false;
       if (filters.assignedTo && task.assignedTo !== filters.assignedTo) return false;
       if (filters.team && task.team !== filters.team) return false;
@@ -2648,7 +2650,7 @@ Priority: ${task.priority}`;
             <Filter className="w-5 h-5" />
             Filters
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
               <select
@@ -3664,6 +3666,17 @@ Priority: ${task.priority}`;
                 <option value="Overdue">Overdue</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Show Subtasks</label>
+              <select
+                value={filters.showSubtasks || 'true'}
+                onChange={(e) => setFilters({...filters, showSubtasks: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
             <div className="flex items-end">
               <button 
                 onClick={() => setFilters({})}
@@ -3699,7 +3712,18 @@ Priority: ${task.priority}`;
 
   // Tasks Assigned By Me
   const AssignedByMeView = () => {
-    const assignedByMe = getTasksAssignedByMe();
+    const assignedByMeTasks = getTasksAssignedByMe();
+    
+    // Apply filters to assigned by me tasks
+    const assignedByMe = assignedByMeTasks.filter(task => {
+      // Filter out subtasks if the filter is set to 'false'
+      if (filters.showSubtasks === 'false' && task.isSubtask) return false;
+      if (filters.project && task.project !== filters.project) return false;
+      if (filters.priority && task.priority !== filters.priority) return false;
+      if (filters.severity && task.severity !== filters.severity) return false;
+      if (filters.status && task.status !== filters.status) return false;
+      return true;
+    });
     
     // Calculate stats
     const pendingTasks = assignedByMe.filter(t => t.status === 'Pending');
@@ -3745,6 +3769,95 @@ Priority: ${task.priority}`;
                 <p className="text-4xl font-bold mt-2">{overdueTasks.length}</p>
               </div>
               <AlertCircle className="w-12 h-12 opacity-50" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Filters */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filters
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
+              <select
+                value={filters.project || ''}
+                onChange={(e) => setFilters({...filters, project: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                {projects.map((p, idx) => {
+                  const projectName = typeof p === 'string' ? p : p?.name || '';
+                  const projectKey = typeof p === 'object' ? p?._id : idx;
+                  return <option key={projectKey} value={projectName}>{projectName}</option>;
+                })}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+              <select
+                value={filters.priority || ''}
+                onChange={(e) => setFilters({...filters, priority: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
+              <select
+                value={filters.severity || ''}
+                onChange={(e) => setFilters({...filters, severity: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Minor">Minor</option>
+                <option value="Major">Major</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select
+                value={filters.status || ''}
+                onChange={(e) => setFilters({...filters, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Overdue">Overdue</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Show Subtasks</label>
+              <select
+                value={filters.showSubtasks || 'true'}
+                onChange={(e) => setFilters({...filters, showSubtasks: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <button 
+                onClick={() => setFilters({})}
+                className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Clear All
+              </button>
             </div>
           </div>
         </div>
