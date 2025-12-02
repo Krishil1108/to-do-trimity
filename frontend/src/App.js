@@ -4170,27 +4170,42 @@ Priority: ${task.priority}`;
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Filters
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
-              <select
-                value={associateFilters.project || ''}
-                onChange={(e) => setAssociateFilters({...associateFilters, project: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                {projects.map((p, idx) => {
-                  const projectName = typeof p === 'string' ? p : p?.name || '';
-                  const projectKey = typeof p === 'object' ? p?._id : idx;
-                  return <option key={projectKey} value={projectName}>{projectName}</option>;
-                })}
-              </select>
-            </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-xl"
+          >
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Filter className="w-5 h-5" />
+              Filters
+            </h3>
+            <svg 
+              className={`w-5 h-5 transition-transform ${showFilters ? 'rotate-180' : ''}`}
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {showFilters && (
+            <div className="px-6 pb-6">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
+                  <select
+                    value={associateFilters.project || ''}
+                    onChange={(e) => setAssociateFilters({...associateFilters, project: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="">All</option>
+                    {projects.map((p, idx) => {
+                      const projectName = typeof p === 'string' ? p : p?.name || '';
+                      const projectKey = typeof p === 'object' ? p?._id : idx;
+                      return <option key={projectKey} value={projectName}>{projectName}</option>;
+                    })}
+                  </select>
+                </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Associate</label>
@@ -4300,6 +4315,8 @@ Priority: ${task.priority}`;
               </button>
             </div>
           </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
