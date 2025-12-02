@@ -4785,6 +4785,10 @@ Priority: ${task.priority}`;
                       if (user.department === 'Studio Team') {
                         return currentUser?.username === 'ketul.lathia' || currentUser?.username === 'piyush.diwan';
                       }
+                      // Piyush Diwan visible to everyone except his own team members
+                      if (user.username === 'piyush.diwan') {
+                        return !currentUser?.manager || currentUser?.manager !== 'piyush.diwan';
+                      }
                       return true;
                     })
                     .map(user => (
