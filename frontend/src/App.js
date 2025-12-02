@@ -100,6 +100,23 @@ const TaskManagementSystem = () => {
   const [associateDateRange, setAssociateDateRange] = useState({ from: '', to: '' });
   const [selectedAssociateTasks, setSelectedAssociateTasks] = useState([]);
   
+  // Search and pagination states for all views
+  const [searchTerms, setSearchTerms] = useState({
+    'my-tasks': '',
+    'all-tasks': '',
+    'assigned-by-me': '',
+    'team-subtasks': '',
+    'associate-tasks': ''
+  });
+  const [currentPages, setCurrentPages] = useState({
+    'my-tasks': 1,
+    'all-tasks': 1,
+    'assigned-by-me': 1,
+    'team-subtasks': 1,
+    'associate-tasks': 1
+  });
+  const [itemsPerPage] = useState(20);
+  
   // Push notification states
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
@@ -1375,6 +1392,134 @@ Priority: ${task.priority}`;
     setNotifications([]);
   };
 
+  // Search functionality
+  const handleSearchChange = (viewName, term) => {
+    setSearchTerms(prev => ({ ...prev, [viewName]: term }));
+    setCurrentPages(prev => ({ ...prev, [viewName]: 1 })); // Reset to first page on search
+  };
+
+  const filterTasksBySearch = (tasks, searchTerm) => {
+    if (!searchTerm.trim()) return tasks;
+    const term = searchTerm.toLowerCase();
+    return tasks.filter(task => 
+      task.title?.toLowerCase().includes(term) ||
+      task.description?.toLowerCase().includes(term) ||
+      task.project?.toLowerCase().includes(term) ||
+      task.assignedTo?.name?.toLowerCase().includes(term) ||
+      task.assignedBy?.name?.toLowerCase().includes(term) ||
+      task.status?.toLowerCase().includes(term)
+    );
+  };
+
+  // Pagination functionality
+  const paginateTasks = (tasks, page, perPage = itemsPerPage) => {
+    const startIndex = (page - 1) * perPage;
+    return tasks.slice(startIndex, startIndex + perPage);
+  };
+
+  const getTotalPages = (tasks, perPage = itemsPerPage) => {
+    return Math.ceil(tasks.length / perPage);
+  };
+
+  const handlePageChange = (viewName, page) => {
+    setCurrentPages(prev => ({ ...prev, [viewName]: page }));
+  };
+
+  // Pagination controls component
+  const PaginationControls = ({ viewName, totalTasks, currentPage }) => {
+    const totalPages = getTotalPages(totalTasks);
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisiblePages = 5;
+      
+      if (totalPages <= maxVisiblePages) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        if (currentPage <= 3) {
+          pages.push(1, 2, 3, 4, '...', totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+        } else {
+          pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+        }
+      }
+      return pages;
+    };
+
+    return (
+      <div className="pagination-controls" style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '8px',
+        margin: '20px 0',
+        padding: '15px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px'
+      }}>
+        <button
+          onClick={() => handlePageChange(viewName, currentPage - 1)}
+          disabled={currentPage === 1}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            backgroundColor: currentPage === 1 ? '#f5f5f5' : '#fff',
+            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+            color: currentPage === 1 ? '#999' : '#333'
+          }}
+        >
+          Previous
+        </button>
+        
+        {getPageNumbers().map((page, index) => (
+          page === '...' ? (
+            <span key={index} style={{ padding: '8px 4px', color: '#999' }}>...</span>
+          ) : (
+            <button
+              key={index}
+              onClick={() => handlePageChange(viewName, page)}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                backgroundColor: currentPage === page ? '#007bff' : '#fff',
+                color: currentPage === page ? '#fff' : '#333',
+                cursor: 'pointer',
+                fontWeight: currentPage === page ? 'bold' : 'normal'
+              }}
+            >
+              {page}
+            </button>
+          )
+        ))}
+        
+        <button
+          onClick={() => handlePageChange(viewName, currentPage + 1)}
+          disabled={currentPage === totalPages}
+          style={{
+            padding: '8px 12px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            backgroundColor: currentPage === totalPages ? '#f5f5f5' : '#fff',
+            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+            color: currentPage === totalPages ? '#999' : '#333'
+          }}
+        >
+          Next
+        </button>
+        
+        <span style={{ marginLeft: '15px', color: '#666', fontSize: '14px' }}>
+          Page {currentPage} of {totalPages} ({totalTasks.length} tasks)
+        </span>
+      </div>
+    );
+  };
+
   const handleCompleteTask = (task) => {
     setSelectedTask(task);
     setCompletionReason('');
@@ -2598,10 +2743,16 @@ Priority: ${task.priority}`;
       return true;
     });
     
-    const pendingTasks = filteredMyTasks.filter(t => t.status === 'Pending');
-    const inProgressTasks = filteredMyTasks.filter(t => t.status === 'In Progress');
-    const completedTasks = filteredMyTasks.filter(t => t.status === 'Completed');
-    const overdueTasks = filteredMyTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
+    // Apply search to filtered tasks
+    const searchedTasks = filterTasksBySearch(filteredMyTasks, searchTerms['my-tasks']);
+    
+    // Apply pagination to searched tasks
+    const paginatedTasks = paginateTasks(searchedTasks, currentPages['my-tasks']);
+    
+    const pendingTasks = paginatedTasks.filter(t => t.status === 'Pending');
+    const inProgressTasks = paginatedTasks.filter(t => t.status === 'In Progress');
+    const completedTasks = paginatedTasks.filter(t => t.status === 'Completed');
+    const overdueTasks = paginatedTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
 
     return (
       <div className="space-y-6">
@@ -2739,6 +2890,30 @@ Priority: ${task.priority}`;
           )}
         </div>
 
+        {/* Search Bar */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Search tasks by title, description, project, or assignee..."
+                value={searchTerms['my-tasks']}
+                onChange={(e) => handleSearchChange('my-tasks', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            {searchTerms['my-tasks'] && (
+              <button
+                onClick={() => handleSearchChange('my-tasks', '')}
+                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
           {/* Export Button */}
@@ -2770,11 +2945,18 @@ Priority: ${task.priority}`;
         </div>
 
         {viewMode === 'table' ? (
-          <TableView 
-            tasks={filteredMyTasks} 
-            showActions={true}
-            showStats={false}
-          />
+          <>
+            <TableView 
+              tasks={paginatedTasks} 
+              showActions={true}
+              showStats={false}
+            />
+            <PaginationControls 
+              viewName="my-tasks"
+              totalTasks={searchedTasks}
+              currentPage={currentPages['my-tasks']}
+            />
+          </>
         ) : (
           <div className="space-y-6">
         {/* Overdue Tasks */}
@@ -2845,12 +3027,32 @@ Priority: ${task.priority}`;
           </div>
         )}
 
-        {myTasks.length === 0 && (
+        {searchedTasks.length === 0 && searchTerms['my-tasks'] && (
+          <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
+            <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500">No tasks found matching "{searchTerms['my-tasks']}"</p>
+            <button 
+              onClick={() => handleSearchChange('my-tasks', '')}
+              className="mt-2 px-4 py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Clear search
+            </button>
+          </div>
+        )}
+
+        {myTasks.length === 0 && !searchTerms['my-tasks'] && (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
             <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
             <p className="text-gray-500">No tasks assigned to you yet</p>
           </div>
         )}
+
+        {/* Pagination Controls for Cards View */}
+        <PaginationControls 
+          viewName="my-tasks"
+          totalTasks={searchedTasks}
+          currentPage={currentPages['my-tasks']}
+        />
           </div>
         )}
       </div>
@@ -3527,11 +3729,17 @@ Priority: ${task.priority}`;
   const AllTasksView = () => {
     const allTasks = getFilteredTasks();
     
-    // Calculate stats
-    const pendingTasks = allTasks.filter(t => t.status === 'Pending');
-    const inProgressTasks = allTasks.filter(t => t.status === 'In Progress');
-    const completedTasks = allTasks.filter(t => t.status === 'Completed');
-    const overdueTasks = allTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
+    // Apply search to all tasks
+    const searchedTasks = filterTasksBySearch(allTasks, searchTerms['all-tasks']);
+    
+    // Apply pagination to searched tasks
+    const paginatedTasks = paginateTasks(searchedTasks, currentPages['all-tasks']);
+    
+    // Calculate stats from searched tasks (before pagination)
+    const pendingTasks = searchedTasks.filter(t => t.status === 'Pending');
+    const inProgressTasks = searchedTasks.filter(t => t.status === 'In Progress');
+    const completedTasks = searchedTasks.filter(t => t.status === 'Completed');
+    const overdueTasks = searchedTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
 
     return (
       <div className="space-y-6">
@@ -3575,11 +3783,35 @@ Priority: ${task.priority}`;
           </div>
         </div>
         
+        {/* Search Bar */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Search all tasks by title, description, project, or assignee..."
+                value={searchTerms['all-tasks']}
+                onChange={(e) => handleSearchChange('all-tasks', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            {searchTerms['all-tasks'] && (
+              <button
+                onClick={() => handleSearchChange('all-tasks', '')}
+                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+        
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
           {/* Export Button */}
           <button
-            onClick={() => exportTaskList(allTasks, 'excel', 'all_tasks')}
+            onClick={() => exportTaskList(searchedTasks, 'excel', 'all_tasks')}
             className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
             <Download className="w-4 h-4" />
@@ -3724,21 +3956,48 @@ Priority: ${task.priority}`;
         </div>
 
         {viewMode === 'table' ? (
-          <TableView tasks={allTasks} />
+          <>
+            <TableView tasks={paginatedTasks} />
+            <PaginationControls 
+              viewName="all-tasks"
+              totalTasks={searchedTasks}
+              currentPage={currentPages['all-tasks']}
+            />
+          </>
         ) : (
           <>
             {/* Tasks Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allTasks.map(task => (
+              {paginatedTasks.map(task => (
                 <HorizontalTaskCard key={task._id} task={task} />
               ))}
             </div>
 
-            {allTasks.length === 0 && (
+            {searchedTasks.length === 0 && searchTerms['all-tasks'] && (
+              <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
+                <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">No tasks found matching "{searchTerms['all-tasks']}"</p>
+                <button 
+                  onClick={() => handleSearchChange('all-tasks', '')}
+                  className="mt-2 px-4 py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
+
+            {allTasks.length === 0 && !searchTerms['all-tasks'] && (
               <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
                 <p className="text-gray-500">No tasks found</p>
               </div>
             )}
+
+            {/* Pagination Controls for Cards View */}
+            <PaginationControls 
+              viewName="all-tasks"
+              totalTasks={searchedTasks}
+              currentPage={currentPages['all-tasks']}
+            />
           </>
         )}
       </div>
@@ -3750,7 +4009,7 @@ Priority: ${task.priority}`;
     const assignedByMeTasks = getTasksAssignedByMe();
     
     // Apply filters to assigned by me tasks
-    const assignedByMe = assignedByMeTasks.filter(task => {
+    const filteredTasks = assignedByMeTasks.filter(task => {
       // Filter out subtasks if the filter is set to 'false'
       if (filters.showSubtasks === 'false' && task.isSubtask) return false;
       if (filters.project && task.project !== filters.project) return false;
@@ -3760,11 +4019,17 @@ Priority: ${task.priority}`;
       return true;
     });
     
-    // Calculate stats
-    const pendingTasks = assignedByMe.filter(t => t.status === 'Pending');
-    const inProgressTasks = assignedByMe.filter(t => t.status === 'In Progress');
-    const completedTasks = assignedByMe.filter(t => t.status === 'Completed');
-    const overdueTasks = assignedByMe.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
+    // Apply search to filtered tasks
+    const searchedTasks = filterTasksBySearch(filteredTasks, searchTerms['assigned-by-me']);
+    
+    // Apply pagination to searched tasks
+    const paginatedTasks = paginateTasks(searchedTasks, currentPages['assigned-by-me']);
+    
+    // Calculate stats from searched tasks (before pagination)
+    const pendingTasks = searchedTasks.filter(t => t.status === 'Pending');
+    const inProgressTasks = searchedTasks.filter(t => t.status === 'In Progress');
+    const completedTasks = searchedTasks.filter(t => t.status === 'Completed');
+    const overdueTasks = searchedTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
 
     return (
       <div className="space-y-6">
@@ -3914,11 +4179,35 @@ Priority: ${task.priority}`;
           )}
         </div>
         
+        {/* Search Bar */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Search tasks assigned by you..."
+                value={searchTerms['assigned-by-me']}
+                onChange={(e) => handleSearchChange('assigned-by-me', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            {searchTerms['assigned-by-me'] && (
+              <button
+                onClick={() => handleSearchChange('assigned-by-me', '')}
+                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+        
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
           {/* Export Button */}
           <button
-            onClick={() => exportTaskList(assignedByMe, 'excel', 'assigned_by_me')}
+            onClick={() => exportTaskList(searchedTasks, 'excel', 'assigned_by_me')}
             className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
             <Download className="w-4 h-4" />
@@ -3946,25 +4235,52 @@ Priority: ${task.priority}`;
 
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900">
-            Tasks You Assigned ({assignedByMe.length})
+            Tasks You Assigned ({searchedTasks.length})
           </h3>
         </div>
 
         {viewMode === 'table' ? (
-          <TableView tasks={assignedByMe} />
+          <>
+            <TableView tasks={paginatedTasks} />
+            <PaginationControls 
+              viewName="assigned-by-me"
+              totalTasks={searchedTasks}
+              currentPage={currentPages['assigned-by-me']}
+            />
+          </>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {assignedByMe.map(task => (
+              {paginatedTasks.map(task => (
                 <HorizontalTaskCard key={task._id} task={task} />
               ))}
             </div>
 
-            {assignedByMe.length === 0 && (
+            {searchedTasks.length === 0 && searchTerms['assigned-by-me'] && (
+              <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
+                <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">No tasks found matching "{searchTerms['assigned-by-me']}"</p>
+                <button 
+                  onClick={() => handleSearchChange('assigned-by-me', '')}
+                  className="mt-2 px-4 py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
+
+            {filteredTasks.length === 0 && !searchTerms['assigned-by-me'] && (
               <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
                 <p className="text-gray-500">You haven't assigned any tasks yet</p>
               </div>
             )}
+
+            {/* Pagination Controls for Cards View */}
+            <PaginationControls 
+              viewName="assigned-by-me"
+              totalTasks={searchedTasks}
+              currentPage={currentPages['assigned-by-me']}
+            />
           </>
         )}
       </div>
@@ -3976,11 +4292,17 @@ Priority: ${task.priority}`;
     // Get subtasks created by current user
     const mySubtasks = tasks.filter(task => task.isSubtask && task.assignedBy === currentUser?.username);
     
-    // Calculate stats
-    const pendingSubtasks = mySubtasks.filter(t => t.status === 'Pending');
-    const inProgressSubtasks = mySubtasks.filter(t => t.status === 'In Progress');
-    const completedSubtasks = mySubtasks.filter(t => t.status === 'Completed');
-    const overdueSubtasks = mySubtasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
+    // Apply search to subtasks
+    const searchedSubtasks = filterTasksBySearch(mySubtasks, searchTerms['team-subtasks']);
+    
+    // Apply pagination to searched subtasks
+    const paginatedSubtasks = paginateTasks(searchedSubtasks, currentPages['team-subtasks']);
+    
+    // Calculate stats from searched subtasks (before pagination)
+    const pendingSubtasks = searchedSubtasks.filter(t => t.status === 'Pending');
+    const inProgressSubtasks = searchedSubtasks.filter(t => t.status === 'In Progress');
+    const completedSubtasks = searchedSubtasks.filter(t => t.status === 'Completed');
+    const overdueSubtasks = searchedSubtasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
 
     return (
       <div className="space-y-6">
@@ -4030,18 +4352,71 @@ Priority: ${task.priority}`;
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Search subtasks..."
+                value={searchTerms['team-subtasks']}
+                onChange={(e) => handleSearchChange('team-subtasks', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            {searchTerms['team-subtasks'] && (
+              <button
+                onClick={() => handleSearchChange('team-subtasks', '')}
+                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Subtasks Table */}
         {viewMode === 'table' ? (
-          <TableView tasks={mySubtasks} />
+          <>
+            <TableView tasks={paginatedSubtasks} />
+            <PaginationControls 
+              viewName="team-subtasks"
+              totalTasks={searchedSubtasks}
+              currentPage={currentPages['team-subtasks']}
+            />
+          </>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {mySubtasks.map(task => (
-              <HorizontalTaskCard key={task._id} task={task} showActions={true} />
-            ))}
+          <>
+            <div className="grid grid-cols-1 gap-4">
+              {paginatedSubtasks.map(task => (
+                <HorizontalTaskCard key={task._id} task={task} showActions={true} />
+              ))}
+            </div>
+
+            {/* Pagination Controls for Cards View */}
+            <PaginationControls 
+              viewName="team-subtasks"
+              totalTasks={searchedSubtasks}
+              currentPage={currentPages['team-subtasks']}
+            />
+          </>
+        )}
+
+        {searchedSubtasks.length === 0 && searchTerms['team-subtasks'] && (
+          <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
+            <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500">No subtasks found matching "{searchTerms['team-subtasks']}"</p>
+            <button 
+              onClick={() => handleSearchChange('team-subtasks', '')}
+              className="mt-2 px-4 py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Clear search
+            </button>
           </div>
         )}
 
-        {mySubtasks.length === 0 && (
+        {mySubtasks.length === 0 && !searchTerms['team-subtasks'] && (
           <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
             <div className="text-gray-400 mb-4">
               <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4088,11 +4463,17 @@ Priority: ${task.priority}`;
       associateTasks = associateTasks.filter(t => new Date(t.outDate) <= new Date(associateDateRange.to));
     }
     
-    // Calculate stats
-    const pendingTasks = associateTasks.filter(t => t.status === 'Pending');
-    const inProgressTasks = associateTasks.filter(t => t.status === 'In Progress');
-    const completedTasks = associateTasks.filter(t => t.status === 'Completed');
-    const overdueTasks = associateTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
+    // Apply search to filtered associate tasks
+    const searchedAssociateTasks = filterTasksBySearch(associateTasks, searchTerms['associate-tasks']);
+    
+    // Apply pagination to searched associate tasks
+    const paginatedAssociateTasks = paginateTasks(searchedAssociateTasks, currentPages['associate-tasks']);
+    
+    // Calculate stats from searched tasks (before pagination)
+    const pendingTasks = searchedAssociateTasks.filter(t => t.status === 'Pending');
+    const inProgressTasks = searchedAssociateTasks.filter(t => t.status === 'In Progress');
+    const completedTasks = searchedAssociateTasks.filter(t => t.status === 'Completed');
+    const overdueTasks = searchedAssociateTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
     
     // Get unique associate names for filter
     const uniqueAssociates = [...new Set(tasks.filter(t => t.isAssociate && t.associateDetails?.name).map(t => t.associateDetails.name))];
@@ -4143,7 +4524,7 @@ Priority: ${task.priority}`;
         <div className="flex justify-end items-center gap-4">
           {/* Export Button */}
           <button
-            onClick={() => exportTaskList(associateTasks, 'excel', 'associate_tasks')}
+            onClick={() => exportTaskList(searchedAssociateTasks, 'excel', 'associate_tasks')}
             className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
           >
             <Download className="w-4 h-4" />
@@ -4319,11 +4700,35 @@ Priority: ${task.priority}`;
           )}
         </div>
 
+        {/* Search Bar */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="Search associate tasks..."
+                value={searchTerms['associate-tasks']}
+                onChange={(e) => handleSearchChange('associate-tasks', e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+            </div>
+            {searchTerms['associate-tasks'] && (
+              <button
+                onClick={() => handleSearchChange('associate-tasks', '')}
+                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                Associate Tasks ({associateTasks.length})
+                Associate Tasks ({searchedAssociateTasks.length})
               </h3>
               <p className="text-sm text-gray-500 mt-1">Tasks assigned to external partners and associates</p>
             </div>
@@ -4342,19 +4747,20 @@ Priority: ${task.priority}`;
         </div>
 
         {viewMode === 'table' ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-8">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedAssociateTasks.length === associateTasks.length && associateTasks.length > 0}
-                        onChange={() => toggleAllTasksSelection(associateTasks.map(t => t._id))}
-                        className="rounded border-gray-300" 
-                      />
-                    </th>
+          <>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-8">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedAssociateTasks.length === paginatedAssociateTasks.length && paginatedAssociateTasks.length > 0}
+                          onChange={() => toggleAllTasksSelection(paginatedAssociateTasks.map(t => t._id))}
+                          className="rounded border-gray-300" 
+                        />
+                      </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned To</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Project</th>
@@ -4367,7 +4773,7 @@ Priority: ${task.priority}`;
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {associateTasks.map((task, index) => (
+                  {paginatedAssociateTasks.map((task, index) => (
                     <tr key={task._id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <input 
@@ -4519,25 +4925,66 @@ Priority: ${task.priority}`;
                 </tbody>
               </table>
             </div>
-            {associateTasks.length === 0 && (
+            {searchedAssociateTasks.length === 0 && searchTerms['associate-tasks'] && (
               <div className="text-center py-12 text-gray-500">
-                <p>No tasks found</p>
+                <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <p>No tasks found matching "{searchTerms['associate-tasks']}"</p>
+                <button 
+                  onClick={() => handleSearchChange('associate-tasks', '')}
+                  className="mt-2 px-4 py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Clear search
+                </button>
               </div>
             )}
-          </div>
+            
+              {associateTasks.length === 0 && !searchTerms['associate-tasks'] && (
+                <div className="text-center py-12 text-gray-500">
+                  <p>No tasks found</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Pagination Controls for Table View */}
+            <PaginationControls 
+              viewName="associate-tasks"
+              totalTasks={searchedAssociateTasks}
+              currentPage={currentPages['associate-tasks']}
+            />
+          </>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {associateTasks.map(task => (
+              {paginatedAssociateTasks.map(task => (
                 <HorizontalTaskCard key={task._id} task={task} showCopyButton={true} />
               ))}
             </div>
 
-            {associateTasks.length === 0 && (
+            {searchedAssociateTasks.length === 0 && searchTerms['associate-tasks'] && (
+              <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
+                <Users className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500">No tasks found matching "{searchTerms['associate-tasks']}"</p>
+                <button 
+                  onClick={() => handleSearchChange('associate-tasks', '')}
+                  className="mt-2 px-4 py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
+
+            {associateTasks.length === 0 && !searchTerms['associate-tasks'] && (
               <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
                 <p className="text-gray-500">No tasks assigned to associates yet</p>
               </div>
             )}
+            
+            {/* Pagination Controls for Cards View */}
+            <PaginationControls 
+              viewName="associate-tasks"
+              totalTasks={searchedAssociateTasks}
+              currentPage={currentPages['associate-tasks']}
+            />
           </>
         )}
       </div>
