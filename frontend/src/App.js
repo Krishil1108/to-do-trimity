@@ -108,6 +108,13 @@ const TaskManagementSystem = () => {
     'team-subtasks': '',
     'associate-tasks': ''
   });
+  const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
+    'my-tasks': '',
+    'all-tasks': '',
+    'assigned-by-me': '',
+    'team-subtasks': '',
+    'associate-tasks': ''
+  });
   const [currentPages, setCurrentPages] = useState({
     'my-tasks': 1,
     'all-tasks': 1,
@@ -217,6 +224,22 @@ const TaskManagementSystem = () => {
       return () => clearInterval(interval);
     }
   }, [isLoggedIn, currentUser]);
+
+  // Debounce search terms to improve performance
+  useEffect(() => {
+    const timeouts = Object.keys(searchTerms).map(viewName => 
+      setTimeout(() => {
+        setDebouncedSearchTerms(prev => ({
+          ...prev,
+          [viewName]: searchTerms[viewName]
+        }));
+      }, 300)
+    );
+
+    return () => {
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
+  }, [searchTerms]);
 
   // Initialize push notifications when app loads
   useEffect(() => {
@@ -1393,13 +1416,21 @@ Priority: ${task.priority}`;
   };
 
   // Search functionality
-  const handleSearchChange = (viewName, term) => {
+  const handleSearchChange = useCallback((viewName, term) => {
     setSearchTerms(prev => ({ ...prev, [viewName]: term }));
-    setCurrentPages(prev => ({ ...prev, [viewName]: 1 })); // Reset to first page on search
-  };
+  }, []);
 
-  const filterTasksBySearch = (tasks, searchTerm) => {
-    if (!searchTerm.trim()) return tasks;
+  // Reset page when debounced search changes
+  useEffect(() => {
+    Object.keys(debouncedSearchTerms).forEach(viewName => {
+      if (debouncedSearchTerms[viewName] !== searchTerms[viewName] && debouncedSearchTerms[viewName] !== '') {
+        setCurrentPages(prev => ({ ...prev, [viewName]: 1 }));
+      }
+    });
+  }, [debouncedSearchTerms, searchTerms]);
+
+  const filterTasksBySearch = useCallback((tasks, searchTerm) => {
+    if (!searchTerm?.trim()) return tasks;
     const term = searchTerm.toLowerCase();
     return tasks.filter(task => 
       task.title?.toLowerCase().includes(term) ||
@@ -1409,21 +1440,47 @@ Priority: ${task.priority}`;
       task.assignedBy?.name?.toLowerCase().includes(term) ||
       task.status?.toLowerCase().includes(term)
     );
-  };
+  }, []);
 
   // Pagination functionality
-  const paginateTasks = (tasks, page, perPage = itemsPerPage) => {
+  const paginateTasks = useCallback((tasks, page, perPage = itemsPerPage) => {
     const startIndex = (page - 1) * perPage;
     return tasks.slice(startIndex, startIndex + perPage);
-  };
+  }, [itemsPerPage]);
 
-  const getTotalPages = (tasks, perPage = itemsPerPage) => {
+  const getTotalPages = useCallback((tasks, perPage = itemsPerPage) => {
     return Math.ceil(tasks.length / perPage);
-  };
+  }, [itemsPerPage]);
 
-  const handlePageChange = (viewName, page) => {
+  const handlePageChange = useCallback((viewName, page) => {
     setCurrentPages(prev => ({ ...prev, [viewName]: page }));
-  };
+  }, []);
+
+  // Memoized Search Input Component
+  const SearchInput = React.memo(({ viewName, placeholder, searchValue, onSearchChange }) => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder={placeholder}
+            value={searchValue}
+            onChange={(e) => onSearchChange(viewName, e.target.value)}
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          />
+        </div>
+        {searchValue && (
+          <button
+            onClick={() => onSearchChange(viewName, '')}
+            className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Clear search"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  ));
 
   // Pagination controls component
   const PaginationControls = ({ viewName, totalTasks, currentPage }) => {
@@ -2744,7 +2801,7 @@ Priority: ${task.priority}`;
     });
     
     // Apply search to filtered tasks
-    const searchedTasks = filterTasksBySearch(filteredMyTasks, searchTerms['my-tasks']);
+    const searchedTasks = filterTasksBySearch(filteredMyTasks, debouncedSearchTerms['my-tasks']);
     
     // Apply pagination to searched tasks
     const paginatedTasks = paginateTasks(searchedTasks, currentPages['my-tasks']);
@@ -2891,28 +2948,12 @@ Priority: ${task.priority}`;
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search tasks by title, description, project, or assignee..."
-                value={searchTerms['my-tasks']}
-                onChange={(e) => handleSearchChange('my-tasks', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
-            {searchTerms['my-tasks'] && (
-              <button
-                onClick={() => handleSearchChange('my-tasks', '')}
-                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Clear search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        <SearchInput 
+          viewName="my-tasks"
+          placeholder="Search tasks by title, description, project, or assignee..."
+          searchValue={searchTerms['my-tasks']}
+          onSearchChange={handleSearchChange}
+        />
 
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
@@ -3730,7 +3771,7 @@ Priority: ${task.priority}`;
     const allTasks = getFilteredTasks();
     
     // Apply search to all tasks
-    const searchedTasks = filterTasksBySearch(allTasks, searchTerms['all-tasks']);
+    const searchedTasks = filterTasksBySearch(allTasks, debouncedSearchTerms['all-tasks']);
     
     // Apply pagination to searched tasks
     const paginatedTasks = paginateTasks(searchedTasks, currentPages['all-tasks']);
@@ -3784,28 +3825,12 @@ Priority: ${task.priority}`;
         </div>
         
         {/* Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search all tasks by title, description, project, or assignee..."
-                value={searchTerms['all-tasks']}
-                onChange={(e) => handleSearchChange('all-tasks', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
-            {searchTerms['all-tasks'] && (
-              <button
-                onClick={() => handleSearchChange('all-tasks', '')}
-                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Clear search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        <SearchInput 
+          viewName="all-tasks"
+          placeholder="Search all tasks by title, description, project, or assignee..."
+          searchValue={searchTerms['all-tasks']}
+          onSearchChange={handleSearchChange}
+        />
         
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
@@ -4020,7 +4045,7 @@ Priority: ${task.priority}`;
     });
     
     // Apply search to filtered tasks
-    const searchedTasks = filterTasksBySearch(filteredTasks, searchTerms['assigned-by-me']);
+    const searchedTasks = filterTasksBySearch(filteredTasks, debouncedSearchTerms['assigned-by-me']);
     
     // Apply pagination to searched tasks
     const paginatedTasks = paginateTasks(searchedTasks, currentPages['assigned-by-me']);
@@ -4180,28 +4205,12 @@ Priority: ${task.priority}`;
         </div>
         
         {/* Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search tasks assigned by you..."
-                value={searchTerms['assigned-by-me']}
-                onChange={(e) => handleSearchChange('assigned-by-me', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
-            {searchTerms['assigned-by-me'] && (
-              <button
-                onClick={() => handleSearchChange('assigned-by-me', '')}
-                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Clear search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        <SearchInput 
+          viewName="assigned-by-me"
+          placeholder="Search tasks assigned by you..."
+          searchValue={searchTerms['assigned-by-me']}
+          onSearchChange={handleSearchChange}
+        />
         
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
@@ -4293,7 +4302,7 @@ Priority: ${task.priority}`;
     const mySubtasks = tasks.filter(task => task.isSubtask && task.assignedBy === currentUser?.username);
     
     // Apply search to subtasks
-    const searchedSubtasks = filterTasksBySearch(mySubtasks, searchTerms['team-subtasks']);
+    const searchedSubtasks = filterTasksBySearch(mySubtasks, debouncedSearchTerms['team-subtasks']);
     
     // Apply pagination to searched subtasks
     const paginatedSubtasks = paginateTasks(searchedSubtasks, currentPages['team-subtasks']);
@@ -4353,28 +4362,12 @@ Priority: ${task.priority}`;
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search subtasks..."
-                value={searchTerms['team-subtasks']}
-                onChange={(e) => handleSearchChange('team-subtasks', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
-            {searchTerms['team-subtasks'] && (
-              <button
-                onClick={() => handleSearchChange('team-subtasks', '')}
-                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Clear search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        <SearchInput 
+          viewName="team-subtasks"
+          placeholder="Search subtasks..."
+          searchValue={searchTerms['team-subtasks']}
+          onSearchChange={handleSearchChange}
+        />
 
         {/* Subtasks Table */}
         {viewMode === 'table' ? (
@@ -4464,7 +4457,7 @@ Priority: ${task.priority}`;
     }
     
     // Apply search to filtered associate tasks
-    const searchedAssociateTasks = filterTasksBySearch(associateTasks, searchTerms['associate-tasks']);
+    const searchedAssociateTasks = filterTasksBySearch(associateTasks, debouncedSearchTerms['associate-tasks']);
     
     // Apply pagination to searched associate tasks
     const paginatedAssociateTasks = paginateTasks(searchedAssociateTasks, currentPages['associate-tasks']);
@@ -4701,28 +4694,12 @@ Priority: ${task.priority}`;
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search associate tasks..."
-                value={searchTerms['associate-tasks']}
-                onChange={(e) => handleSearchChange('associate-tasks', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
-            {searchTerms['associate-tasks'] && (
-              <button
-                onClick={() => handleSearchChange('associate-tasks', '')}
-                className="px-3 py-3 text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                title="Clear search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
+        <SearchInput 
+          viewName="associate-tasks"
+          placeholder="Search associate tasks..."
+          searchValue={searchTerms['associate-tasks']}
+          onSearchChange={handleSearchChange}
+        />
 
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
