@@ -2154,11 +2154,11 @@ Priority: ${task.priority}`;
     if (format === 'excel') {
       const wb = XLSX.utils.book_new();
       const taskData = taskList.map(task => ({
+        'Project': task.project,
         'Title': task.title,
         'Description': task.description,
         'Status': task.status,
         'Priority': task.priority,
-        'Project': task.project,
         'Assigned To': task.assignedTo,
         'Assigned By': task.assignedBy,
         'Start Date': task.inDate ? new Date(task.inDate).toLocaleDateString() : '',
