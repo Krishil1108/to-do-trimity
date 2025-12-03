@@ -70,14 +70,18 @@ const STATUS_COLORS = {
 
 const TaskManagementSystem = () => {
   
-  // Search debounce configuration
-  const SEARCH_DEBOUNCE_DELAY = 300; // milliseconds - adjust this value to change debounce timing
-  // 📝 DEBOUNCE TIMING GUIDE:
-  // - 100ms: Very fast, may cause too many searches
-  // - 300ms: Good balance (current setting)  
-  // - 500ms: Slower but reduces server load
-  // - 1000ms: Very slow but minimal server requests
-  // Check browser console for detailed timing logs
+  // 🔧 SEARCH DEBOUNCE CONFIGURATION
+  const SEARCH_DEBOUNCE_DELAY = 300; // milliseconds - CHANGE THIS VALUE to adjust debounce timing
+  
+  // 📊 DEBOUNCE TIMING OPTIONS (based on your logs):
+  // - 150ms: Fast typing support (recommended for fast typers)
+  // - 300ms: Balanced (current setting - good for most users)
+  // - 500ms: Conservative (better for slower typers, less server load)
+  // - 800ms: Very patient (minimal server requests)
+  //
+  // 📈 CURRENT PERFORMANCE: Your actual timing shows ~317ms (within good range)
+  // 💡 TIP: If you type very fast, try 150-200ms. If you prefer less server calls, try 500ms.
+  // 🔍 Watch browser console for real-time timing analysis
   
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1411,10 +1415,9 @@ Priority: ${task.priority}`;
     setSearchTerms(prev => ({ ...prev, [viewName]: term }));
     setCurrentPages(prev => ({ ...prev, [viewName]: 1 })); // Reset to first page on search
     
-    console.log(`   ✅ Search state updated for ${viewName}`);
-  }, []);
-
-  const filterTasksBySearch = useCallback((tasks, searchTerm) => {
+        console.log(`   ✅ Search state updated for ${viewName}`);
+        console.log(`📊 [Summary] Current debounce setting: ${SEARCH_DEBOUNCE_DELAY}ms - Adjust line 76 to change timing`);
+  }, [SEARCH_DEBOUNCE_DELAY]);  const filterTasksBySearch = useCallback((tasks, searchTerm) => {
     if (!searchTerm?.trim()) return tasks;
     const term = searchTerm.toLowerCase();
     return tasks.filter(task => 
@@ -1478,7 +1481,7 @@ Priority: ${task.priority}`;
         console.log(`   📊 Search term: "${value}"`);
         console.log(`   ⏱️  Actual debounce time: ${actualDebounceTime}ms (target: ${SEARCH_DEBOUNCE_DELAY}ms)`);
         console.log(`   🕐 Executed at: ${new Date().toLocaleTimeString()}.${Date.now() % 1000}`);
-        console.log(`   📈 Performance: ${actualDebounceTime <= SEARCH_DEBOUNCE_DELAY + 10 ? '✅ Good' : '⚠️ Slow'}`);
+        console.log(`   📈 Performance: ${actualDebounceTime <= SEARCH_DEBOUNCE_DELAY + 50 ? '✅ Good' : '⚠️ Slow (>${SEARCH_DEBOUNCE_DELAY + 50}ms)'}`);
         onSearchChange(viewName, value);
       }, SEARCH_DEBOUNCE_DELAY);
       
@@ -2130,13 +2133,11 @@ Priority: ${task.priority}`;
     if (format === 'excel') {
       const wb = XLSX.utils.book_new();
       const taskData = taskList.map(task => ({
-        'Task ID': task._id,
         'Title': task.title,
         'Description': task.description,
         'Status': task.status,
         'Priority': task.priority,
         'Project': task.project,
-        'Team': task.team,
         'Assigned To': task.assignedTo,
         'Assigned By': task.assignedBy,
         'Start Date': task.inDate ? new Date(task.inDate).toLocaleDateString() : '',
@@ -2457,7 +2458,6 @@ Priority: ${task.priority}`;
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-8">
                   <input type="checkbox" className="rounded border-gray-300" />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned To</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Project</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Task Title</th>
@@ -2478,9 +2478,6 @@ Priority: ${task.priority}`;
                   <tr key={task._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <input type="checkbox" className="rounded border-gray-300" />
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {String(index + 1).padStart(6, '0')}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
