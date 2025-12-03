@@ -421,7 +421,10 @@ const TaskManagementSystem = () => {
   };
 
   const getStatusBadge = (task) => {
-    const isPastDue = new Date(task.outDate) < new Date() && task.status !== 'Completed';
+    // Create due date at end of day (23:59:59) so it becomes overdue after midnight
+    const dueDate = new Date(task.outDate);
+    dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
+    const isPastDue = new Date() > dueDate && task.status !== 'Completed';
     const status = isPastDue ? 'Overdue' : task.status;
     
     const colors = {
@@ -439,7 +442,10 @@ const TaskManagementSystem = () => {
   };
 
   const getStatusDropdown = (task) => {
-    const isPastDue = new Date(task.outDate) < new Date() && task.status !== 'Completed';
+    // Create due date at end of day (23:59:59) so it becomes overdue after midnight
+    const dueDate = new Date(task.outDate);
+    dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
+    const isPastDue = new Date() > dueDate && task.status !== 'Completed';
     const currentStatus = isPastDue ? 'Overdue' : task.status;
     
     const statusColors = {
