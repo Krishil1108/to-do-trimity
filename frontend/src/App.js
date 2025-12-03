@@ -2680,11 +2680,12 @@ Priority: ${task.priority}`;
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
-              <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{task.title}</h4>
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{getProjectName(task.project)}</h3>
               <span className={`px-2 py-1 rounded text-xs font-medium ${PRIORITY_COLORS[task.priority]} border inline-block w-fit`}>
                 {task.priority}
               </span>
             </div>
+            <h4 className="font-medium text-gray-800 text-sm mb-1">{task.title}</h4>
             <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{task.description || 'No description'}</p>
           </div>
           {showActions && (
@@ -2769,10 +2770,6 @@ Priority: ${task.priority}`;
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-xs mb-3">
-          <div>
-            <span className="text-gray-500">Project:</span>
-            <span className="ml-1 font-medium text-gray-900">{getProjectName(task.project)}</span>
-          </div>
           <div>
             <span className="text-gray-500">Team:</span>
             <span className="ml-1 font-medium text-gray-900">{task.team}</span>
