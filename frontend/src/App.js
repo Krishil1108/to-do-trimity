@@ -1815,7 +1815,24 @@ Priority: ${task.priority}`;
       if (filters.team && task.team !== filters.team) return false;
       if (filters.priority && task.priority !== filters.priority) return false;
       if (filters.severity && task.severity !== filters.severity) return false;
-      if (filters.status && task.status !== filters.status) return false;
+      
+      // Handle status filtering with special logic for overdue
+      if (filters.status) {
+        if (filters.status === 'Overdue') {
+          // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
+          const dueDate = new Date(task.outDate);
+          dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
+          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
+          if (!(task.status === 'Overdue' || isPastDue)) return false;
+        } else {
+          // For other statuses, check exact match (but exclude tasks that are past due)
+          const dueDate = new Date(task.outDate);
+          dueDate.setHours(23, 59, 59, 999);
+          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
+          if (isPastDue || task.status !== filters.status) return false;
+        }
+      }
+      
       return true;
     });
   };
@@ -2870,7 +2887,24 @@ Priority: ${task.priority}`;
       if (filters.project && task.project !== filters.project) return false;
       if (filters.priority && task.priority !== filters.priority) return false;
       if (filters.severity && task.severity !== filters.severity) return false;
-      if (filters.status && task.status !== filters.status) return false;
+      
+      // Handle status filtering with special logic for overdue
+      if (filters.status) {
+        if (filters.status === 'Overdue') {
+          // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
+          const dueDate = new Date(task.outDate);
+          dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
+          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
+          if (!(task.status === 'Overdue' || isPastDue)) return false;
+        } else {
+          // For other statuses, check exact match (but exclude tasks that are past due)
+          const dueDate = new Date(task.outDate);
+          dueDate.setHours(23, 59, 59, 999);
+          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
+          if (isPastDue || task.status !== filters.status) return false;
+        }
+      }
+      
       return true;
     });
     
