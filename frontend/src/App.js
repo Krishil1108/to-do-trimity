@@ -1933,7 +1933,6 @@ Priority: ${task.priority}`;
           }).length
         },
         byUser: {},
-        byProject: {},
         byAssociate: {},
         byPriority: {
           High: reportTasks.filter(t => t.priority === 'High').length,
@@ -1982,24 +1981,7 @@ Priority: ${task.priority}`;
         };
       });
 
-      // Group by project
-      projects.forEach(project => {
-        const projectTasks = reportTasks.filter(t => t.project === project);
-        if (projectTasks.length > 0) {
-          report.byProject[project] = {
-            total: projectTasks.length,
-            completed: projectTasks.filter(t => t.status === 'Completed').length,
-            pending: projectTasks.filter(t => t.status === 'Pending').length,
-            inProgress: projectTasks.filter(t => t.status === 'In Progress').length,
-            overdue: projectTasks.filter(t => {
-              const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
-              return isOverdue || t.status === 'Overdue';
-            }).length,
-            completionRate: projectTasks.length > 0 ? 
-              (projectTasks.filter(t => t.status === 'Completed').length / projectTasks.length * 100).toFixed(2) : 0
-          };
-        }
-      });
+
 
       setReportData(report);
     } catch (error) {
@@ -2007,7 +1989,7 @@ Priority: ${task.priority}`;
     } finally {
       setLoadingReport(false);
     }
-  }, [tasks, users, reportType, reportDateRange, selectedYear, selectedQuarter, projects]);
+  }, [tasks, users, reportType, reportDateRange, selectedYear, selectedQuarter]);
 
   // Export Functions
   const exportToExcel = useCallback((data, filename = 'task_report') => {
@@ -2052,13 +2034,7 @@ Priority: ${task.priority}`;
       XLSX.utils.book_append_sheet(wb, associateSheet, 'Associate Analysis');
     }
 
-    // Project Analysis Sheet
-    const projectData = [['Project', 'Total Tasks', 'Completed', 'Pending', 'In Progress', 'Overdue', 'Completion Rate (%)']];
-    Object.entries(data.byProject).forEach(([project, stats]) => {
-      projectData.push([project, stats.total, stats.completed, stats.pending, stats.inProgress, stats.overdue, stats.completionRate]);
-    });
-    const projectSheet = XLSX.utils.aoa_to_sheet(projectData);
-    XLSX.utils.book_append_sheet(wb, projectSheet, 'Project Analysis');
+
 
     XLSX.writeFile(wb, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
   }, []);
@@ -2151,28 +2127,7 @@ Priority: ${task.priority}`;
       });
     }
 
-    // Project Analysis
-    yPosition = doc.lastAutoTable.finalY + 20;
-    if (yPosition > 250) {
-      doc.addPage();
-      yPosition = 20;
-    }
-    
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Project Analysis', 20, yPosition);
-    yPosition += 10;
 
-    const projectRows = Object.entries(data.byProject).map(([project, stats]) => [
-      project, stats.total, stats.completed, stats.pending, stats.inProgress, stats.overdue, stats.completionRate + '%'
-    ]);
-
-    doc.autoTable({
-      startY: yPosition,
-      head: [['Project', 'Total', 'Completed', 'Pending', 'In Progress', 'Overdue', 'Completion Rate']],
-      body: projectRows,
-      theme: 'grid'
-    });
 
     doc.save(`${filename}_${new Date().toISOString().split('T')[0]}.pdf`);
   }, []);
@@ -3648,12 +3603,17 @@ Priority: ${task.priority}`;
                 onChange={(e) => setReportType(e.target.value)}
                 className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="alltime">All Time</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="halfyearly">Half Yearly</option>
-                <option value="yearly">Yearly</option>
-                <option value="custom">Custom Range</option>
+                <option value="alltime">All Time (All Tasks Ever Created)</option>
+                <option value="quarterly">Quarterly (Specific Quarter & Year)</option>
+                <option value="halfyearly">Half Yearly (Specific Half & Year)</option>
+                <option value="yearly">Yearly (Specific Year)</option>
+                <option value="custom">Custom Range (Custom Dates)</option>
               </select>
+              {reportType === 'alltime' && (
+                <p className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                  📊 <strong>All Time Report:</strong> This will include all tasks created since the beginning of your system, regardless of year selection.
+                </p>
+              )}
             </div>
 
             {/* Quarter Selection (for quarterly reports) */}
@@ -3670,23 +3630,33 @@ Priority: ${task.priority}`;
                   <option value={3}>Q3 (Jul-Sep)</option>
                   <option value={4}>Q4 (Oct-Dec)</option>
                 </select>
+                <p className="mt-2 text-sm text-gray-600">
+                  Select quarter and year for quarterly analysis
+                </p>
               </div>
             )}
 
-            {/* Year Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {[...Array(8)].map((_, i) => {
-                  const year = new Date().getFullYear() - 4 + i;
-                  return <option key={year} value={year}>{year}</option>;
-                })}
-              </select>
-            </div>
+            {/* Year Selection - Hidden for All Time and Custom reports */}
+            {reportType !== 'alltime' && reportType !== 'custom' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {[...Array(8)].map((_, i) => {
+                    const year = new Date().getFullYear() - 4 + i;
+                    return <option key={year} value={year}>{year}</option>;
+                  })}
+                </select>
+                <p className="mt-2 text-sm text-gray-600">
+                  {reportType === 'quarterly' && 'Year for the selected quarter'}
+                  {reportType === 'halfyearly' && 'Year for the selected half'}
+                  {reportType === 'yearly' && 'Specific year for analysis'}
+                </p>
+              </div>
+            )}
 
             {/* Half Selection (for half-yearly reports) */}
             {reportType === 'halfyearly' && (
@@ -3700,30 +3670,63 @@ Priority: ${task.priority}`;
                   <option value={1}>H1 (Jan-Jun)</option>
                   <option value={2}>H2 (Jul-Dec)</option>
                 </select>
+                <p className="mt-2 text-sm text-gray-600">
+                  Select half and year for half-yearly analysis
+                </p>
+              </div>
+            )}
+
+            {/* All Time Info */}
+            {reportType === 'alltime' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-green-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-medium">All Time Report</span>
+                </div>
+                <p className="mt-2 text-sm text-green-600">
+                  This will analyze all tasks in your system from the beginning. No date restrictions will be applied.
+                </p>
               </div>
             )}
           </div>
 
           {/* Custom Date Range */}
           {reportType === 'custom' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                <DatePicker
-                  selected={reportDateRange.start}
-                  onChange={(date) => setReportDateRange(prev => ({ ...prev, start: date }))}
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholderText="Select start date"
-                />
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-blue-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="font-medium">Custom Date Range Report</span>
+                </div>
+                <p className="mt-2 text-sm text-blue-600">
+                  Select specific start and end dates to analyze tasks created within that period.
+                </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                <DatePicker
-                  selected={reportDateRange.end}
-                  onChange={(date) => setReportDateRange(prev => ({ ...prev, end: date }))}
-                  className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholderText="Select end date"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                  <DatePicker
+                    selected={reportDateRange.start}
+                    onChange={(date) => setReportDateRange(prev => ({ ...prev, start: date }))}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholderText="Select start date"
+                    dateFormat="dd/MM/yyyy"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                  <DatePicker
+                    selected={reportDateRange.end}
+                    onChange={(date) => setReportDateRange(prev => ({ ...prev, end: date }))}
+                    className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholderText="Select end date"
+                    dateFormat="dd/MM/yyyy"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -3834,31 +3837,12 @@ Priority: ${task.priority}`;
               }
             });
             
-            // Recalculate byProject data
-            const filteredByProject = {};
-            projects.forEach(project => {
-              const projectTasks = filteredTasks.filter(t => t.project === project);
-              if (projectTasks.length > 0) {
-                filteredByProject[project] = {
-                  total: projectTasks.length,
-                  completed: projectTasks.filter(t => t.status === 'Completed').length,
-                  pending: projectTasks.filter(t => t.status === 'Pending').length,
-                  inProgress: projectTasks.filter(t => t.status === 'In Progress').length,
-                  overdue: projectTasks.filter(t => {
-                    const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
-                    return isOverdue || t.status === 'Overdue';
-                  }).length,
-                  completionRate: projectTasks.length > 0 ? 
-                    (projectTasks.filter(t => t.status === 'Completed').length / projectTasks.length * 100).toFixed(2) : 0
-                };
-              }
-            });
+
             
             filteredReportData = {
               ...reportData,
               summary: filteredSummary,
               byUser: filteredByUser,
-              byProject: filteredByProject,
               completionRate: filteredTasks.length > 0 ? 
                 (filteredTasks.filter(t => t.status === 'Completed').length / filteredTasks.length * 100).toFixed(2) : 0
             };
@@ -3976,49 +3960,7 @@ Priority: ${task.priority}`;
               </div>
             </div>
 
-            {/* Project Analysis */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Project Analysis</h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-4 font-medium text-gray-700">Project</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Total</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Completed</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Pending</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">In Progress</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Overdue</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Completion %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(filteredReportData.byProject)
-                      .filter(([_, stats]) => stats.total > 0)
-                      .sort(([, a], [, b]) => parseFloat(b.completionRate) - parseFloat(a.completionRate))
-                      .map(([project, stats]) => (
-                      <tr key={project} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium">{project}</td>
-                        <td className="py-3 px-4 text-center">{stats.total}</td>
-                        <td className="py-3 px-4 text-center text-green-600">{stats.completed}</td>
-                        <td className="py-3 px-4 text-center text-yellow-600">{stats.pending}</td>
-                        <td className="py-3 px-4 text-center text-purple-600">{stats.inProgress}</td>
-                        <td className="py-3 px-4 text-center text-red-600">{stats.overdue}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            parseFloat(stats.completionRate) >= 80 ? 'bg-green-100 text-green-800' :
-                            parseFloat(stats.completionRate) >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {stats.completionRate}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+
 
             {/* Associate Analysis */}
             {Object.keys(filteredReportData.byAssociate || {}).length > 0 && (
