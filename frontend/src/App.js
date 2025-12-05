@@ -110,6 +110,7 @@ const TaskManagementSystem = () => {
   const [editingTask, setEditingTask] = useState(null);
   const [filters, setFilters] = useState({});
   const [showFilters, setShowFilters] = useState(false);
+  const [subtaskFilter, setSubtaskFilter] = useState('all'); // 'all', 'subtasks-only', 'tasks-only'
   const [associateFilters, setAssociateFilters] = useState({});
   const [associateDateRange, setAssociateDateRange] = useState({ from: '', to: '' });
   const [selectedAssociateTasks, setSelectedAssociateTasks] = useState([]);
@@ -4285,8 +4286,13 @@ Priority: ${task.priority}`;
     
     // Apply filters to assigned by me tasks
     const filteredTasks = assignedByMeTasks.filter(task => {
-      // Filter out subtasks if the filter is set to 'false'
-      if (filters.showSubtasks === 'false' && task.isSubtask) return false;
+      // Apply subtask filter (only for Piyush and Ketul)
+      if (['piyush.diwan', 'ketul.lathia'].includes(currentUser?.username)) {
+        if (subtaskFilter === 'subtasks-only' && !task.isSubtask) return false;
+        if (subtaskFilter === 'tasks-only' && task.isSubtask) return false;
+        // 'all' shows both tasks and subtasks
+      }
+      
       if (filters.project && task.project !== filters.project) return false;
       if (filters.priority && task.priority !== filters.priority) return false;
       if (filters.severity && task.severity !== filters.severity) return false;
@@ -4430,21 +4436,28 @@ Priority: ${task.priority}`;
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Show Subtasks</label>
-              <select
-                value={filters.showSubtasks || 'true'}
-                onChange={(e) => setFilters({...filters, showSubtasks: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
+            {/* Subtask Filter - Only for Piyush and Ketul */}
+            {['piyush.diwan', 'ketul.lathia'].includes(currentUser?.username) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Task Type</label>
+                <select
+                  value={subtaskFilter}
+                  onChange={(e) => setSubtaskFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="all">All (Tasks + Subtasks)</option>
+                  <option value="tasks-only">Only Tasks (No Subtasks)</option>
+                  <option value="subtasks-only">Only Subtasks</option>
+                </select>
+              </div>
+            )}
 
             <div className="flex items-end">
               <button 
-                onClick={() => setFilters({})}
+                onClick={() => {
+                  setFilters({});
+                  setSubtaskFilter('all');
+                }}
                 className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Clear All
@@ -5585,17 +5598,7 @@ Priority: ${task.priority}`;
                     Assigned By Me
                   </button>
                   
-                  {/* Team Subtasks - for Ketul and managers with team members */}
-                  {(currentUser?.username === 'ketul.lathia' || getMyTeamMembers().length > 0) && (
-                    <button
-                      onClick={() => { setCurrentView('team-subtasks'); setShowAdvancedMenu(false); }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        currentView === 'team-subtasks' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
-                      }`}
-                    >
-                      Team Subtasks
-                    </button>
-                  )}
+
                   
                   <button
                     onClick={() => { setCurrentView('associate-tasks'); setShowAdvancedMenu(false); }}
@@ -5660,7 +5663,6 @@ Priority: ${task.priority}`;
         {currentView === 'my-tasks' && <MyTasksDashboard />}
         {currentView === 'all-tasks' && <AllTasksView />}
         {currentView === 'assigned-by-me' && <AssignedByMeView />}
-        {currentView === 'team-subtasks' && <SubtasksView />}
         {currentView === 'associate-tasks' && <AssociateTasksView />}
         {currentView === 'confidential-tasks' && currentUser?.name === 'Ketul Lathia' && <ConfidentialTasksView />}
         {currentView === 'admin-reports' && currentUser?.name === 'Ketul Lathia' && <AdminReportsView />}
@@ -6645,20 +6647,7 @@ Priority: ${task.priority}`;
             </button>
           )}
 
-          {/* Team Subtasks - for managers with team members and Ketul */}
-          {!isTeamMember() && (currentUser?.username === 'ketul.lathia' || getMyTeamMembers().length > 0) && (
-            <button
-              onClick={() => setCurrentView('team-subtasks')}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-                currentView === 'team-subtasks' ? 'bg-purple-50 text-purple-600' : 'text-gray-600'
-              }`}
-            >
-              <svg className="w-4 h-4 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-              <span className="text-xs font-medium whitespace-nowrap">Subtasks</span>
-            </button>
-          )}
+
 
           {/* Associate Tasks - available to non-team members */}
           {!isTeamMember() && (
