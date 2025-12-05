@@ -5600,14 +5600,17 @@ Priority: ${task.priority}`;
                   
 
                   
-                  <button
-                    onClick={() => { setCurrentView('associate-tasks'); setShowAdvancedMenu(false); }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      currentView === 'associate-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    Associate Tasks
-                  </button>
+                  {/* Associate Tasks - exclude Kinjal Solanki */}
+                  {currentUser?.name !== 'Kinjal Solanki' && (
+                    <button
+                      onClick={() => { setCurrentView('associate-tasks'); setShowAdvancedMenu(false); }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        currentView === 'associate-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Associate Tasks
+                    </button>
+                  )}
 
                   {/* Confidential Tasks - Only for Ketul Lathia */}
                   {currentUser?.name === 'Ketul Lathia' && (
@@ -6649,8 +6652,8 @@ Priority: ${task.priority}`;
 
 
 
-          {/* Associate Tasks - available to non-team members */}
-          {!isTeamMember() && (
+          {/* Associate Tasks - available to non-team members, exclude Kinjal Solanki */}
+          {!isTeamMember() && currentUser?.name !== 'Kinjal Solanki' && (
             <button
               onClick={() => setCurrentView('associate-tasks')}
               className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
