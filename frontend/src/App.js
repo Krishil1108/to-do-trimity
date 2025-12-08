@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
-import { Calendar, Users, Bell, MessageCircle, Plus, Edit2, Trash2, Filter, Check, Clock, AlertCircle, X, LogOut, User, Mail, Lock, Menu, LayoutGrid, List, Eye, Download, FileText, BarChart3, TrendingUp, FolderKanban, UserPlus, Search } from 'lucide-react';
+import { Calendar, Users, Bell, MessageCircle, Plus, Edit2, Trash2, Filter, Check, Clock, AlertCircle, X, LogOut, User, Mail, Lock, Menu, CheckCircle, XCircle, LayoutGrid, List, Eye, Download, FileText, BarChart3, TrendingUp, FolderKanban, UserPlus, Search } from 'lucide-react';
 import API_URL from './config';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -2666,7 +2666,9 @@ Priority: ${task.priority}`;
                                   {isOverdue && 
                                    (task.status !== 'Completed' || (task.completedAt && new Date(task.completedAt) > dueDate))
                                     ? 'Overdue'
-                                    : task.status || 'Pending'}
+                                    : task.status === 'Completed' 
+                                      ? 'Completed'
+                                      : 'Pending'}
                                 </div>
                               </React.Fragment>
                             );
@@ -2675,7 +2677,7 @@ Priority: ${task.priority}`;
                       ) : (
                         <div>
                           <div className="text-sm text-gray-700">-</div>
-                          <div className="text-xs text-gray-500 mt-1">{task.status || 'Pending'}</div>
+                          <div className="text-xs text-gray-500 mt-1">{task.status === 'Completed' ? 'Completed' : 'Pending'}</div>
                         </div>
                       )}
                     </td>
@@ -5346,7 +5348,9 @@ Priority: ${task.priority}`;
                                     {isOverdue && 
                                      (task.status !== 'Completed' || (task.completedAt && new Date(task.completedAt) > dueDate))
                                       ? 'Overdue'
-                                      : task.status || 'Pending'}
+                                      : task.status === 'Completed' 
+                                        ? 'Completed'
+                                        : 'Pending'}
                                   </div>
                                 </React.Fragment>
                               );
@@ -5355,7 +5359,7 @@ Priority: ${task.priority}`;
                         ) : (
                           <div>
                             <div className="text-sm text-gray-700">-</div>
-                            <div className="text-xs text-gray-500 mt-1">{task.status || 'Pending'}</div>
+                            <div className="text-xs text-gray-500 mt-1">{task.status === 'Completed' ? 'Completed' : 'Pending'}</div>
                           </div>
                         )}
                       </td>
