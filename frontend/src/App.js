@@ -5961,10 +5961,8 @@ Priority: ${task.priority}`;
                           <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-semibold">
                             {task.externalUserDetails?.name?.charAt(0).toUpperCase() || 'E'}
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {task.externalUserDetails?.name || task.assignedTo}
-                            </div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {task.externalUserDetails?.name || 'External User'}
                           </div>
                         </div>
                       </td>
