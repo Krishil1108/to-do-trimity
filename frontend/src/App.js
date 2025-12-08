@@ -1929,6 +1929,11 @@ Priority: ${task.priority}`;
       // Get user information for the report
       const selectedUser = selectedReportUser === 'all' ? null : users.find(u => u.username === selectedReportUser);
       
+      // Define userTasks based on selection - for summary statistics
+      const userTasks = selectedReportUser === 'all' ? 
+        reportTasks : 
+        reportTasks.filter(t => !t.isAssociate && t.assignedTo === selectedReportUser);
+      
       // Generate comprehensive report data
       const report = {
         user: {
@@ -5655,7 +5660,7 @@ Priority: ${task.priority}`;
 
               <button
                 onClick={() => setShowAdvancedMenu(!showAdvancedMenu)}
-                className="hidden md:block p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="lg:hidden md:block p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Menu className="w-5 h-5" />
               </button>
@@ -5671,8 +5676,103 @@ Priority: ${task.priority}`;
             </div>
           </div>
           
+          {/* Desktop Navigation - Always Visible */}
+          <div className="hidden lg:block mt-3 pb-2 border-t pt-3">
+            <div className="flex flex-wrap gap-2 overflow-x-auto">
+              <button
+                onClick={() => { setCurrentView('my-tasks'); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  currentView === 'my-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                My Tasks
+              </button>
+              
+              {!isTeamMember() && (
+                <>
+                  {/* All Tasks - hidden from Kinjal and Vraj */}
+                  {!['Kinjal Solanki', 'Vraj Patel'].includes(currentUser?.name) && (
+                    <button
+                      onClick={() => { setCurrentView('all-tasks'); }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        currentView === 'all-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      All Tasks
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => { setCurrentView('assigned-by-me'); }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      currentView === 'assigned-by-me' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Assigned By Me
+                  </button>
+                  
+                  {/* Associate Tasks - exclude Kinjal Solanki */}
+                  {currentUser?.name !== 'Kinjal Solanki' && (
+                    <button
+                      onClick={() => { setCurrentView('associate-tasks'); }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        currentView === 'associate-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Associate Tasks
+                    </button>
+                  )}
+
+                  {/* Confidential Tasks - Only for Ketul Lathia */}
+                  {currentUser?.name === 'Ketul Lathia' && (
+                    <button
+                      onClick={() => { setCurrentView('confidential-tasks'); }}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        currentView === 'confidential-tasks' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Confidential Tasks
+                      </div>
+                    </button>
+                  )}
+                </>
+              )}
+              
+              {isAdmin() && (
+                <button
+                  onClick={() => { setCurrentView('admin-reports'); }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    currentView === 'admin-reports' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Admin Reports
+                  </div>
+                </button>
+              )}
+              
+              <button
+                onClick={() => { setCurrentView('settings'); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  currentView === 'settings' ? 'bg-gray-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4" />
+                  Settings
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Navigation - Toggle Menu */}
           {showAdvancedMenu && (
-            <div className="mt-3 flex flex-wrap gap-1 sm:gap-2 pb-2 border-t pt-3 overflow-x-auto">
+            <div className="lg:hidden mt-3 flex flex-wrap gap-1 sm:gap-2 pb-2 border-t pt-3 overflow-x-auto">
               <button
                 onClick={() => { setCurrentView('my-tasks'); setShowAdvancedMenu(false); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
