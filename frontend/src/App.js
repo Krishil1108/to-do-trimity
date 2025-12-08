@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
-import { Calendar, Users, Bell, MessageCircle, Mic, Plus, Edit2, Trash2, MoreVertical, Filter, Check, Clock, AlertCircle, X, LogOut, User, Mail, Lock, Menu, CheckCircle, XCircle, LayoutGrid, List, Eye, Download, FileText, BarChart3, TrendingUp, FolderKanban, UserPlus } from 'lucide-react';
+import { Calendar, Users, Bell, MessageCircle, Mic, Plus, Edit2, Trash2, MoreVertical, Filter, Check, Clock, AlertCircle, X, LogOut, User, Mail, Lock, Menu, CheckCircle, XCircle, LayoutGrid, List, Eye, Download, FileText, BarChart3, TrendingUp, FolderKanban, UserPlus, Search } from 'lucide-react';
 import API_URL from './config';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -139,6 +139,7 @@ const TaskManagementSystem = () => {
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
   const [isRecording, setIsRecording] = useState(false);
   const [showAdvancedMenu, setShowAdvancedMenu] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'cards' or 'table'
@@ -3082,14 +3083,6 @@ Priority: ${task.priority}`;
           )}
         </div>
 
-        {/* Search Bar */}
-        <SearchInput 
-          viewName="my-tasks"
-          placeholder="Search tasks by title, description, project, or assignee..."
-          searchValue={searchTerms['my-tasks']}
-          onSearchChange={handleSearchChange}
-        />
-
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
           {/* Export Button */}
@@ -4187,13 +4180,6 @@ Priority: ${task.priority}`;
         </div>
         
         {/* Search Bar */}
-        <SearchInput 
-          viewName="all-tasks"
-          placeholder="Search all tasks by title, description, project, or assignee..."
-          searchValue={searchTerms['all-tasks']}
-          onSearchChange={handleSearchChange}
-        />
-        
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
           {/* Export Button */}
@@ -5082,14 +5068,6 @@ Priority: ${task.priority}`;
           )}
         </div>
 
-        {/* Search Bar */}
-        <SearchInput 
-          viewName="associate-tasks"
-          placeholder="Search associate tasks..."
-          searchValue={searchTerms['associate-tasks']}
-          onSearchChange={handleSearchChange}
-        />
-
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
@@ -5422,14 +5400,6 @@ Priority: ${task.priority}`;
           </div>
         </div>
 
-        {/* Search Bar */}
-        <SearchInput 
-          viewName="confidential-tasks"
-          placeholder="Search confidential tasks..."
-          searchValue={searchTerms['confidential-tasks']}
-          onSearchChange={handleSearchChange}
-        />
-
         {/* Export and View Toggle */}
         <div className="flex justify-end items-center gap-4">
           {/* Export Button */}
@@ -5659,6 +5629,22 @@ Priority: ${task.priority}`;
               </button>
 
               <button
+                onClick={() => setShowSearchBar(!showSearchBar)}
+                className="p-2 sm:p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Search Tasks"
+              >
+                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+
+              <button
+                onClick={() => setShowSearchBar(!showSearchBar)}
+                className="p-2 sm:p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Search Tasks"
+              >
+                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+
+              <button
                 onClick={() => setShowAdvancedMenu(!showAdvancedMenu)}
                 className="lg:hidden md:block p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
@@ -5676,6 +5662,52 @@ Priority: ${task.priority}`;
             </div>
           </div>
           
+          {/* Collapsible Search Bar */}
+          {showSearchBar && (
+            <div className="mt-3 pb-3 border-t pt-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3 px-4">
+                <Search className="w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={`Search ${currentView === 'my-tasks' ? 'my' : currentView === 'all-tasks' ? 'all' : currentView === 'assigned-by-me' ? 'assigned by me' : currentView === 'associate-tasks' ? 'associate' : currentView === 'confidential-tasks' ? 'confidential' : ''} tasks...`}
+                  value={searchTerms[currentView] || ''}
+                  onChange={(e) => handleSearchChange(currentView, e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  autoFocus
+                />
+                <button
+                  onClick={() => setShowSearchBar(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Collapsible Search Bar */}
+          {showSearchBar && (
+            <div className="mt-3 pb-3 border-t pt-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3 px-4">
+                <Search className="w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={`Search ${currentView === 'my-tasks' ? 'my' : currentView === 'all-tasks' ? 'all' : currentView === 'assigned-by-me' ? 'assigned by me' : currentView === 'associate-tasks' ? 'associate' : currentView === 'confidential-tasks' ? 'confidential' : ''} tasks...`}
+                  value={searchTerms[currentView] || ''}
+                  onChange={(e) => handleSearchChange(currentView, e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  autoFocus
+                />
+                <button
+                  onClick={() => setShowSearchBar(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Desktop Navigation - Always Visible */}
           <div className="hidden lg:block mt-3 pb-2 border-t pt-3">
             <div className="flex flex-wrap gap-2 overflow-x-auto">
