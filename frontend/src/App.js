@@ -5621,14 +5621,6 @@ Priority: ${task.priority}`;
               </button>
 
               <button
-                onClick={() => setShowSearchBar(!showSearchBar)}
-                className="p-2 sm:p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Search Tasks"
-              >
-                <Search className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-
-              <button
                 onClick={() => setShowAdvancedMenu(!showAdvancedMenu)}
                 className="lg:hidden md:block p-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
