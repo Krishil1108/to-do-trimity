@@ -1968,11 +1968,31 @@ Priority: ${task.priority}`;
           (reportTasks.filter(t => t.status === 'Completed').length / reportTasks.length * 100).toFixed(2) : 0
       };
 
-      // Group by user
-      users.forEach(user => {
-        const userTasks = reportTasks.filter(t => !t.isAssociate && t.assignedTo === user.username);
-        if (userTasks.length > 0) {
-          report.byUser[user.name] = {
+      // Group by user - only include selected user if specific user is chosen
+      if (selectedReportUser === 'all') {
+        users.forEach(user => {
+          const userTasks = reportTasks.filter(t => !t.isAssociate && t.assignedTo === user.username);
+          if (userTasks.length > 0) {
+            report.byUser[user.name] = {
+              total: userTasks.length,
+              completed: userTasks.filter(t => t.status === 'Completed').length,
+              pending: userTasks.filter(t => t.status === 'Pending').length,
+              inProgress: userTasks.filter(t => t.status === 'In Progress').length,
+              overdue: userTasks.filter(t => {
+                const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
+                return isOverdue || t.status === 'Overdue';
+              }).length,
+              completionRate: userTasks.length > 0 ? 
+                (userTasks.filter(t => t.status === 'Completed').length / userTasks.length * 100).toFixed(2) : 0
+            };
+          }
+        });
+      } else {
+        // Only show the selected user's data
+        const selectedUser = users.find(u => u.username === selectedReportUser);
+        if (selectedUser) {
+          const userTasks = reportTasks.filter(t => !t.isAssociate && t.assignedTo === selectedUser.username);
+          report.byUser[selectedUser.name] = {
             total: userTasks.length,
             completed: userTasks.filter(t => t.status === 'Completed').length,
             pending: userTasks.filter(t => t.status === 'Pending').length,
@@ -1985,26 +2005,47 @@ Priority: ${task.priority}`;
               (userTasks.filter(t => t.status === 'Completed').length / userTasks.length * 100).toFixed(2) : 0
           };
         }
-      });
+      }
 
-      // Group by associate
-      const associateTasks = reportTasks.filter(t => t.isAssociate);
-      const uniqueAssociates = [...new Set(associateTasks.map(t => t.associateDetails?.name).filter(Boolean))];
-      uniqueAssociates.forEach(associateName => {
-        const assocTasks = associateTasks.filter(t => t.associateDetails?.name === associateName);
-        report.byAssociate[associateName] = {
-          total: assocTasks.length,
-          completed: assocTasks.filter(t => t.status === 'Completed').length,
-          pending: assocTasks.filter(t => t.status === 'Pending').length,
-          inProgress: assocTasks.filter(t => t.status === 'In Progress').length,
-          overdue: assocTasks.filter(t => {
-            const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
-            return isOverdue || t.status === 'Overdue';
-          }).length,
-          completionRate: assocTasks.length > 0 ? 
-            (assocTasks.filter(t => t.status === 'Completed').length / assocTasks.length * 100).toFixed(2) : 0
-        };
-      });
+      // Group by associate - only show associates if 'all' users selected or associates assigned by selected user
+      if (selectedReportUser === 'all') {
+        const associateTasks = reportTasks.filter(t => t.isAssociate);
+        const uniqueAssociates = [...new Set(associateTasks.map(t => t.associateDetails?.name).filter(Boolean))];
+        uniqueAssociates.forEach(associateName => {
+          const assocTasks = associateTasks.filter(t => t.associateDetails?.name === associateName);
+          report.byAssociate[associateName] = {
+            total: assocTasks.length,
+            completed: assocTasks.filter(t => t.status === 'Completed').length,
+            pending: assocTasks.filter(t => t.status === 'Pending').length,
+            inProgress: assocTasks.filter(t => t.status === 'In Progress').length,
+            overdue: assocTasks.filter(t => {
+              const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
+              return isOverdue || t.status === 'Overdue';
+            }).length,
+            completionRate: assocTasks.length > 0 ? 
+              (assocTasks.filter(t => t.status === 'Completed').length / assocTasks.length * 100).toFixed(2) : 0
+          };
+        });
+      } else {
+        // Only show associates assigned by the selected user
+        const associateTasks = reportTasks.filter(t => t.isAssociate && t.assignedBy === selectedReportUser);
+        const uniqueAssociates = [...new Set(associateTasks.map(t => t.associateDetails?.name).filter(Boolean))];
+        uniqueAssociates.forEach(associateName => {
+          const assocTasks = associateTasks.filter(t => t.associateDetails?.name === associateName);
+          report.byAssociate[associateName] = {
+            total: assocTasks.length,
+            completed: assocTasks.filter(t => t.status === 'Completed').length,
+            pending: assocTasks.filter(t => t.status === 'Pending').length,
+            inProgress: assocTasks.filter(t => t.status === 'In Progress').length,
+            overdue: assocTasks.filter(t => {
+              const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
+              return isOverdue || t.status === 'Overdue';
+            }).length,
+            completionRate: assocTasks.length > 0 ? 
+              (assocTasks.filter(t => t.status === 'Completed').length / assocTasks.length * 100).toFixed(2) : 0
+          };
+        });
+      }
 
 
 
