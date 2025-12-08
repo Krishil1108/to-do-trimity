@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
-import { Calendar, Users, Bell, MessageCircle, Mic, Plus, Edit2, Trash2, MoreVertical, Filter, Check, Clock, AlertCircle, X, LogOut, User, Mail, Lock, Menu, CheckCircle, XCircle, LayoutGrid, List, Eye, Download, FileText, BarChart3, TrendingUp, FolderKanban, UserPlus, Search } from 'lucide-react';
+import { Calendar, Users, Bell, MessageCircle, Plus, Edit2, Trash2, Filter, Check, Clock, AlertCircle, X, LogOut, User, Mail, Lock, Menu, LayoutGrid, List, Eye, Download, FileText, BarChart3, TrendingUp, FolderKanban, UserPlus, Search } from 'lucide-react';
 import API_URL from './config';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -2716,25 +2716,6 @@ Priority: ${task.priority}`;
                                 >
                                   <MessageCircle className="w-4 h-4" />
                                 </button>
-                                {/* Done and Cross buttons for associate tasks - anyone can mark */}
-                                {task.status !== 'Completed' && (
-                                  <>
-                                    <button
-                                      onClick={() => handleCompleteTask(task)}
-                                      className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
-                                      title="Mark Complete"
-                                    >
-                                      <CheckCircle className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleMarkOverdue(task)}
-                                      className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                                      title="Mark Overdue"
-                                    >
-                                      <XCircle className="w-4 h-4" />
-                                    </button>
-                                  </>
-                                )}
                               </>
                             )}
                             
@@ -2752,92 +2733,46 @@ Priority: ${task.priority}`;
 
 
 
-                            {/* Quick Actions for assigned users on incomplete tasks - regular tasks only */}
-                            {!showCopyButton && task.assignedTo === currentUser?.username && task.status !== 'Completed' && (
-                              <>
-                                <button
-                                  onClick={() => handleCompleteTask(task)}
-                                  className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
-                                  title="Mark Complete"
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleMarkOverdue(task)}
-                                  className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                                  title="Mark Overdue"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                </button>
-                              </>
+                            {/* Edit button - always visible for editable tasks */}
+                            <button
+                              onClick={() => editTask(task)}
+                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                              title="Edit Task"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            
+                            {/* Create Subtask button - for assigned tasks where user can create subtasks */}
+                            {task.assignedTo === currentUser?.username && (currentUser?.username === 'ketul.lathia' || getMyTeamMembers().length > 0) && (
+                              <button
+                                onClick={() => {
+                                  setParentTaskForSubtask(task);
+                                  setFormData({
+                                    ...formData,
+                                    project: task.project,
+                                    assignedBy: currentUser.username,
+                                    inDate: task.inDate,
+                                    outDate: task.outDate
+                                  });
+                                  setShowSubtaskModal(true);
+                                }}
+                                className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded transition-colors"
+                                title="Create Subtask"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
                             )}
 
-                            {/* Three Dots Menu - Administrative actions */}
-                            <div className="relative">
-                              <button 
-                                onClick={() => {
-                                  const menuId = `menu-${task._id}`;
-                                  const menu = document.getElementById(menuId);
-                                  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-                                }}
-                                className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors"
-                                title="More Actions"
+                            {/* Delete button - only for authorized users */}
+                            {(currentUser?.role === 'Admin' || task.assignedBy === currentUser?.username) && (
+                              <button
+                                onClick={() => deleteTask(task._id)}
+                                className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                                title="Delete Task"
                               >
-                                <MoreVertical className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
-                              
-                              <div 
-                                id={`menu-${task._id}`}
-                                className="absolute right-0 top-8 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
-                                style={{ display: 'none' }}
-                              >
-                                <button
-                                  onClick={() => {
-                                    editTask(task);
-                                    document.getElementById(`menu-${task._id}`).style.display = 'none';
-                                  }}
-                                  className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-blue-600 text-sm"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                  Edit
-                                </button>
-                                
-                                {/* Create Subtask option for tasks assigned to me - for Ketul and managers with team members */}
-                                {task.assignedTo === currentUser?.username && (currentUser?.username === 'ketul.lathia' || getMyTeamMembers().length > 0) && (
-                                  <button
-                                    onClick={() => {
-                                      setParentTaskForSubtask(task);
-                                      setFormData({
-                                        ...formData,
-                                        project: task.project,
-                                        assignedBy: currentUser.username,
-                                        inDate: task.inDate,
-                                        outDate: task.outDate
-                                      });
-                                      setShowSubtaskModal(true);
-                                      document.getElementById(`menu-${task._id}`).style.display = 'none';
-                                    }}
-                                    className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-purple-600 text-sm"
-                                  >
-                                    <Plus className="w-3.5 h-3.5" />
-                                    Create Subtask
-                                  </button>
-                                )}
-                                
-                                {(currentUser?.role === 'Admin' || task.assignedBy === currentUser?.username) && (
-                                  <button
-                                    onClick={() => {
-                                      deleteTask(task._id);
-                                      document.getElementById(`menu-${task._id}`).style.display = 'none';
-                                    }}
-                                    className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-red-600 text-sm"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                            </div>
+                            )}
                           </div>
                       </td>
                     )}
@@ -2890,57 +2825,39 @@ Priority: ${task.priority}`;
                   >
                     <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                  {/* Done and Cross buttons for associate tasks - anyone can mark */}
-                  {task.status !== 'Completed' && (
-                    <>
-                      <button
-                        onClick={() => handleCompleteTask(task)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Mark as Complete"
-                      >
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleMarkOverdue(task)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Mark as Overdue"
-                      >
-                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                    </>
-                  )}
-                </>
-              )}
-              
-              {/* Tick and Cross buttons for task completion - regular tasks */}
-              {!showCopyButton && task.assignedTo === currentUser?.username && task.status !== 'Completed' && (
-                <>
-                  <button
-                    onClick={() => handleCompleteTask(task)}
-                    className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title="Mark as Complete"
-                  >
-                    <CheckCircle className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleMarkOverdue(task)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Mark as Overdue"
-                  >
-                    <XCircle className="w-5 h-5" />
-                  </button>
-                </>
-              )}
-              
 
+                </>
+              )}
               
+              {/* Edit button - always visible */}
               <button
                 onClick={() => editTask(task)}
                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Edit"
+                title="Edit Task"
               >
-                <Edit2 className="w-4 h-4" />
+                <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
+              
+              {/* Create Subtask button - for tasks where user can create subtasks */}
+              {task.assignedTo === currentUser?.username && (currentUser?.username === 'ketul.lathia' || getMyTeamMembers().length > 0) && (
+                <button
+                  onClick={() => {
+                    setParentTaskForSubtask(task);
+                    setFormData({
+                      ...formData,
+                      project: task.project,
+                      assignedBy: currentUser.username,
+                      inDate: task.inDate,
+                      outDate: task.outDate
+                    });
+                    setShowSubtaskModal(true);
+                  }}
+                  className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                  title="Create Subtask"
+                >
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
               {(currentUser?.role === 'Admin' || task.assignedBy === currentUser?.username) && (
                 <button
                   onClick={() => deleteTask(task._id)}
