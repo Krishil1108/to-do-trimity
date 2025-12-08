@@ -1681,7 +1681,8 @@ Priority: ${task.priority}`;
         ...selectedTask,
         status: 'Completed',
         completionReason: completionReason,
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
+        completedDate: new Date().toISOString()
       };
       
       await axios.put(`${API_URL}/tasks/${selectedTask._id}`, updatedTask);
@@ -2537,6 +2538,7 @@ Priority: ${task.priority}`;
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Completion Date</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned By</th>
                 {showActions && (
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
@@ -2578,10 +2580,51 @@ Priority: ${task.priority}`;
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {formatDate(task.inDate || task.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {task.outDate ? formatDate(task.outDate) : '-'}
+                    <td className="px-4 py-3">
+                      {/* Due Date with conditional red color */}
+                      {task.outDate ? (
+                        <div>
+                          <div className={`text-sm ${
+                            // Red if current date > due date (regardless of completion status)
+                            new Date() > new Date(task.outDate) ? 'text-red-600 font-semibold' : 'text-gray-700'
+                          }`}>
+                            {formatDate(task.outDate)}
+                          </div>
+                          {/* Status line below due date */}
+                          <div className={`text-xs mt-1 ${
+                            // If current date > due date and task is not completed before due date
+                            new Date() > new Date(task.outDate) && 
+                            (task.status !== 'Completed' || (task.completedDate && new Date(task.completedDate) > new Date(task.outDate)))
+                              ? 'text-red-600 font-semibold' 
+                              : task.status === 'Completed' 
+                                ? 'text-green-600' 
+                                : 'text-gray-500'
+                          }`}>
+                            {/* Show status based on conditions */}
+                            {new Date() > new Date(task.outDate) && 
+                             (task.status !== 'Completed' || (task.completedDate && new Date(task.completedDate) > new Date(task.outDate)))
+                              ? 'Overdue'
+                              : task.status || 'Pending'}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-sm text-gray-700">-</div>
+                          <div className="text-xs text-gray-500 mt-1">{task.status || 'Pending'}</div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3">{getStatusDropdown(task)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {/* Completion Date - only show when status is Completed */}
+                      {task.status === 'Completed' && task.completedDate ? (
+                        <div className="text-sm text-green-600">
+                          {formatDate(task.completedDate)}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400">-</div>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-gray-400" />
@@ -5095,6 +5138,7 @@ Priority: ${task.priority}`;
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Due Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Completion Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assigned By</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -5135,10 +5179,51 @@ Priority: ${task.priority}`;
                       <td className="px-4 py-3 text-sm text-gray-700">
                         {formatDate(task.inDate || task.createdAt)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {task.outDate ? formatDate(task.outDate) : '-'}
+                      <td className="px-4 py-3">
+                        {/* Due Date with conditional red color */}
+                        {task.outDate ? (
+                          <div>
+                            <div className={`text-sm ${
+                              // Red if current date > due date (regardless of completion status)
+                              new Date() > new Date(task.outDate) ? 'text-red-600 font-semibold' : 'text-gray-700'
+                            }`}>
+                              {formatDate(task.outDate)}
+                            </div>
+                            {/* Status line below due date */}
+                            <div className={`text-xs mt-1 ${
+                              // If current date > due date and task is not completed before due date
+                              new Date() > new Date(task.outDate) && 
+                              (task.status !== 'Completed' || (task.completedDate && new Date(task.completedDate) > new Date(task.outDate)))
+                                ? 'text-red-600 font-semibold' 
+                                : task.status === 'Completed' 
+                                  ? 'text-green-600' 
+                                  : 'text-gray-500'
+                            }`}>
+                              {/* Show status based on conditions */}
+                              {new Date() > new Date(task.outDate) && 
+                               (task.status !== 'Completed' || (task.completedDate && new Date(task.completedDate) > new Date(task.outDate)))
+                                ? 'Overdue'
+                                : task.status || 'Pending'}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="text-sm text-gray-700">-</div>
+                            <div className="text-xs text-gray-500 mt-1">{task.status || 'Pending'}</div>
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">{getStatusDropdown(task)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {/* Completion Date - only show when status is Completed */}
+                        {task.status === 'Completed' && task.completedDate ? (
+                          <div className="text-sm text-green-600">
+                            {formatDate(task.completedDate)}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-400">-</div>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-400" />
