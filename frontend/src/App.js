@@ -5943,19 +5943,31 @@ Priority: ${task.priority}`;
               <table className="min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">External User</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task Title</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned By</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedExternalTasks.map(task => (
                     <tr key={task._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <input 
+                          type="checkbox"
+                          checked={selectedExternalTasks.includes(task._id)}
+                          onChange={() => toggleTaskSelection(task._id)}
+                          className="rounded border-gray-300" 
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-semibold">
@@ -5977,40 +5989,21 @@ Priority: ${task.priority}`;
                         {formatDate(task.inDate || task.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        {/* Due Date with conditional red color */}
                         {task.outDate ? (
-                          <div>
-                            {(() => {
-                              // Create due date at end of day (23:59:59) for proper comparison
+                          <div className={`text-sm ${
+                            (() => {
                               const dueDate = new Date(task.outDate);
                               dueDate.setHours(23, 59, 59, 999);
-                              const isOverdue = new Date() > dueDate;
-                              
-                              return (
-                                <React.Fragment>
-                                  <div className={`text-sm ${
-                                    // Red if current time > due date end of day (23:59:59)
-                                    isOverdue ? 'text-red-600 font-semibold' : 'text-gray-700'
-                                  }`}>
-                                    {formatDate(task.outDate)}
-                                  </div>
-                                  {/* Status line below due date */}
-                                  <div className={`text-xs mt-1 ${
-                                    // If current time > due date end of day and task is not completed before due date
-                                    isOverdue && 
-                                    (task.status !== 'Completed' || (task.completedAt && new Date(task.completedAt) > dueDate))
-                                      ? 'text-red-600 font-semibold' 
-                                      : task.status === 'Completed' 
-                                        ? 'text-green-600' 
-                                        : 'text-gray-600'
-                                  }`}>
-                                    {task.status === 'Completed' 
-                                      ? 'Completed' 
-                                      : 'Pending'
-                                    }
-                                  </div>
-                                </React.Fragment>
-                              );
+                              const isOverdue = new Date() > dueDate && task.status !== 'Completed';
+                              return isOverdue ? 'text-red-600 font-semibold' : 'text-gray-700';
+                            })()
+                          }`}>
+                            {formatDate(task.outDate)}
+                            {(() => {
+                              const dueDate = new Date(task.outDate);
+                              dueDate.setHours(23, 59, 59, 999);
+                              const isOverdue = new Date() > dueDate && task.status !== 'Completed';
+                              return isOverdue ? <div className="text-xs text-red-600">Overdue</div> : null;
                             })()}
                           </div>
                         ) : (
@@ -6018,23 +6011,40 @@ Priority: ${task.priority}`;
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          task.priority === 'High' ? 'bg-red-100 text-red-800' :
-                          task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {task.priority}
-                        </span>
+                        <select
+                          value={task.status}
+                          onChange={(e) => {
+                            // Update task status inline
+                            const updatedTasks = tasks.map(t => 
+                              t._id === task._id ? {...t, status: e.target.value} : t
+                            );
+                            setTasks(updatedTasks);
+                            // Here you could also make an API call to update the backend
+                          }}
+                          className="text-sm border border-gray-200 rounded px-2 py-1 bg-yellow-50 text-yellow-800"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="In Checking">In Checking</option>
+                          <option value="Completed">Completed</option>
+                        </select>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          task.severity === 'Critical' ? 'bg-red-100 text-red-800' :
-                          task.severity === 'Major' ? 'bg-orange-100 text-orange-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {task.severity}
-                        </span>
+                        {task.status === 'Completed' && task.completedAt ? (
+                          <div className="text-sm text-green-600">
+                            {formatDate(task.completedAt)}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-400">-</div>
+                        )}
                       </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">{task.assignedBy}</span>
+                        </div>
+                      </td>
+
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {/* Edit Button */}
