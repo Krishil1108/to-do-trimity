@@ -1872,6 +1872,10 @@ Priority: ${task.priority}`;
   // Admin Reporting Functions
   const generateAdminReport = useCallback(async () => {
     setLoadingReport(true);
+    
+    // Show loading notification
+    showSuccess('🔄 Generating comprehensive report...', 'Report Generation');
+    
     try {
       const currentDate = new Date();
       let startDate, endDate;
@@ -2059,8 +2063,21 @@ Priority: ${task.priority}`;
 
 
       setReportData(report);
+      
+      // Show success notification with report summary
+      const totalTasks = report.summary.totalTasks;
+      const completionRate = report.completionRate;
+      showSuccess(
+        `📊 Report generated successfully!\n📈 ${totalTasks} tasks analyzed\n✅ ${completionRate}% completion rate`, 
+        'Report Complete'
+      );
+      
     } catch (error) {
       console.error('Error generating report:', error);
+      showError(
+        'Failed to generate report. Please try again or contact support if the issue persists.', 
+        'Report Generation Failed'
+      );
     } finally {
       setLoadingReport(false);
     }
@@ -3608,6 +3625,21 @@ Priority: ${task.priority}`;
 
   // Admin Reports View
   const AdminReportsView = () => {
+    // Helper function for mobile-responsive stats cards
+    const StatCard = ({ title, value, color, icon: Icon, description }) => (
+      <div className={`${color} rounded-xl p-4 lg:p-6 shadow-sm transition-all duration-200 hover:shadow-md`}>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-xs lg:text-sm font-medium opacity-90">{title}</p>
+            <p className="text-xl lg:text-3xl font-bold mt-1 lg:mt-2">{value}</p>
+            {description && (
+              <p className="text-xs opacity-75 mt-1 hidden lg:block">{description}</p>
+            )}
+          </div>
+          <Icon className="w-6 h-6 lg:w-8 lg:h-8 opacity-60" />
+        </div>
+      </div>
+    );
 
     const getQuarterDates = (quarter, year) => {
       const startMonth = (quarter - 1) * 3;
@@ -3619,120 +3651,151 @@ Priority: ${task.priority}`;
     };
 
     return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Admin Reports</h2>
-            <p className="text-gray-600">Comprehensive task analytics and reporting</p>
-            <div className="mt-2 text-sm text-blue-600">
-              Total Tasks in System: <span className="font-semibold">{tasks.length}</span>
+      <div className="space-y-4 lg:space-y-6 p-2 lg:p-0">
+        {/* Enhanced Header */}
+        <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-indigo-50 rounded-xl p-4 lg:p-6 border border-purple-100">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-3 lg:space-y-0">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Admin Reports Dashboard</h2>
+                  <p className="text-sm lg:text-base text-gray-600">Comprehensive analytics & insights</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <div className="bg-white px-3 py-1.5 rounded-full border border-blue-200">
+                  <span className="text-xs lg:text-sm text-blue-700 font-medium">
+                    📊 Total Tasks: <span className="font-bold">{tasks.length}</span>
+                  </span>
+                </div>
+                <div className="bg-white px-3 py-1.5 rounded-full border border-green-200">
+                  <span className="text-xs lg:text-sm text-green-700 font-medium">
+                    👥 Users: <span className="font-bold">{users.filter(u => u.isActive).length}</span>
+                  </span>
+                </div>
+                <div className="bg-white px-3 py-1.5 rounded-full border border-purple-200">
+                  <span className="text-xs lg:text-sm text-purple-700 font-medium">
+                    🏢 Projects: <span className="font-bold">{projects.length}</span>
+                  </span>
+                </div>
+              </div>
             </div>
+            
+            {reportData && (
+              <div className="flex flex-col sm:flex-row gap-2 lg:gap-3">
+                <button
+                  onClick={() => {
+                    // Use filtered data if date filters are active
+                    const dataToExport = (reportDateFilter.start || reportDateFilter.end) ? 
+                      (() => {
+                        // Filter and recalculate data for export
+                        const filteredTasks = tasks.filter(task => {
+                          const taskDate = new Date(task.createdDate || task.assignedDate || task.inDate || Date.now());
+                          if (reportDateFilter.start && taskDate < reportDateFilter.start) return false;
+                          if (reportDateFilter.end && taskDate > reportDateFilter.end) return false;
+                          return true;
+                        });
+                        
+                        return {
+                          ...reportData,
+                          summary: {
+                            totalTasks: filteredTasks.length,
+                            completed: filteredTasks.filter(t => t.status === 'Completed').length,
+                            pending: filteredTasks.filter(t => t.status === 'Pending').length,
+                            inProgress: filteredTasks.filter(t => t.status === 'In Progress').length,
+                            overdue: filteredTasks.filter(t => {
+                              const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
+                              return isOverdue || t.status === 'Overdue';
+                            }).length
+                          },
+                          completionRate: filteredTasks.length > 0 ? 
+                            (filteredTasks.filter(t => t.status === 'Completed').length / filteredTasks.length * 100).toFixed(2) : 0
+                        };
+                      })() : reportData;
+                    
+                    exportToExcel(dataToExport, 'admin_report');
+                  }}
+                  className="flex items-center justify-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm lg:text-base font-medium shadow-sm hover:shadow-md"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Export</span> Excel
+                </button>
+                <button
+                  onClick={() => {
+                    // Use filtered data if date filters are active
+                    const dataToExport = (reportDateFilter.start || reportDateFilter.end) ? 
+                      (() => {
+                        // Filter and recalculate data for export
+                        const filteredTasks = tasks.filter(task => {
+                          const taskDate = new Date(task.createdDate || task.assignedDate || task.inDate || Date.now());
+                          if (reportDateFilter.start && taskDate < reportDateFilter.start) return false;
+                          if (reportDateFilter.end && taskDate > reportDateFilter.end) return false;
+                          return true;
+                        });
+                        
+                        return {
+                          ...reportData,
+                          summary: {
+                            totalTasks: filteredTasks.length,
+                            completed: filteredTasks.filter(t => t.status === 'Completed').length,
+                            pending: filteredTasks.filter(t => t.status === 'Pending').length,
+                            inProgress: filteredTasks.filter(t => t.status === 'In Progress').length,
+                            overdue: filteredTasks.filter(t => {
+                              const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
+                              return isOverdue || t.status === 'Overdue';
+                            }).length
+                          },
+                          completionRate: filteredTasks.length > 0 ? 
+                            (filteredTasks.filter(t => t.status === 'Completed').length / filteredTasks.length * 100).toFixed(2) : 0
+                        };
+                      })() : reportData;
+                    
+                    exportToPDF(dataToExport, 'admin_report');
+                  }}
+                  className="flex items-center justify-center gap-2 px-3 lg:px-4 py-2 lg:py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 text-sm lg:text-base font-medium shadow-sm hover:shadow-md"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline">Export</span> PDF
+                </button>
+              </div>
+            )}
           </div>
-          
-          {reportData && (
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  // Use filtered data if date filters are active
-                  const dataToExport = (reportDateFilter.start || reportDateFilter.end) ? 
-                    (() => {
-                      // Filter and recalculate data for export
-                      const filteredTasks = tasks.filter(task => {
-                        const taskDate = new Date(task.createdDate || task.assignedDate || task.inDate || Date.now());
-                        if (reportDateFilter.start && taskDate < reportDateFilter.start) return false;
-                        if (reportDateFilter.end && taskDate > reportDateFilter.end) return false;
-                        return true;
-                      });
-                      
-                      return {
-                        ...reportData,
-                        summary: {
-                          totalTasks: filteredTasks.length,
-                          completed: filteredTasks.filter(t => t.status === 'Completed').length,
-                          pending: filteredTasks.filter(t => t.status === 'Pending').length,
-                          inProgress: filteredTasks.filter(t => t.status === 'In Progress').length,
-                          overdue: filteredTasks.filter(t => {
-                            const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
-                            return isOverdue || t.status === 'Overdue';
-                          }).length
-                        },
-                        completionRate: filteredTasks.length > 0 ? 
-                          (filteredTasks.filter(t => t.status === 'Completed').length / filteredTasks.length * 100).toFixed(2) : 0
-                      };
-                    })() : reportData;
-                  
-                  exportToExcel(dataToExport, 'admin_report');
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Export Excel
-              </button>
-              <button
-                onClick={() => {
-                  // Use filtered data if date filters are active
-                  const dataToExport = (reportDateFilter.start || reportDateFilter.end) ? 
-                    (() => {
-                      // Filter and recalculate data for export
-                      const filteredTasks = tasks.filter(task => {
-                        const taskDate = new Date(task.createdDate || task.assignedDate || task.inDate || Date.now());
-                        if (reportDateFilter.start && taskDate < reportDateFilter.start) return false;
-                        if (reportDateFilter.end && taskDate > reportDateFilter.end) return false;
-                        return true;
-                      });
-                      
-                      return {
-                        ...reportData,
-                        summary: {
-                          totalTasks: filteredTasks.length,
-                          completed: filteredTasks.filter(t => t.status === 'Completed').length,
-                          pending: filteredTasks.filter(t => t.status === 'Pending').length,
-                          inProgress: filteredTasks.filter(t => t.status === 'In Progress').length,
-                          overdue: filteredTasks.filter(t => {
-                            const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
-                            return isOverdue || t.status === 'Overdue';
-                          }).length
-                        },
-                        completionRate: filteredTasks.length > 0 ? 
-                          (filteredTasks.filter(t => t.status === 'Completed').length / filteredTasks.length * 100).toFixed(2) : 0
-                      };
-                    })() : reportData;
-                  
-                  exportToPDF(dataToExport, 'admin_report');
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                Export PDF
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* Report Controls */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Generate Report</h3>
+        {/* Enhanced Report Controls */}
+        <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-4 lg:mb-6">
+            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="text-lg lg:text-xl font-semibold text-gray-900">Report Configuration</h3>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6">
             {/* Report Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">📊 Report Type</label>
               <select
                 value={reportType}
                 onChange={(e) => setReportType(e.target.value)}
-                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
               >
-                <option value="alltime">All Time (All Tasks Ever Created)</option>
-                <option value="quarterly">Quarterly (Specific Quarter & Year)</option>
-                <option value="halfyearly">Half Yearly (Specific Half & Year)</option>
-                <option value="yearly">Yearly (Specific Year)</option>
-                <option value="custom">Custom Range (Custom Dates)</option>
+                <option value="alltime">🌍 All Time (Complete History)</option>
+                <option value="quarterly">📅 Quarterly (Q1-Q4)</option>
+                <option value="halfyearly">📆 Half Yearly (H1/H2)</option>
+                <option value="yearly">🗓️ Yearly (Annual)</option>
+                <option value="custom">🎯 Custom Range</option>
               </select>
               {reportType === 'alltime' && (
-                <p className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded">
-                  📊 <strong>All Time Report:</strong> This will include all tasks created since the beginning of your system, regardless of year selection.
-                </p>
+                <div className="mt-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    <span className="font-semibold">🌟 Complete System History</span><br/>
+                    Analyzes all tasks since system inception
+                  </p>
+                </div>
               )}
             </div>
 
@@ -4014,86 +4077,137 @@ Priority: ${task.priority}`;
                 </div>
               </div>
 
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-600 text-sm font-medium">Total Tasks</p>
-                      <p className="text-2xl font-bold text-blue-800">{filteredReportData.summary.totalTasks}</p>
+              {/* Enhanced Summary Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
+                <StatCard 
+                  title="Total Tasks" 
+                  value={filteredReportData.summary.totalTasks}
+                  color="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 text-blue-800"
+                  icon={CheckCircle}
+                  description="All tasks in scope"
+                />
+                <StatCard 
+                  title="Completed" 
+                  value={filteredReportData.summary.completed}
+                  color="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 text-green-800"
+                  icon={Check}
+                  description="Successfully finished"
+                />
+                <StatCard 
+                  title="Pending" 
+                  value={filteredReportData.summary.pending}
+                  color="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 text-yellow-800"
+                  icon={Clock}
+                  description="Awaiting action"
+                />
+                <StatCard 
+                  title="In Progress" 
+                  value={filteredReportData.summary.inProgress}
+                  color="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 text-purple-800"
+                  icon={Users}
+                  description="Currently active"
+                />
+                <StatCard 
+                  title="Overdue" 
+                  value={filteredReportData.summary.overdue}
+                  color="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 text-red-800"
+                  icon={AlertCircle}
+                  description="Past due date"
+                />
+              </div>
+
+            {/* Enhanced Completion Rate */}
+            <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900">Overall Completion Rate</h4>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Progress</span>
+                  <span className="text-lg font-bold text-gray-900">{filteredReportData.completionRate}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-6 lg:h-8 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full flex items-center justify-center text-white font-medium text-sm lg:text-base transition-all duration-500 ease-out"
+                    style={{ width: `${Math.max(filteredReportData.completionRate, 8)}%` }}
+                  >
+                    {filteredReportData.completionRate > 15 && `${filteredReportData.completionRate}%`}
+                  </div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>0%</span>
+                  <span>50%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced User Analysis */}
+            <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900">Individual Performance</h4>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">
+                  {Object.keys(filteredReportData.byUser).length} users
+                </span>
+              </div>
+              
+              {/* Mobile Card View */}
+              <div className="block lg:hidden space-y-3">
+                {Object.entries(filteredReportData.byUser)
+                  .filter(([_, stats]) => stats.total > 0)
+                  .sort(([, a], [, b]) => parseFloat(b.completionRate) - parseFloat(a.completionRate))
+                  .map(([user, stats]) => (
+                    <div key={user} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="flex justify-between items-start mb-3">
+                        <h5 className="font-semibold text-gray-900">{user}</h5>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          parseFloat(stats.completionRate) >= 80 ? 'bg-green-100 text-green-800' :
+                          parseFloat(stats.completionRate) >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {stats.completionRate}%
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Total:</span>
+                          <span className="font-medium">{stats.total}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Completed:</span>
+                          <span className="text-green-600 font-medium">{stats.completed}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Pending:</span>
+                          <span className="text-yellow-600 font-medium">{stats.pending}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Overdue:</span>
+                          <span className="text-red-600 font-medium">{stats.overdue}</span>
+                        </div>
+                      </div>
                     </div>
-                    <CheckCircle className="w-8 h-8 text-blue-600" />
-                </div>
+                  ))}
               </div>
               
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-600 text-sm font-medium">Completed</p>
-                    <p className="text-2xl font-bold text-green-800">{filteredReportData.summary.completed}</p>
-                  </div>
-                  <Check className="w-8 h-8 text-green-600" />
-                </div>
-              </div>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-yellow-600 text-sm font-medium">Pending</p>
-                    <p className="text-2xl font-bold text-yellow-800">{filteredReportData.summary.pending}</p>
-                  </div>
-                  <Clock className="w-8 h-8 text-yellow-600" />
-                </div>
-              </div>
-              
-              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-600 text-sm font-medium">In Progress</p>
-                    <p className="text-2xl font-bold text-purple-800">{filteredReportData.summary.inProgress}</p>
-                  </div>
-                  <Users className="w-8 h-8 text-purple-600" />
-                </div>
-              </div>
-              
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-red-600 text-sm font-medium">Overdue</p>
-                    <p className="text-2xl font-bold text-red-800">{filteredReportData.summary.overdue}</p>
-                  </div>
-                  <AlertCircle className="w-8 h-8 text-red-600" />
-                </div>
-              </div>
-            </div>
-
-            {/* Completion Rate */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Overall Completion Rate</h4>
-              <div className="w-full bg-gray-200 rounded-full h-8">
-                <div 
-                  className="bg-gradient-to-r from-green-500 to-green-600 h-8 rounded-full flex items-center justify-center text-white font-medium"
-                  style={{ width: `${filteredReportData.completionRate}%` }}
-                >
-                  {filteredReportData.completionRate}%
-                </div>
-              </div>
-            </div>
-
-            {/* User Analysis */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Individual Performance</h4>
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-4 font-medium text-gray-700">User</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Total</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Completed</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Pending</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">In Progress</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Overdue</th>
-                      <th className="text-center py-2 px-4 font-medium text-gray-700">Completion %</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700">👤 User</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-700">📊 Total</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-700">✅ Completed</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-700">⏳ Pending</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-700">🔄 In Progress</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-700">⚠️ Overdue</th>
+                      <th className="text-center py-3 px-4 font-medium text-gray-700">📈 Rate</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -4101,15 +4215,15 @@ Priority: ${task.priority}`;
                       .filter(([_, stats]) => stats.total > 0)
                       .sort(([, a], [, b]) => parseFloat(b.completionRate) - parseFloat(a.completionRate))
                       .map(([user, stats]) => (
-                      <tr key={user} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium">{user}</td>
-                        <td className="py-3 px-4 text-center">{stats.total}</td>
-                        <td className="py-3 px-4 text-center text-green-600">{stats.completed}</td>
-                        <td className="py-3 px-4 text-center text-yellow-600">{stats.pending}</td>
-                        <td className="py-3 px-4 text-center text-purple-600">{stats.inProgress}</td>
-                        <td className="py-3 px-4 text-center text-red-600">{stats.overdue}</td>
+                      <tr key={user} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4 font-medium text-gray-900">{user}</td>
+                        <td className="py-3 px-4 text-center font-semibold">{stats.total}</td>
+                        <td className="py-3 px-4 text-center text-green-600 font-medium">{stats.completed}</td>
+                        <td className="py-3 px-4 text-center text-yellow-600 font-medium">{stats.pending}</td>
+                        <td className="py-3 px-4 text-center text-purple-600 font-medium">{stats.inProgress}</td>
+                        <td className="py-3 px-4 text-center text-red-600 font-medium">{stats.overdue}</td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${
                             parseFloat(stats.completionRate) >= 80 ? 'bg-green-100 text-green-800' :
                             parseFloat(stats.completionRate) >= 60 ? 'bg-yellow-100 text-yellow-800' :
                             'bg-red-100 text-red-800'
@@ -4122,25 +4236,81 @@ Priority: ${task.priority}`;
                   </tbody>
                 </table>
               </div>
+              
+              {Object.keys(filteredReportData.byUser).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <User className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                  <p>No user data available for the selected criteria</p>
+                </div>
+              )}
             </div>
 
 
 
-            {/* Associate Analysis */}
+            {/* Enhanced Associate Analysis */}
             {Object.keys(filteredReportData.byAssociate || {}).length > 0 && (
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Associate Performance</h4>
-                <div className="overflow-x-auto">
+              <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                    <Users className="w-4 h-4 text-white" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Associate Performance</h4>
+                  <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">
+                    {Object.keys(filteredReportData.byAssociate || {}).length} associates
+                  </span>
+                </div>
+                
+                {/* Mobile Card View */}
+                <div className="block lg:hidden space-y-3">
+                  {Object.entries(filteredReportData.byAssociate)
+                    .filter(([_, stats]) => stats.total > 0)
+                    .sort(([, a], [, b]) => parseFloat(b.completionRate) - parseFloat(a.completionRate))
+                    .map(([associate, stats]) => (
+                      <div key={associate} className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                        <div className="flex justify-between items-start mb-3">
+                          <h5 className="font-semibold text-gray-900">{associate}</h5>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            parseFloat(stats.completionRate) >= 80 ? 'bg-green-100 text-green-800' :
+                            parseFloat(stats.completionRate) >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {stats.completionRate}%
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Total:</span>
+                            <span className="font-medium">{stats.total}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Completed:</span>
+                            <span className="text-green-600 font-medium">{stats.completed}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Pending:</span>
+                            <span className="text-yellow-600 font-medium">{stats.pending}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Overdue:</span>
+                            <span className="text-red-600 font-medium">{stats.overdue}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                
+                {/* Desktop Table View */}
+                <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left py-2 px-4 font-medium text-gray-700">Associate</th>
-                        <th className="text-center py-2 px-4 font-medium text-gray-700">Total</th>
-                        <th className="text-center py-2 px-4 font-medium text-gray-700">Completed</th>
-                        <th className="text-center py-2 px-4 font-medium text-gray-700">Pending</th>
-                        <th className="text-center py-2 px-4 font-medium text-gray-700">In Progress</th>
-                        <th className="text-center py-2 px-4 font-medium text-gray-700">Overdue</th>
-                        <th className="text-center py-2 px-4 font-medium text-gray-700">Completion %</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">🏢 Associate</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-700">📊 Total</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-700">✅ Completed</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-700">⏳ Pending</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-700">🔄 In Progress</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-700">⚠️ Overdue</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-700">📈 Rate</th>
                       </tr>
                     </thead>
                     <tbody>
