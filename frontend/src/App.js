@@ -2597,8 +2597,8 @@ Priority: ${task.priority}`;
                             return (
                               <React.Fragment>
                                 <div className={`text-sm ${
-                                  // Red if current time > due date end of day (23:59:59)
-                                  isOverdue ? 'text-red-600 font-semibold' : 'text-gray-700'
+                                  // Red if current time > due date end of day (23:59:59) AND task not completed before due date
+                                  isOverdue && (task.status !== 'Completed' || (task.completedAt && new Date(task.completedAt) > dueDate)) ? 'text-red-600 font-semibold' : 'text-gray-700'
                                 }`}>
                                   {formatDate(task.outDate)}
                                 </div>
