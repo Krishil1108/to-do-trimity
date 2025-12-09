@@ -3188,19 +3188,19 @@ Priority: ${task.priority}`;
           <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Completed</p>
-                <p className="text-4xl font-bold mt-2">{completedTasks.length}</p>
+                <p className="text-green-100 text-xs font-medium">Completed</p>
+                <p className="text-2xl font-bold mt-1">{completedTasks.length}</p>
               </div>
-              <CheckCircle className="w-12 h-12 opacity-50" />
+              <CheckCircle className="w-8 h-8 opacity-50" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-red-400 to-red-500 rounded-xl p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-red-400 to-red-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-red-100 text-sm font-medium">Overdue</p>
-                <p className="text-4xl font-bold mt-2">{overdueTasks.length}</p>
+                <p className="text-red-100 text-xs font-medium">Overdue</p>
+                <p className="text-2xl font-bold mt-1">{overdueTasks.length}</p>
               </div>
-              <AlertCircle className="w-12 h-12 opacity-50" />
+              <AlertCircle className="w-8 h-8 opacity-50" />
             </div>
           </div>
         </div>
