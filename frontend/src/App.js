@@ -2867,11 +2867,31 @@ Priority: ${task.priority}`;
                                 onClick={() => {
                                   setParentTaskForSubtask(task);
                                   setFormData({
-                                    ...formData,
                                     project: task.project,
-                                    assignedBy: currentUser.username,
+                                    title: '', // Keep empty for user to enter subtask name
+                                    description: task.description,
+                                    priority: task.priority,
+                                    severity: task.severity,
                                     inDate: task.inDate,
-                                    outDate: task.outDate
+                                    outDate: task.outDate,
+                                    team: task.team,
+                                    associates: [],
+                                    assignedTo: '', // Keep empty for user selection
+                                    assignedBy: currentUser.username,
+                                    isAssociate: false,
+                                    associateDetails: {
+                                      name: '',
+                                      email: '',
+                                      phone: '',
+                                      company: ''
+                                    },
+                                    isExternalUser: false,
+                                    externalUserId: '',
+                                    externalUserDetails: null,
+                                    reminder: task.reminder || '',
+                                    whatsapp: task.whatsapp || false,
+                                    status: 'Pending',
+                                    isConfidential: task.isConfidential || false
                                   });
                                   setShowSubtaskModal(true);
                                 }}
@@ -2963,11 +2983,31 @@ Priority: ${task.priority}`;
                   onClick={() => {
                     setParentTaskForSubtask(task);
                     setFormData({
-                      ...formData,
                       project: task.project,
-                      assignedBy: currentUser.username,
+                      title: '', // Keep empty for user to enter subtask name
+                      description: task.description,
+                      priority: task.priority,
+                      severity: task.severity,
                       inDate: task.inDate,
-                      outDate: task.outDate
+                      outDate: task.outDate,
+                      team: task.team,
+                      associates: [],
+                      assignedTo: '', // Keep empty for user selection
+                      assignedBy: currentUser.username,
+                      isAssociate: false,
+                      associateDetails: {
+                        name: '',
+                        email: '',
+                        phone: '',
+                        company: ''
+                      },
+                      isExternalUser: false,
+                      externalUserId: '',
+                      externalUserDetails: null,
+                      reminder: task.reminder || '',
+                      whatsapp: task.whatsapp || false,
+                      status: 'Pending',
+                      isConfidential: task.isConfidential || false
                     });
                     setShowSubtaskModal(true);
                   }}
