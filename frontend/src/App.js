@@ -2866,14 +2866,20 @@ Priority: ${task.priority}`;
                               <button
                                 onClick={() => {
                                   setParentTaskForSubtask(task);
+                                  // Format dates for date input fields (YYYY-MM-DD)
+                                  const formatDate = (date) => {
+                                    if (!date) return '';
+                                    const d = new Date(date);
+                                    return d.toISOString().split('T')[0];
+                                  };
                                   setFormData({
                                     project: task.project,
-                                    title: '', // Keep empty for user to enter subtask name
+                                    title: task.title, // Pre-fill with parent task name
                                     description: task.description,
                                     priority: task.priority,
                                     severity: task.severity,
-                                    inDate: task.inDate,
-                                    outDate: task.outDate,
+                                    inDate: formatDate(task.inDate),
+                                    outDate: formatDate(task.outDate),
                                     team: task.team,
                                     associates: [],
                                     assignedTo: '', // Keep empty for user selection
@@ -2982,14 +2988,20 @@ Priority: ${task.priority}`;
                 <button
                   onClick={() => {
                     setParentTaskForSubtask(task);
+                    // Format dates for date input fields (YYYY-MM-DD)
+                    const formatDate = (date) => {
+                      if (!date) return '';
+                      const d = new Date(date);
+                      return d.toISOString().split('T')[0];
+                    };
                     setFormData({
                       project: task.project,
-                      title: '', // Keep empty for user to enter subtask name
+                      title: task.title, // Pre-fill with parent task name
                       description: task.description,
                       priority: task.priority,
                       severity: task.severity,
-                      inDate: task.inDate,
-                      outDate: task.outDate,
+                      inDate: formatDate(task.inDate),
+                      outDate: formatDate(task.outDate),
                       team: task.team,
                       associates: [],
                       assignedTo: '', // Keep empty for user selection
