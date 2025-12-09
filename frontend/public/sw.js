@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v1.5.5-' + Date.now(); // Unique timestamp for each deployment
+const CACHE_VERSION = 'v1.5.6-' + Date.now(); // Unique timestamp for each deployment
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

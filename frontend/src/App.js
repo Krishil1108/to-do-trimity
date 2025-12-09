@@ -3176,7 +3176,16 @@ Priority: ${task.priority}`;
               <Users className="w-8 h-8 opacity-50" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-pink-400 to-pink-500 rounded-lg p-4 text-white shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-pink-100 text-xs font-medium">In Checking</p>
+                <p className="text-2xl font-bold mt-1">{inCheckingTasks.length}</p>
+              </div>
+              <Clock className="w-8 h-8 opacity-50" />
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">Completed</p>
