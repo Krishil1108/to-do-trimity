@@ -64,7 +64,9 @@ const taskSchema = new mongoose.Schema({
   },
   externalUserId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ExternalUser'
+    ref: 'ExternalUser',
+    required: false,
+    default: null
   },
   externalUserDetails: {
     name: { type: String, default: '' },

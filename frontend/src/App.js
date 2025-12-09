@@ -1329,6 +1329,12 @@ const TaskManagementSystem = () => {
         associates: Array.isArray(formData.associates) ? formData.associates : []
       };
       
+      // Clean up external user fields
+      if (!taskData.isExternalUser || !taskData.externalUserId || taskData.externalUserId === '') {
+        delete taskData.externalUserId;
+        delete taskData.externalUserDetails;
+      }
+      
       let savedTask;
       if (editingTask) {
         const response = await axios.put(`${API_URL}/tasks/${editingTask._id}`, taskData);

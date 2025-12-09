@@ -50,6 +50,15 @@ router.post('/', async (req, res) => {
       delete taskData.reminder;
     }
     
+    // Handle empty external user fields
+    if (taskData.externalUserId === '' || taskData.externalUserId === null) {
+      delete taskData.externalUserId;
+    }
+    if (!taskData.isExternalUser) {
+      delete taskData.externalUserId;
+      delete taskData.externalUserDetails;
+    }
+    
     // Check if the user creating the task is a demo user
     if (taskData.assignedBy) {
       const User = require('../models/User');
@@ -77,6 +86,15 @@ router.put('/:id', async (req, res) => {
     // Handle empty reminder field
     if (updateData.reminder === '' || updateData.reminder === null) {
       delete updateData.reminder;
+    }
+    
+    // Handle empty external user fields
+    if (updateData.externalUserId === '' || updateData.externalUserId === null) {
+      delete updateData.externalUserId;
+    }
+    if (!updateData.isExternalUser) {
+      delete updateData.externalUserId;
+      delete updateData.externalUserDetails;
     }
     
     const task = await Task.findByIdAndUpdate(
