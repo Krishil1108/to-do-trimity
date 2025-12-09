@@ -2118,6 +2118,7 @@ Priority: ${task.priority}`;
           completed: userTasks.filter(t => t.status === 'Completed').length,
           pending: userTasks.filter(t => t.status === 'Pending').length,
           inProgress: userTasks.filter(t => t.status === 'In Progress').length,
+          inChecking: userTasks.filter(t => t.status === 'In Checking').length,
           overdue: userTasks.filter(t => {
             const dueDate = new Date(t.outDate);
             dueDate.setHours(23, 59, 59, 999);
@@ -2146,6 +2147,7 @@ Priority: ${task.priority}`;
               completed: userTasks.filter(t => t.status === 'Completed').length,
               pending: userTasks.filter(t => t.status === 'Pending').length,
               inProgress: userTasks.filter(t => t.status === 'In Progress').length,
+              inChecking: userTasks.filter(t => t.status === 'In Checking').length,
               overdue: userTasks.filter(t => {
                 const isOverdue = new Date(t.outDate) < new Date() && t.status !== 'Completed';
                 return isOverdue || t.status === 'Overdue';
@@ -2656,41 +2658,50 @@ Priority: ${task.priority}`;
     return (
       <div className="space-y-6">
         {showStats && stats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-4 sm:p-6 text-white shadow-lg">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+            <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg p-3 sm:p-4 text-white shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-yellow-100 text-xs sm:text-sm font-medium">Pending</p>
-                  <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">{stats.pending}</p>
+                  <p className="text-yellow-100 text-xs font-medium">Pending</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.pending}</p>
                 </div>
-                <Clock className="w-8 h-8 sm:w-12 sm:h-12 opacity-50" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 opacity-50" />
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl p-4 sm:p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg p-3 sm:p-4 text-white shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-xs sm:text-sm font-medium">In Progress</p>
-                  <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">{stats.inProgress}</p>
+                  <p className="text-blue-100 text-xs font-medium">In Progress</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.inProgress}</p>
                 </div>
-                <Users className="w-8 h-8 sm:w-12 sm:h-12 opacity-50" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 opacity-50" />
               </div>
             </div>
-            <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-4 sm:p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-br from-pink-400 to-pink-500 rounded-lg p-3 sm:p-4 text-white shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-xs sm:text-sm font-medium">Completed</p>
-                  <p className="text-2xl sm:text-4xl font-bold mt-1 sm:mt-2">{stats.completed}</p>
+                  <p className="text-pink-100 text-xs font-medium">In Checking</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.inChecking}</p>
                 </div>
-                <Check className="w-8 h-8 sm:w-12 sm:h-12 opacity-50" />
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 opacity-50" />
               </div>
             </div>
-            <div className="bg-gradient-to-br from-red-400 to-red-500 rounded-xl p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-lg p-3 sm:p-4 text-white shadow-md">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-red-100 text-sm font-medium">Overdue</p>
-                  <p className="text-4xl font-bold mt-2">{stats.overdue}</p>
+                  <p className="text-green-100 text-xs font-medium">Completed</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.completed}</p>
                 </div>
-                <AlertCircle className="w-12 h-12 opacity-50" />
+                <Check className="w-6 h-6 sm:w-8 sm:h-8 opacity-50" />
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-red-400 to-red-500 rounded-lg p-3 sm:p-4 text-white shadow-md">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-red-100 text-xs font-medium">Overdue</p>
+                  <p className="text-xl sm:text-2xl font-bold mt-1">{stats.overdue}</p>
+                </div>
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 opacity-50" />
               </div>
             </div>
           </div>
@@ -3139,29 +3150,30 @@ Priority: ${task.priority}`;
     
     const pendingTasks = paginatedTasks.filter(t => t.status === 'Pending');
     const inProgressTasks = paginatedTasks.filter(t => t.status === 'In Progress');
+    const inCheckingTasks = paginatedTasks.filter(t => t.status === 'In Checking');
     const completedTasks = paginatedTasks.filter(t => t.status === 'Completed');
     const overdueTasks = paginatedTasks.filter(t => t.status === 'Overdue' || (new Date(t.outDate) < new Date() && t.status !== 'Completed'));
 
     return (
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-6 text-white shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-yellow-100 text-sm font-medium">Pending</p>
-                <p className="text-4xl font-bold mt-2">{pendingTasks.length}</p>
+                <p className="text-yellow-100 text-xs font-medium">Pending</p>
+                <p className="text-2xl font-bold mt-1">{pendingTasks.length}</p>
               </div>
-              <Clock className="w-12 h-12 opacity-50" />
+              <Clock className="w-8 h-8 opacity-50" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">In Progress</p>
-                <p className="text-4xl font-bold mt-2">{inProgressTasks.length}</p>
+                <p className="text-blue-100 text-xs font-medium">In Progress</p>
+                <p className="text-2xl font-bold mt-1">{inProgressTasks.length}</p>
               </div>
-              <Users className="w-12 h-12 opacity-50" />
+              <Users className="w-8 h-8 opacity-50" />
             </div>
           </div>
           <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-xl p-6 text-white shadow-lg">
