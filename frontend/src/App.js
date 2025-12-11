@@ -2732,19 +2732,12 @@ Priority: ${task.priority}`;
                 const assignedUser = users.find(u => u.username === task.assignedTo);
                 
                 return (
-                  <tr key={task._id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={task._id} className={`hover:bg-gray-50 transition-colors ${task.isSubtask ? 'bg-blue-50' : ''}`}>
                     <td className="px-4 py-3">
                       <input type="checkbox" className="rounded border-gray-300" />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-semibold">
-                          {task.isAssociate && task.associateDetails?.name 
-                            ? task.associateDetails.name.charAt(0).toUpperCase() 
-                            : task.isExternalUser && task.externalUserDetails?.name
-                            ? task.externalUserDetails.name.charAt(0).toUpperCase()
-                            : (assignedUser?.name?.charAt(0) || 'U')}
-                        </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
                             {task.isAssociate && task.associateDetails?.name 
