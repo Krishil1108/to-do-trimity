@@ -6,15 +6,18 @@ const ExternalUser = require('../models/ExternalUser');
 router.get('/', async (req, res) => {
   try {
     const { createdBy } = req.query;
+    console.log('🔍 Fetching external users for createdBy:', createdBy);
     
     if (!createdBy) {
+      console.log('❌ Missing createdBy parameter');
       return res.status(400).json({ message: 'createdBy parameter is required' });
     }
 
     const externalUsers = await ExternalUser.find({ createdBy }).sort({ createdAt: -1 });
+    console.log('✅ Found external users:', externalUsers.length);
     res.json(externalUsers);
   } catch (error) {
-    console.error('Error fetching external users:', error);
+    console.error('❌ Error fetching external users:', error);
     res.status(500).json({ message: 'Error fetching external users', error: error.message });
   }
 });
@@ -22,9 +25,11 @@ router.get('/', async (req, res) => {
 // POST /api/external-users - Create a new external user
 router.post('/', async (req, res) => {
   try {
+    console.log('📝 Creating external user with data:', req.body);
     const { name, createdBy } = req.body;
 
     if (!name || !createdBy) {
+      console.log('❌ Missing required fields:', { name: !!name, createdBy: !!createdBy });
       return res.status(400).json({ message: 'Name and createdBy are required' });
     }
 
@@ -35,6 +40,7 @@ router.post('/', async (req, res) => {
     });
 
     if (existingUser) {
+      console.log('❌ External user already exists:', existingUser);
       return res.status(409).json({ message: 'External user with this name already exists' });
     }
 
@@ -43,10 +49,13 @@ router.post('/', async (req, res) => {
       createdBy
     });
 
+    console.log('💾 Saving external user:', externalUser);
     const savedUser = await externalUser.save();
+    console.log('✅ External user saved successfully:', savedUser);
+    
     res.status(201).json(savedUser);
   } catch (error) {
-    console.error('Error creating external user:', error);
+    console.error('❌ Error creating external user:', error);
     res.status(500).json({ message: 'Error creating external user', error: error.message });
   }
 });

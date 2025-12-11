@@ -2,6 +2,24 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 
+// Helper function to populate external user details
+const populateExternalUserDetails = async (tasks) => {
+  const ExternalUser = require('../models/ExternalUser');
+  
+  for (let task of tasks) {
+    if (task.isExternalUser && task.externalUserId) {
+      const externalUser = await ExternalUser.findById(task.externalUserId);
+      if (externalUser) {
+        task._doc.externalUserDetails = {
+          name: externalUser.name,
+          _id: externalUser._id
+        };
+      }
+    }
+  }
+  return tasks;
+};
+
 // Get all tasks
 router.get('/', async (req, res) => {
   try {
@@ -19,7 +37,11 @@ router.get('/', async (req, res) => {
       }
     }
     
-    const tasks = await Task.find(filter).sort({ createdAt: -1 });
+    let tasks = await Task.find(filter).sort({ createdAt: -1 });
+    
+    // Populate external user details
+    tasks = await populateExternalUserDetails(tasks);
+    
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -33,7 +55,11 @@ router.get('/:id', async (req, res) => {
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
-    res.json(task);
+    
+    // Populate external user details for single task
+    const tasksWithDetails = await populateExternalUserDetails([task]);
+    
+    res.json(tasksWithDetails[0]);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
