@@ -98,29 +98,6 @@ router.delete('/user/:userId/clear-all', async (req, res) => {
   }
 });
 
-// Auto-delete notifications older than 30 days
-const deleteOldNotifications = async () => {
-  try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const result = await Notification.deleteMany({
-      createdAt: { $lt: thirtyDaysAgo }
-    });
-    
-    if (result.deletedCount > 0) {
-      console.log(`🗑️ Auto-deleted ${result.deletedCount} notifications older than 30 days`);
-    }
-  } catch (error) {
-    console.error('Error auto-deleting old notifications:', error);
-  }
-};
-
-// Run auto-delete every 24 hours
-setInterval(deleteOldNotifications, 24 * 60 * 60 * 1000);
-// Run once on server start
-deleteOldNotifications();
-
 // Create notification
 router.post('/', async (req, res) => {
   try {
