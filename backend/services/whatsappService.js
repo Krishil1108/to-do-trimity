@@ -54,7 +54,7 @@ const sendWhatsAppMessage = async (to, message) => {
  */
 const sendTaskCompletionNotification = async (taskDetails, completedBy) => {
   try {
-    const targetNumber = '9429064592'; // The number you specified
+    const targetNumber = '8128228872'; // The number you specified
     
     const message = `🎉 *Task Completed!*
 
