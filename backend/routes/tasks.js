@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const { sendTaskCompletionNotification } = require('../services/whatsappService');
 
 // Helper function to populate external user details
 const populateExternalUserDetails = async (tasks) => {
@@ -106,6 +107,12 @@ router.post('/', async (req, res) => {
 // Update task
 router.put('/:id', async (req, res) => {
   try {
+    // Get the current task to check if status is changing to 'Completed'
+    const currentTask = await Task.findById(req.params.id);
+    if (!currentTask) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
     // Clean up the request body
     const updateData = { ...req.body };
     
@@ -122,15 +129,45 @@ router.put('/:id', async (req, res) => {
       delete updateData.externalUserId;
       delete updateData.externalUserDetails;
     }
-    
+
     const task = await Task.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     );
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
+    
+    // Check if task was just completed (status changed from non-Completed to Completed)
+    const wasCompleted = currentTask.status !== 'Completed' && updateData.status === 'Completed';
+    
+    if (wasCompleted) {
+      console.log(`🎉 Task completed: ${task.title} by user completing it`);
+      
+      // Get user information for WhatsApp notification
+      const User = require('../models/User');
+      let completedByName = 'Unknown User';
+      
+      // Try to find the user who completed the task (could be from various sources)
+      if (updateData.completedBy) {
+        const user = await User.findOne({ username: updateData.completedBy });
+        if (user) completedByName = user.name;
+      } else if (currentTask.assignedTo && currentTask.assignedTo !== 'External User') {
+        const user = await User.findOne({ username: currentTask.assignedTo });
+        if (user) completedByName = user.name;
+      } else if (currentTask.assignedBy) {
+        const user = await User.findOne({ username: currentTask.assignedBy });
+        if (user) completedByName = `${user.name} (Task Creator)`;
+      }
+      
+      // Send WhatsApp notification (don't await to avoid blocking the response)
+      sendTaskCompletionNotification({
+        title: task.title,
+        project: task.project,
+        completionReason: updateData.completionReason || 'No reason provided'
+      }, completedByName).catch(error => {
+        console.error('WhatsApp notification failed:', error);
+      });
     }
+    
     res.json(task);
   } catch (error) {
     console.error('Error updating task:', error);

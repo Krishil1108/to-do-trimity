@@ -1,0 +1,89 @@
+const twilio = require('twilio');
+
+// Initialize Twilio client with credentials from environment variables
+let client;
+try {
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    console.log('✅ Twilio WhatsApp client initialized');
+  } else {
+    console.log('⚠️ Twilio credentials not found in environment variables');
+  }
+} catch (error) {
+  console.error('❌ Error initializing Twilio client:', error);
+}
+
+/**
+ * Send WhatsApp message using Twilio
+ * @param {string} to - WhatsApp number (with country code, e.g., +919429064592)
+ * @param {string} message - Message content
+ * @returns {Promise<Object>} - Twilio message response
+ */
+const sendWhatsAppMessage = async (to, message) => {
+  try {
+    if (!client) {
+      console.log('⚠️ Twilio client not initialized. WhatsApp message not sent.');
+      return { success: false, error: 'Twilio client not initialized' };
+    }
+
+    // Ensure the number has the correct WhatsApp format
+    const whatsappNumber = to.startsWith('whatsapp:') ? to : `whatsapp:+91${to}`;
+    const fromNumber = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886'; // Twilio Sandbox number
+
+    console.log(`📱 Sending WhatsApp message to ${whatsappNumber}`);
+    
+    const response = await client.messages.create({
+      body: message,
+      from: fromNumber,
+      to: whatsappNumber
+    });
+
+    console.log('✅ WhatsApp message sent successfully:', response.sid);
+    return { success: true, sid: response.sid, status: response.status };
+
+  } catch (error) {
+    console.error('❌ Error sending WhatsApp message:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send task completion notification via WhatsApp
+ * @param {Object} taskDetails - Task information
+ * @param {string} completedBy - Name of user who completed the task
+ */
+const sendTaskCompletionNotification = async (taskDetails, completedBy) => {
+  try {
+    const targetNumber = '9429064592'; // The number you specified
+    
+    const message = `🎉 *Task Completed!*
+
+*Task:* ${taskDetails.title}
+*Project:* ${taskDetails.project}
+*Completed By:* ${completedBy}
+*Completion Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+*Status:* ✅ Completed
+
+${taskDetails.completionReason ? `*Reason:* ${taskDetails.completionReason}` : ''}
+
+_Automated notification from Trido Task Management System_`;
+
+    const result = await sendWhatsAppMessage(targetNumber, message);
+    
+    if (result.success) {
+      console.log(`✅ Task completion WhatsApp notification sent for task: ${taskDetails.title}`);
+    } else {
+      console.error(`❌ Failed to send WhatsApp notification: ${result.error}`);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('❌ Error in sendTaskCompletionNotification:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+module.exports = {
+  sendWhatsAppMessage,
+  sendTaskCompletionNotification
+};
