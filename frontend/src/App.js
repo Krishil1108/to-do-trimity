@@ -1387,8 +1387,21 @@ const TaskManagementSystem = () => {
     try {
       setLoading(true);
       
+      // Check if external user is selected
+      const isExternalUserSelected = subtaskData.assignedTo && subtaskData.assignedTo.startsWith('external:');
+      let externalUserId = null;
+      let assignedTo = subtaskData.assignedTo;
+      
+      if (isExternalUserSelected) {
+        externalUserId = subtaskData.assignedTo.replace('external:', '');
+        assignedTo = 'External User';
+      }
+      
       const newSubtask = {
         ...subtaskData,
+        assignedTo: assignedTo,
+        isExternalUser: isExternalUserSelected,
+        externalUserId: externalUserId,
         parentTask: parentTask._id,
         isSubtask: true,
         project: parentTask.project,
@@ -1404,14 +1417,16 @@ const TaskManagementSystem = () => {
         subtasks: [...(parentTask.subtasks || []), savedSubtask._id]
       });
       
-      // Notify assigned user
-      await createNotification(
-        savedSubtask._id,
-        subtaskData.assignedTo,
-        `New subtask "${subtaskData.title}" assigned from task "${parentTask.title}" by ${currentUser.name}`,
-        'task_assigned',
-        currentUser.username
-      );
+      // Notify assigned user (only for internal users)
+      if (!isExternalUserSelected) {
+        await createNotification(
+          savedSubtask._id,
+          subtaskData.assignedTo,
+          `New subtask "${subtaskData.title}" assigned from task "${parentTask.title}" by ${currentUser.name}`,
+          'task_assigned',
+          currentUser.username
+        );
+      }
       
       await loadTasks();
       setShowSubtaskModal(false);
@@ -7636,6 +7651,7 @@ Priority: ${task.priority}`;
                   required
                 >
                   <option value="">{['ketul.lathia', 'piyush.diwan'].includes(currentUser?.username) ? 'Select User' : 'Select Team Member'}</option>
+                  {/* Internal Team Members */}
                   {(['ketul.lathia', 'piyush.diwan'].includes(currentUser?.username) 
                     ? users.filter(user => {
                         // Ketul Lathia and Piyush Diwan can see everyone
@@ -7656,6 +7672,17 @@ Priority: ${task.priority}`;
                       {user.name} - {user.department}
                     </option>
                   ))}
+                  {/* External Users */}
+                  {externalUsers.length > 0 && (
+                    <>
+                      <option disabled>──────────────────────────────</option>
+                      {externalUsers.map(externalUser => (
+                        <option key={`external-${externalUser._id}`} value={`external:${externalUser._id}`}>
+                          {externalUser.name} - External User
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
 
