@@ -1387,14 +1387,22 @@ const TaskManagementSystem = () => {
     try {
       setLoading(true);
       
-      // Check if external user is selected
+      // Check assignment type
       const isExternalUserSelected = subtaskData.assignedTo && subtaskData.assignedTo.startsWith('external:');
+      const isAssociateSelected = subtaskData.assignedTo && subtaskData.assignedTo.startsWith('associate:');
+      
       let externalUserId = null;
+      let associateId = null;
       let assignedTo = subtaskData.assignedTo;
+      let isAssociate = false;
       
       if (isExternalUserSelected) {
         externalUserId = subtaskData.assignedTo.replace('external:', '');
         assignedTo = 'External User';
+      } else if (isAssociateSelected) {
+        associateId = subtaskData.assignedTo.replace('associate:', '');
+        assignedTo = 'Associate';
+        isAssociate = true;
       }
       
       const newSubtask = {
@@ -1402,6 +1410,8 @@ const TaskManagementSystem = () => {
         assignedTo: assignedTo,
         isExternalUser: isExternalUserSelected,
         externalUserId: externalUserId,
+        isAssociate: isAssociate,
+        associateId: associateId,
         parentTask: parentTask._id,
         isSubtask: true,
         project: parentTask.project,
@@ -1418,7 +1428,7 @@ const TaskManagementSystem = () => {
       });
       
       // Notify assigned user (only for internal users)
-      if (!isExternalUserSelected) {
+      if (!isExternalUserSelected && !isAssociateSelected) {
         await createNotification(
           savedSubtask._id,
           subtaskData.assignedTo,
@@ -7679,6 +7689,17 @@ Priority: ${task.priority}`;
                       {externalUsers.map(externalUser => (
                         <option key={`external-${externalUser._id}`} value={`external:${externalUser._id}`}>
                           {externalUser.name} - External User
+                        </option>
+                      ))}
+                    </>
+                  )}
+                  {/* Associates */}
+                  {associates.length > 0 && (
+                    <>
+                      <option disabled>──────────────────────────────</option>
+                      {associates.map(associate => (
+                        <option key={`associate-${associate._id}`} value={`associate:${associate._id}`}>
+                          {associate.name} - Associate ({associate.company})
                         </option>
                       ))}
                     </>
