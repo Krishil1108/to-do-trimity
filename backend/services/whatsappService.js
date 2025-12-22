@@ -83,7 +83,105 @@ _Automated notification from Trido Task Management System_`;
   }
 };
 
+/**
+ * Send comprehensive owner notifications for all task activities
+ * @param {string} notificationType - Type of notification (TASK_CREATED, TASK_STATUS_CHANGED, TASK_COMPLETED, SUBTASK_CREATED, TASK_DELETED)
+ * @param {Object} data - Notification data
+ */
+const sendOwnerNotification = async (notificationType, data) => {
+  try {
+    const ownerNumber = '8128228872'; // Ketul Lathia's number
+    let message = '';
+
+    switch (notificationType) {
+      case 'TASK_CREATED':
+        message = `🆕 *New Task Created*
+
+*Task:* ${data.taskTitle}
+*Project:* ${data.project}
+*Assigned To:* ${data.assignedTo}
+*Created By:* ${data.createdBy}
+*Priority:* ${data.priority || 'Medium'}
+*Due Date:* ${data.dueDate ? new Date(data.dueDate).toLocaleDateString('en-IN') : 'Not set'}
+*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+
+_Automated notification from Trido Task Management_`;
+        break;
+
+      case 'TASK_STATUS_CHANGED':
+        message = `🔄 *Task Status Changed*
+
+*Task:* ${data.taskTitle}
+*Project:* ${data.project}
+*Assigned To:* ${data.assignedTo}
+*Status Change:* ${data.oldStatus} → ${data.newStatus}
+*Changed By:* ${data.changedBy}
+*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+
+_Automated notification from Trido Task Management_`;
+        break;
+
+      case 'TASK_COMPLETED':
+        message = `✅ *Task Completed*
+
+*Task:* ${data.taskTitle}
+*Project:* ${data.project}
+*Assigned To:* ${data.assignedTo}
+*Completed By:* ${data.completedBy}
+*Completion Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+${data.completionReason ? `*Reason:* ${data.completionReason}` : ''}
+
+_Automated notification from Trido Task Management_`;
+        break;
+
+      case 'SUBTASK_CREATED':
+        message = `📋 *Subtask Created*
+
+*Subtask:* ${data.subtaskTitle}
+*Parent Task:* ${data.parentTaskTitle}
+*Project:* ${data.project}
+*Created By:* ${data.createdBy}
+*Assigned To:* ${data.assignedTo}
+*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+
+_Automated notification from Trido Task Management_`;
+        break;
+
+      case 'TASK_DELETED':
+        message = `🗑️ *Task Deleted*
+
+*Task:* ${data.taskTitle}
+*Project:* ${data.project}
+*Was Assigned To:* ${data.assignedTo}
+*Deleted By:* ${data.deletedBy}
+*Previous Status:* ${data.status}
+*Time:* ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+
+_Automated notification from Trido Task Management_`;
+        break;
+
+      default:
+        console.log(`⚠️ Unknown notification type: ${notificationType}`);
+        return { success: false, error: 'Unknown notification type' };
+    }
+
+    const result = await sendWhatsAppMessage(ownerNumber, message);
+    
+    if (result.success) {
+      console.log(`✅ Owner WhatsApp notification sent - ${notificationType}: ${data.taskTitle || data.subtaskTitle}`);
+    } else {
+      console.error(`❌ Failed to send owner WhatsApp notification: ${result.error}`);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('❌ Error in sendOwnerNotification:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendWhatsAppMessage,
-  sendTaskCompletionNotification
+  sendTaskCompletionNotification,
+  sendOwnerNotification
 };
