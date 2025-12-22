@@ -2,6 +2,7 @@ const express = require('express');
 const webpush = require('web-push');
 const router = express.Router();
 const Notification = require('../models/Notification');
+const { deleteOldNotifications, getNotificationStats, runManualCleanup } = require('../services/notificationCleanup');
 
 // VAPID Keys - Use environment variables in production
 const vapidKeys = {
@@ -474,6 +475,75 @@ router.post('/burst-test', async (req, res) => {
   } catch (error) {
     console.error('❌ Burst notification error:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Notification cleanup routes
+// Get notification statistics
+router.get('/stats', async (req, res) => {
+  try {
+    const stats = await getNotificationStats();
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    console.error('❌ Failed to get notification stats:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Manual cleanup trigger (for testing/admin use)
+router.post('/cleanup', async (req, res) => {
+  try {
+    const { daysOld = 30 } = req.body;
+    
+    if (daysOld < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'daysOld must be at least 1'
+      });
+    }
+    
+    const result = await runManualCleanup(daysOld);
+    
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('❌ Manual cleanup failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Check cleanup status
+router.get('/cleanup/status', async (req, res) => {
+  try {
+    const stats = await getNotificationStats();
+    const now = new Date();
+    
+    res.json({
+      success: true,
+      message: 'Automatic cleanup is active',
+      schedule: 'Every 24 hours',
+      nextCleanup: 'Running continuously',
+      currentStats: stats,
+      cleanupThreshold: '30 days',
+      lastChecked: now.toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Failed to get cleanup status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
