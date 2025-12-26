@@ -2078,13 +2078,24 @@ Priority: ${task.priority}`;
           // Show tasks with status: Completed only
           if (task.status !== 'Completed') return false;
         } else if (filters.statusByDate === 'Overdue') {
-          // Show tasks whose Due Date < Today and status is: Pending, In Progress, In Checking, Completed
+          // Show overdue tasks based on completion status
           const today = new Date();
           const dueDate = new Date(task.outDate);
           today.setHours(0, 0, 0, 0);
           dueDate.setHours(23, 59, 59, 999);
-          const isOverdue = dueDate < today;
-          if (!isOverdue || !['Pending', 'In Progress', 'In Checking', 'Completed'].includes(task.status)) return false;
+          
+          if (['Pending', 'In Progress', 'In Checking'].includes(task.status)) {
+            // For incomplete tasks, show if past due date
+            if (!(dueDate < today)) return false;
+          } else if (task.status === 'Completed') {
+            // For completed tasks, show only if completed after due date
+            const completionDate = new Date(task.completedAt || task.updatedAt);
+            completionDate.setHours(0, 0, 0, 0);
+            dueDate.setHours(23, 59, 59, 999);
+            if (!(completionDate > dueDate)) return false;
+          } else {
+            return false;
+          }
         }
       }
       
@@ -3435,13 +3446,24 @@ Priority: ${task.priority}`;
           // Show tasks with status: Completed only
           if (task.status !== 'Completed') return false;
         } else if (filters.statusByDate === 'Overdue') {
-          // Show tasks whose Due Date < Today and status is: Pending, In Progress, In Checking, Completed
+          // Show overdue tasks based on completion status
           const today = new Date();
           const dueDate = new Date(task.outDate);
           today.setHours(0, 0, 0, 0);
           dueDate.setHours(23, 59, 59, 999);
-          const isOverdue = dueDate < today;
-          if (!isOverdue || !['Pending', 'In Progress', 'In Checking', 'Completed'].includes(task.status)) return false;
+          
+          if (['Pending', 'In Progress', 'In Checking'].includes(task.status)) {
+            // For incomplete tasks, show if past due date
+            if (!(dueDate < today)) return false;
+          } else if (task.status === 'Completed') {
+            // For completed tasks, show only if completed after due date
+            const completionDate = new Date(task.completedAt || task.updatedAt);
+            completionDate.setHours(0, 0, 0, 0);
+            dueDate.setHours(23, 59, 59, 999);
+            if (!(completionDate > dueDate)) return false;
+          } else {
+            return false;
+          }
         }
       }
       
@@ -5623,14 +5645,26 @@ Priority: ${task.priority}`;
         // Show tasks with status: Completed only
         associateTasks = associateTasks.filter(t => t.status === 'Completed');
       } else if (associateFilters.statusByDate === 'Overdue') {
-        // Show tasks whose Due Date < Today and status is: Pending, In Progress, In Checking, Completed
+        // Show tasks that are truly overdue:
+        // 1. Incomplete tasks (Pending, In Progress, In Checking) past due date
+        // 2. Completed tasks that were finished after their due date
         associateTasks = associateTasks.filter(t => {
           const today = new Date();
           const dueDate = new Date(t.outDate);
           today.setHours(0, 0, 0, 0);
           dueDate.setHours(23, 59, 59, 999);
-          const isOverdue = dueDate < today;
-          return isOverdue && ['Pending', 'In Progress', 'In Checking', 'Completed'].includes(t.status);
+          
+          if (['Pending', 'In Progress', 'In Checking'].includes(t.status)) {
+            // For incomplete tasks, show if past due date
+            return dueDate < today;
+          } else if (t.status === 'Completed') {
+            // For completed tasks, show only if completed after due date
+            const completionDate = new Date(t.completedAt || t.updatedAt);
+            completionDate.setHours(0, 0, 0, 0);
+            dueDate.setHours(23, 59, 59, 999);
+            return completionDate > dueDate;
+          }
+          return false;
         });
       }
     }
@@ -6253,14 +6287,26 @@ Priority: ${task.priority}`;
         // Show tasks with status: Completed only
         externalTasks = externalTasks.filter(t => t.status === 'Completed');
       } else if (externalFilters.statusByDate === 'Overdue') {
-        // Show tasks whose Due Date < Today and status is: Pending, In Progress, In Checking, Completed
+        // Show tasks that are truly overdue:
+        // 1. Incomplete tasks (Pending, In Progress, In Checking) past due date
+        // 2. Completed tasks that were finished after their due date
         externalTasks = externalTasks.filter(t => {
           const today = new Date();
           const dueDate = new Date(t.outDate);
           today.setHours(0, 0, 0, 0);
           dueDate.setHours(23, 59, 59, 999);
-          const isOverdue = dueDate < today;
-          return isOverdue && ['Pending', 'In Progress', 'In Checking', 'Completed'].includes(t.status);
+          
+          if (['Pending', 'In Progress', 'In Checking'].includes(t.status)) {
+            // For incomplete tasks, show if past due date
+            return dueDate < today;
+          } else if (t.status === 'Completed') {
+            // For completed tasks, show only if completed after due date
+            const completionDate = new Date(t.completedAt || t.updatedAt);
+            completionDate.setHours(0, 0, 0, 0);
+            dueDate.setHours(23, 59, 59, 999);
+            return completionDate > dueDate;
+          }
+          return false;
         });
       }
     }

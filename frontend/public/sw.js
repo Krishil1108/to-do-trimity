@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v2.1.0-' + Date.now(); // Added due date sorting functionality
+const CACHE_VERSION = 'v2.2.0-' + Date.now(); // Fixed overdue filter logic for completed tasks
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
