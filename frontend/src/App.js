@@ -2111,6 +2111,13 @@ Priority: ${task.priority}`;
           const dueDate = new Date(task.outDate);
           if (dueDate < today || dueDate > weekFromNow || task.status !== statusPart) return false;
         }
+        // Handle direct task status filtering in statusByDate
+        else if (filters.statusByDate === 'Pending' || 
+                 filters.statusByDate === 'In Progress' || 
+                 filters.statusByDate === 'In Checking' || 
+                 filters.statusByDate === 'Completed') {
+          if (task.status !== filters.statusByDate) return false;
+        }
       }
       
       return true;
@@ -3470,6 +3477,13 @@ Priority: ${task.priority}`;
           const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
           const dueDate = new Date(task.outDate);
           if (dueDate < today || dueDate > weekFromNow) return false;
+        }
+        // Handle direct task status filtering in statusByDate
+        else if (filters.statusByDate === 'Pending' || 
+                 filters.statusByDate === 'In Progress' || 
+                 filters.statusByDate === 'In Checking' || 
+                 filters.statusByDate === 'Completed') {
+          if (task.status !== filters.statusByDate) return false;
         }
       }
       
@@ -5668,6 +5682,13 @@ Priority: ${task.priority}`;
           return dueDate >= today && dueDate <= weekFromNow;
         });
       }
+      // Handle direct task status filtering in statusByDate
+      else if (associateFilters.statusByDate === 'Pending' || 
+               associateFilters.statusByDate === 'In Progress' || 
+               associateFilters.statusByDate === 'In Checking' || 
+               associateFilters.statusByDate === 'Completed') {
+        associateTasks = associateTasks.filter(t => t.status === associateFilters.statusByDate);
+      }
     }
     if (associateFilters.assignedBy) {
       associateTasks = associateTasks.filter(t => t.assignedBy === associateFilters.assignedBy);
@@ -6304,6 +6325,13 @@ Priority: ${task.priority}`;
           const dueDate = new Date(t.outDate);
           return dueDate >= today && dueDate <= weekFromNow;
         });
+      }
+      // Handle direct task status filtering in statusByDate
+      else if (externalFilters.statusByDate === 'Pending' || 
+               externalFilters.statusByDate === 'In Progress' || 
+               externalFilters.statusByDate === 'In Checking' || 
+               externalFilters.statusByDate === 'Completed') {
+        externalTasks = externalTasks.filter(t => t.status === externalFilters.statusByDate);
       }
     }
     if (externalFilters.assignedBy) {
