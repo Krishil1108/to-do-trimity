@@ -1646,6 +1646,36 @@ Priority: ${task.priority}`;
     setNotifications([]);
   };
 
+  // Navigate to parent task (across pagination)
+  const navigateToParentTask = useCallback((parentTaskId) => {
+    // Find the parent task in the current filtered tasks
+    const allCurrentTasks = getFilteredTasks();
+    const parentTask = allCurrentTasks.find(t => t._id === parentTaskId);
+    
+    if (!parentTask) {
+      showError('Parent task not found or may be filtered out', 'Parent Task Not Found');
+      return;
+    }
+
+    // Apply current search filter
+    const searchedTasks = filterTasksBySearch(allCurrentTasks, searchTerms[currentView]);
+    const parentIndex = searchedTasks.findIndex(t => t._id === parentTaskId);
+    
+    if (parentIndex === -1) {
+      showError('Parent task not found in current search results', 'Parent Task Not Found');
+      return;
+    }
+
+    // Calculate which page the parent task is on
+    const parentPage = Math.ceil((parentIndex + 1) / itemsPerPage);
+    
+    // Navigate to the page containing the parent task
+    setCurrentPages({...currentPages, [currentView]: parentPage});
+    
+    // Show success message with parent task info
+    showSuccess(`Navigated to parent task: "${parentTask.title}" on page ${parentPage}`, 'Parent Task Found');
+  }, [getFilteredTasks, filterTasksBySearch, searchTerms, currentView, itemsPerPage, currentPages, showError, showSuccess]);
+
   // Search functionality
   const handleSearchChange = useCallback((viewName, term) => {
     console.log(`🔄 [Search State Update] ${viewName}:`);
@@ -2916,7 +2946,14 @@ Priority: ${task.priority}`;
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
                               </svg>
-                              Parent: {tasks.find(t => t._id === task.parentTask)?.title || 'Unknown'}
+                              Parent: 
+                              <button
+                                onClick={() => navigateToParentTask(task.parentTask)}
+                                className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors cursor-pointer"
+                                title="Click to navigate to parent task"
+                              >
+                                {tasks.find(t => t._id === task.parentTask)?.title || 'Unknown'}
+                              </button>
                             </div>
                           )}
                         </div>
@@ -3136,7 +3173,14 @@ Priority: ${task.priority}`;
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
                 </svg>
-                Parent: {tasks.find(t => t._id === task.parentTask)?.title || 'Unknown'}
+                Parent: 
+                <button
+                  onClick={() => navigateToParentTask(task.parentTask)}
+                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors cursor-pointer"
+                  title="Click to navigate to parent task"
+                >
+                  {tasks.find(t => t._id === task.parentTask)?.title || 'Unknown'}
+                </button>
               </div>
             )}
           </div>
