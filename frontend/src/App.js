@@ -2064,20 +2064,30 @@ Priority: ${task.priority}`;
       if (filters.priority && task.priority !== filters.priority) return false;
       if (filters.severity && task.severity !== filters.severity) return false;
       
-      // Handle status filtering with special logic for overdue
+      // Handle task status filtering (separate from date-based status)
       if (filters.status) {
-        if (filters.status === 'Overdue') {
+        if (task.status !== filters.status) return false;
+      }
+      
+      // Handle status by date filtering (overdue/due status)
+      if (filters.statusByDate) {
+        if (filters.statusByDate === 'Overdue') {
           // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
           const dueDate = new Date(task.outDate);
           dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
           const isPastDue = new Date() > dueDate && task.status !== 'Completed';
           if (!(task.status === 'Overdue' || isPastDue)) return false;
-        } else {
-          // For other statuses, check exact match (but exclude tasks that are past due)
+        } else if (filters.statusByDate === 'Due Today') {
+          const today = new Date();
           const dueDate = new Date(task.outDate);
-          dueDate.setHours(23, 59, 59, 999);
-          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
-          if (isPastDue || task.status !== filters.status) return false;
+          today.setHours(0, 0, 0, 0);
+          dueDate.setHours(0, 0, 0, 0);
+          if (today.getTime() !== dueDate.getTime()) return false;
+        } else if (filters.statusByDate === 'Due This Week') {
+          const today = new Date();
+          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+          const dueDate = new Date(task.outDate);
+          if (dueDate < today || dueDate > weekFromNow) return false;
         }
       }
       
@@ -3414,20 +3424,30 @@ Priority: ${task.priority}`;
       if (filters.priority && task.priority !== filters.priority) return false;
       if (filters.severity && task.severity !== filters.severity) return false;
       
-      // Handle status filtering with special logic for overdue
+      // Handle task status filtering (separate from date-based status)
       if (filters.status) {
-        if (filters.status === 'Overdue') {
+        if (task.status !== filters.status) return false;
+      }
+      
+      // Handle status by date filtering (overdue/due status)
+      if (filters.statusByDate) {
+        if (filters.statusByDate === 'Overdue') {
           // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
           const dueDate = new Date(task.outDate);
           dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
           const isPastDue = new Date() > dueDate && task.status !== 'Completed';
           if (!(task.status === 'Overdue' || isPastDue)) return false;
-        } else {
-          // For other statuses, check exact match (but exclude tasks that are past due)
+        } else if (filters.statusByDate === 'Due Today') {
+          const today = new Date();
           const dueDate = new Date(task.outDate);
-          dueDate.setHours(23, 59, 59, 999);
-          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
-          if (isPastDue || task.status !== filters.status) return false;
+          today.setHours(0, 0, 0, 0);
+          dueDate.setHours(0, 0, 0, 0);
+          if (today.getTime() !== dueDate.getTime()) return false;
+        } else if (filters.statusByDate === 'Due This Week') {
+          const today = new Date();
+          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+          const dueDate = new Date(task.outDate);
+          if (dueDate < today || dueDate > weekFromNow) return false;
         }
       }
       
@@ -3574,7 +3594,21 @@ Priority: ${task.priority}`;
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status by Date</label>
+              <select
+                value={filters.statusByDate || ''}
+                onChange={(e) => setFilters({...filters, statusByDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Due Today">Due Today</option>
+                <option value="Due This Week">Due This Week</option>
+                <option value="Overdue">Overdue</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Task Status</label>
               <select
                 value={filters.status || ''}
                 onChange={(e) => setFilters({...filters, status: e.target.value})}
@@ -3585,7 +3619,6 @@ Priority: ${task.priority}`;
                 <option value="In Progress">In Progress</option>
                 <option value="In Checking">In Checking</option>
                 <option value="Completed">Completed</option>
-                <option value="Overdue">Overdue</option>
               </select>
             </div>
 
@@ -5029,7 +5062,20 @@ Priority: ${task.priority}`;
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status by Date</label>
+              <select
+                value={filters.statusByDate || ''}
+                onChange={(e) => setFilters({...filters, statusByDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Due Today">Due Today</option>
+                <option value="Due This Week">Due This Week</option>
+                <option value="Overdue">Overdue</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Task Status</label>
               <select
                 value={filters.status || ''}
                 onChange={(e) => setFilters({...filters, status: e.target.value})}
@@ -5040,7 +5086,6 @@ Priority: ${task.priority}`;
                 <option value="In Progress">In Progress</option>
                 <option value="In Checking">In Checking</option>
                 <option value="Completed">Completed</option>
-                <option value="Overdue">Overdue</option>
               </select>
             </div>
             <div>
@@ -5280,7 +5325,21 @@ Priority: ${task.priority}`;
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status by Date</label>
+              <select
+                value={filters.statusByDate || ''}
+                onChange={(e) => setFilters({...filters, statusByDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Due Today">Due Today</option>
+                <option value="Due This Week">Due This Week</option>
+                <option value="Overdue">Overdue</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Task Status</label>
               <select
                 value={filters.status || ''}
                 onChange={(e) => setFilters({...filters, status: e.target.value})}
@@ -5291,7 +5350,6 @@ Priority: ${task.priority}`;
                 <option value="In Progress">In Progress</option>
                 <option value="In Checking">In Checking</option>
                 <option value="Completed">Completed</option>
-                <option value="Overdue">Overdue</option>
               </select>
             </div>
 
@@ -5563,6 +5621,32 @@ Priority: ${task.priority}`;
     if (associateFilters.status) {
       associateTasks = associateTasks.filter(t => t.status === associateFilters.status);
     }
+    if (associateFilters.statusByDate) {
+      if (associateFilters.statusByDate === 'Overdue') {
+        // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
+        associateTasks = associateTasks.filter(t => {
+          const dueDate = new Date(t.outDate);
+          dueDate.setHours(23, 59, 59, 999);
+          const isPastDue = new Date() > dueDate && t.status !== 'Completed';
+          return t.status === 'Overdue' || isPastDue;
+        });
+      } else if (associateFilters.statusByDate === 'Due Today') {
+        associateTasks = associateTasks.filter(t => {
+          const today = new Date();
+          const dueDate = new Date(t.outDate);
+          today.setHours(0, 0, 0, 0);
+          dueDate.setHours(0, 0, 0, 0);
+          return today.getTime() === dueDate.getTime();
+        });
+      } else if (associateFilters.statusByDate === 'Due This Week') {
+        associateTasks = associateTasks.filter(t => {
+          const today = new Date();
+          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+          const dueDate = new Date(t.outDate);
+          return dueDate >= today && dueDate <= weekFromNow;
+        });
+      }
+    }
     if (associateFilters.assignedBy) {
       associateTasks = associateTasks.filter(t => t.assignedBy === associateFilters.assignedBy);
     }
@@ -5755,7 +5839,21 @@ Priority: ${task.priority}`;
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status by Date</label>
+              <select
+                value={associateFilters.statusByDate || ''}
+                onChange={(e) => setAssociateFilters({...associateFilters, statusByDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="">All</option>
+                <option value="Due Today">Due Today</option>
+                <option value="Due This Week">Due This Week</option>
+                <option value="Overdue">Overdue</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Task Status</label>
               <select
                 value={associateFilters.status || ''}
                 onChange={(e) => setAssociateFilters({...associateFilters, status: e.target.value})}
@@ -5766,7 +5864,6 @@ Priority: ${task.priority}`;
                 <option value="In Progress">In Progress</option>
                 <option value="In Checking">In Checking</option>
                 <option value="Completed">Completed</option>
-                <option value="Overdue">Overdue</option>
               </select>
             </div>
 
@@ -6161,6 +6258,32 @@ Priority: ${task.priority}`;
     if (externalFilters.status) {
       externalTasks = externalTasks.filter(t => t.status === externalFilters.status);
     }
+    if (externalFilters.statusByDate) {
+      if (externalFilters.statusByDate === 'Overdue') {
+        // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
+        externalTasks = externalTasks.filter(t => {
+          const dueDate = new Date(t.outDate);
+          dueDate.setHours(23, 59, 59, 999);
+          const isPastDue = new Date() > dueDate && t.status !== 'Completed';
+          return t.status === 'Overdue' || isPastDue;
+        });
+      } else if (externalFilters.statusByDate === 'Due Today') {
+        externalTasks = externalTasks.filter(t => {
+          const today = new Date();
+          const dueDate = new Date(t.outDate);
+          today.setHours(0, 0, 0, 0);
+          dueDate.setHours(0, 0, 0, 0);
+          return today.getTime() === dueDate.getTime();
+        });
+      } else if (externalFilters.statusByDate === 'Due This Week') {
+        externalTasks = externalTasks.filter(t => {
+          const today = new Date();
+          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+          const dueDate = new Date(t.outDate);
+          return dueDate >= today && dueDate <= weekFromNow;
+        });
+      }
+    }
     if (externalFilters.assignedBy) {
       externalTasks = externalTasks.filter(t => t.assignedBy === externalFilters.assignedBy);
     }
@@ -6355,9 +6478,24 @@ Priority: ${task.priority}`;
                   </select>
                 </div>
 
-                {/* Status Filter */}
+                {/* Status by Date Filter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status by Date</label>
+                  <select
+                    value={externalFilters.statusByDate || ''}
+                    onChange={(e) => setExternalFilters({...externalFilters, statusByDate: e.target.value || null})}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  >
+                    <option value="">All</option>
+                    <option value="Due Today">Due Today</option>
+                    <option value="Due This Week">Due This Week</option>
+                    <option value="Overdue">Overdue</option>
+                  </select>
+                </div>
+
+                {/* Task Status Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Task Status</label>
                   <select
                     value={externalFilters.status || ''}
                     onChange={(e) => setExternalFilters({...externalFilters, status: e.target.value || null})}
@@ -6368,7 +6506,6 @@ Priority: ${task.priority}`;
                     <option value="In Progress">In Progress</option>
                     <option value="In Checking">In Checking</option>
                     <option value="Completed">Completed</option>
-                    <option value="Overdue">Overdue</option>
                   </select>
                 </div>
 
