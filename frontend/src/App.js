@@ -118,6 +118,7 @@ const TaskManagementSystem = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [subtaskFilter, setSubtaskFilter] = useState('all'); // 'all', 'subtasks-only', 'tasks-only'
   const [associateFilters, setAssociateFilters] = useState({});
+  const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'oldest'
   const [associateDateRange, setAssociateDateRange] = useState({ from: '', to: '' });
   const [selectedAssociateTasks, setSelectedAssociateTasks] = useState([]);
   
@@ -2052,7 +2053,7 @@ Priority: ${task.priority}`;
 
 
   const getFilteredTasks = () => {
-    return tasks.filter(task => {
+    const filteredTasks = tasks.filter(task => {
       // Filter out confidential tasks from All Tasks view
       if (task.isConfidential) return false;
       // Filter out subtasks if the filter is set to 'false'
@@ -2081,6 +2082,18 @@ Priority: ${task.priority}`;
       }
       
       return true;
+    });
+
+    // Apply sorting
+    return filteredTasks.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.inDate);
+      const dateB = new Date(b.createdAt || b.inDate);
+      
+      if (sortBy === 'oldest') {
+        return dateA - dateB; // Oldest first
+      } else {
+        return dateB - dateA; // Latest first (default)
+      }
     });
   };
 
@@ -3406,6 +3419,16 @@ Priority: ${task.priority}`;
       }
       
       return true;
+    }).sort((a, b) => {
+      // Apply sorting
+      const dateA = new Date(a.createdAt || a.inDate);
+      const dateB = new Date(b.createdAt || b.inDate);
+      
+      if (sortBy === 'oldest') {
+        return dateA - dateB; // Oldest first
+      } else {
+        return dateB - dateA; // Latest first (default)
+      }
     });
     
     // Apply search to filtered tasks
@@ -3492,7 +3515,7 @@ Priority: ${task.priority}`;
           </button>
           {showFilters && (
             <div className="px-6 pb-6">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
                   <select
@@ -3553,9 +3576,21 @@ Priority: ${task.priority}`;
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="latest">Latest to Oldest</option>
+                <option value="oldest">Oldest to Latest</option>
+              </select>
+            </div>
+
             <div className="flex items-end">
               <button 
-                onClick={() => setFilters({})}
+                onClick={() => {setFilters({}); setSortBy('latest');}}
                 className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Clear All
@@ -4919,7 +4954,7 @@ Priority: ${task.priority}`;
           </button>
           {showFilters && (
             <div className="px-6 pb-6">
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-8 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Project</label>
                   <select
@@ -5004,9 +5039,20 @@ Priority: ${task.priority}`;
                 <option value="false">No</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="latest">Latest to Oldest</option>
+                <option value="oldest">Oldest to Latest</option>
+              </select>
+            </div>
             <div className="flex items-end">
               <button 
-                onClick={() => setFilters({})}
+                onClick={() => {setFilters({}); setSortBy('latest');}}
                 className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Clear All
