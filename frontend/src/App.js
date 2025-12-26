@@ -2069,54 +2069,22 @@ Priority: ${task.priority}`;
         if (task.status !== filters.status) return false;
       }
       
-      // Handle status by date filtering (overdue/due status)
+      // Handle status by date filtering (custom logic based on task status)
       if (filters.statusByDate) {
-        if (filters.statusByDate === 'Overdue') {
-          // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
+        if (filters.statusByDate === 'Pending') {
+          // Show tasks with status: Pending, In Progress, In Checking
+          if (!['Pending', 'In Progress', 'In Checking'].includes(task.status)) return false;
+        } else if (filters.statusByDate === 'Completed') {
+          // Show tasks with status: Completed only
+          if (task.status !== 'Completed') return false;
+        } else if (filters.statusByDate === 'Overdue') {
+          // Show tasks whose Due Date < Today and status is: Pending, In Progress, In Checking, Completed
+          const today = new Date();
           const dueDate = new Date(task.outDate);
-          dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
-          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
-          if (!(task.status === 'Overdue' || isPastDue)) return false;
-        } else if (filters.statusByDate.startsWith('Overdue - ')) {
-          // Handle combined overdue and status filters
-          const statusPart = filters.statusByDate.replace('Overdue - ', '');
-          const dueDate = new Date(task.outDate);
+          today.setHours(0, 0, 0, 0);
           dueDate.setHours(23, 59, 59, 999);
-          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
-          if (!(task.status === 'Overdue' || isPastDue) || task.status !== statusPart) return false;
-        } else if (filters.statusByDate === 'Due Today') {
-          const today = new Date();
-          const dueDate = new Date(task.outDate);
-          today.setHours(0, 0, 0, 0);
-          dueDate.setHours(0, 0, 0, 0);
-          if (today.getTime() !== dueDate.getTime()) return false;
-        } else if (filters.statusByDate.startsWith('Due Today - ')) {
-          // Handle combined due today and status filters
-          const statusPart = filters.statusByDate.replace('Due Today - ', '');
-          const today = new Date();
-          const dueDate = new Date(task.outDate);
-          today.setHours(0, 0, 0, 0);
-          dueDate.setHours(0, 0, 0, 0);
-          if (today.getTime() !== dueDate.getTime() || task.status !== statusPart) return false;
-        } else if (filters.statusByDate === 'Due This Week') {
-          const today = new Date();
-          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          const dueDate = new Date(task.outDate);
-          if (dueDate < today || dueDate > weekFromNow) return false;
-        } else if (filters.statusByDate.startsWith('Due This Week - ')) {
-          // Handle combined due this week and status filters
-          const statusPart = filters.statusByDate.replace('Due This Week - ', '');
-          const today = new Date();
-          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          const dueDate = new Date(task.outDate);
-          if (dueDate < today || dueDate > weekFromNow || task.status !== statusPart) return false;
-        }
-        // Handle direct task status filtering in statusByDate
-        else if (filters.statusByDate === 'Pending' || 
-                 filters.statusByDate === 'In Progress' || 
-                 filters.statusByDate === 'In Checking' || 
-                 filters.statusByDate === 'Completed') {
-          if (task.status !== filters.statusByDate) return false;
+          const isOverdue = dueDate < today;
+          if (!isOverdue || !['Pending', 'In Progress', 'In Checking', 'Completed'].includes(task.status)) return false;
         }
       }
       
@@ -3458,32 +3426,22 @@ Priority: ${task.priority}`;
         if (task.status !== filters.status) return false;
       }
       
-      // Handle status by date filtering (overdue/due status)
+      // Handle status by date filtering (custom logic based on task status)
       if (filters.statusByDate) {
-        if (filters.statusByDate === 'Overdue') {
-          // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
-          const dueDate = new Date(task.outDate);
-          dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
-          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
-          if (!(task.status === 'Overdue' || isPastDue)) return false;
-        } else if (filters.statusByDate === 'Due Today') {
+        if (filters.statusByDate === 'Pending') {
+          // Show tasks with status: Pending, In Progress, In Checking
+          if (!['Pending', 'In Progress', 'In Checking'].includes(task.status)) return false;
+        } else if (filters.statusByDate === 'Completed') {
+          // Show tasks with status: Completed only
+          if (task.status !== 'Completed') return false;
+        } else if (filters.statusByDate === 'Overdue') {
+          // Show tasks whose Due Date < Today and status is: Pending, In Progress, In Checking, Completed
           const today = new Date();
           const dueDate = new Date(task.outDate);
           today.setHours(0, 0, 0, 0);
-          dueDate.setHours(0, 0, 0, 0);
-          if (today.getTime() !== dueDate.getTime()) return false;
-        } else if (filters.statusByDate === 'Due This Week') {
-          const today = new Date();
-          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          const dueDate = new Date(task.outDate);
-          if (dueDate < today || dueDate > weekFromNow) return false;
-        }
-        // Handle direct task status filtering in statusByDate
-        else if (filters.statusByDate === 'Pending' || 
-                 filters.statusByDate === 'In Progress' || 
-                 filters.statusByDate === 'In Checking' || 
-                 filters.statusByDate === 'Completed') {
-          if (task.status !== filters.statusByDate) return false;
+          dueDate.setHours(23, 59, 59, 999);
+          const isOverdue = dueDate < today;
+          if (!isOverdue || !['Pending', 'In Progress', 'In Checking', 'Completed'].includes(task.status)) return false;
         }
       }
       
@@ -3637,8 +3595,8 @@ Priority: ${task.priority}`;
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
                 <option value="">All</option>
-                <option value="Due Today">Due Today</option>
-                <option value="Due This Week">Due This Week</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
                 <option value="Overdue">Overdue</option>
               </select>
             </div>
@@ -5105,8 +5063,8 @@ Priority: ${task.priority}`;
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
                 <option value="">All</option>
-                <option value="Due Today">Due Today</option>
-                <option value="Due This Week">Due This Week</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
                 <option value="Overdue">Overdue</option>
               </select>
             </div>
@@ -5368,8 +5326,8 @@ Priority: ${task.priority}`;
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
                 <option value="">All</option>
-                <option value="Due Today">Due Today</option>
-                <option value="Due This Week">Due This Week</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
                 <option value="Overdue">Overdue</option>
               </select>
             </div>
@@ -5658,36 +5616,22 @@ Priority: ${task.priority}`;
       associateTasks = associateTasks.filter(t => t.status === associateFilters.status);
     }
     if (associateFilters.statusByDate) {
-      if (associateFilters.statusByDate === 'Overdue') {
-        // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
-        associateTasks = associateTasks.filter(t => {
-          const dueDate = new Date(t.outDate);
-          dueDate.setHours(23, 59, 59, 999);
-          const isPastDue = new Date() > dueDate && t.status !== 'Completed';
-          return t.status === 'Overdue' || isPastDue;
-        });
-      } else if (associateFilters.statusByDate === 'Due Today') {
+      if (associateFilters.statusByDate === 'Pending') {
+        // Show tasks with status: Pending, In Progress, In Checking
+        associateTasks = associateTasks.filter(t => ['Pending', 'In Progress', 'In Checking'].includes(t.status));
+      } else if (associateFilters.statusByDate === 'Completed') {
+        // Show tasks with status: Completed only
+        associateTasks = associateTasks.filter(t => t.status === 'Completed');
+      } else if (associateFilters.statusByDate === 'Overdue') {
+        // Show tasks whose Due Date < Today and status is: Pending, In Progress, In Checking, Completed
         associateTasks = associateTasks.filter(t => {
           const today = new Date();
           const dueDate = new Date(t.outDate);
           today.setHours(0, 0, 0, 0);
-          dueDate.setHours(0, 0, 0, 0);
-          return today.getTime() === dueDate.getTime();
+          dueDate.setHours(23, 59, 59, 999);
+          const isOverdue = dueDate < today;
+          return isOverdue && ['Pending', 'In Progress', 'In Checking', 'Completed'].includes(t.status);
         });
-      } else if (associateFilters.statusByDate === 'Due This Week') {
-        associateTasks = associateTasks.filter(t => {
-          const today = new Date();
-          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          const dueDate = new Date(t.outDate);
-          return dueDate >= today && dueDate <= weekFromNow;
-        });
-      }
-      // Handle direct task status filtering in statusByDate
-      else if (associateFilters.statusByDate === 'Pending' || 
-               associateFilters.statusByDate === 'In Progress' || 
-               associateFilters.statusByDate === 'In Checking' || 
-               associateFilters.statusByDate === 'Completed') {
-        associateTasks = associateTasks.filter(t => t.status === associateFilters.statusByDate);
       }
     }
     if (associateFilters.assignedBy) {
@@ -5889,8 +5833,8 @@ Priority: ${task.priority}`;
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
                 <option value="">All</option>
-                <option value="Due Today">Due Today</option>
-                <option value="Due This Week">Due This Week</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
                 <option value="Overdue">Overdue</option>
               </select>
             </div>
@@ -6302,36 +6246,22 @@ Priority: ${task.priority}`;
       externalTasks = externalTasks.filter(t => t.status === externalFilters.status);
     }
     if (externalFilters.statusByDate) {
-      if (externalFilters.statusByDate === 'Overdue') {
-        // For overdue filter, include tasks with "Overdue" status OR tasks past due date that aren't completed
-        externalTasks = externalTasks.filter(t => {
-          const dueDate = new Date(t.outDate);
-          dueDate.setHours(23, 59, 59, 999);
-          const isPastDue = new Date() > dueDate && t.status !== 'Completed';
-          return t.status === 'Overdue' || isPastDue;
-        });
-      } else if (externalFilters.statusByDate === 'Due Today') {
+      if (externalFilters.statusByDate === 'Pending') {
+        // Show tasks with status: Pending, In Progress, In Checking
+        externalTasks = externalTasks.filter(t => ['Pending', 'In Progress', 'In Checking'].includes(t.status));
+      } else if (externalFilters.statusByDate === 'Completed') {
+        // Show tasks with status: Completed only
+        externalTasks = externalTasks.filter(t => t.status === 'Completed');
+      } else if (externalFilters.statusByDate === 'Overdue') {
+        // Show tasks whose Due Date < Today and status is: Pending, In Progress, In Checking, Completed
         externalTasks = externalTasks.filter(t => {
           const today = new Date();
           const dueDate = new Date(t.outDate);
           today.setHours(0, 0, 0, 0);
-          dueDate.setHours(0, 0, 0, 0);
-          return today.getTime() === dueDate.getTime();
+          dueDate.setHours(23, 59, 59, 999);
+          const isOverdue = dueDate < today;
+          return isOverdue && ['Pending', 'In Progress', 'In Checking', 'Completed'].includes(t.status);
         });
-      } else if (externalFilters.statusByDate === 'Due This Week') {
-        externalTasks = externalTasks.filter(t => {
-          const today = new Date();
-          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-          const dueDate = new Date(t.outDate);
-          return dueDate >= today && dueDate <= weekFromNow;
-        });
-      }
-      // Handle direct task status filtering in statusByDate
-      else if (externalFilters.statusByDate === 'Pending' || 
-               externalFilters.statusByDate === 'In Progress' || 
-               externalFilters.statusByDate === 'In Checking' || 
-               externalFilters.statusByDate === 'Completed') {
-        externalTasks = externalTasks.filter(t => t.status === externalFilters.statusByDate);
       }
     }
     if (externalFilters.assignedBy) {
@@ -6537,8 +6467,8 @@ Priority: ${task.priority}`;
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   >
                     <option value="">All</option>
-                    <option value="Due Today">Due Today</option>
-                    <option value="Due This Week">Due This Week</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Completed">Completed</option>
                     <option value="Overdue">Overdue</option>
                   </select>
                 </div>
