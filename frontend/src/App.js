@@ -2854,9 +2854,17 @@ Priority: ${task.priority}`;
                       <input type="checkbox" className="rounded border-gray-300" />
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2">
-                          {/* User Type Indicator */}
+                      <div className="flex flex-col gap-1">
+                        {/* Person's Name - Top */}
+                        <div className="text-sm font-medium text-gray-900">
+                          {task.isAssociate && task.associateDetails?.name 
+                            ? `${task.associateDetails.name}${task.associateDetails.company ? ` (${task.associateDetails.company})` : ''}`
+                            : task.isExternalUser && task.externalUserDetails?.name
+                            ? task.externalUserDetails.name
+                            : (assignedUser?.name || task.assignedTo)}
+                        </div>
+                        {/* User Type Indicator - Middle */}
+                        <div>
                           {task.isAssociate ? (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
                               <Users className="w-3 h-3" />
@@ -2874,14 +2882,19 @@ Priority: ${task.priority}`;
                             </span>
                           )}
                         </div>
+                        {/* Task Type Indicator - Bottom */}
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {task.isAssociate && task.associateDetails?.name 
-                              ? `${task.associateDetails.name}${task.associateDetails.company ? ` (${task.associateDetails.company})` : ''}`
-                              : task.isExternalUser && task.externalUserDetails?.name
-                              ? task.externalUserDetails.name
-                              : (assignedUser?.name || task.assignedTo)}
-                          </div>
+                          {task.isSubtask ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              Subtask
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                              <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                              Main Task
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -2890,23 +2903,6 @@ Priority: ${task.priority}`;
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-start gap-2">
-                        <div className="flex-shrink-0 mt-0.5">
-                          {/* Task Type Indicator */}
-                          {task.isSubtask ? (
-                            <div className="flex items-center gap-1">
-                              <div className="w-4 h-0.5 bg-blue-400"></div>
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                Subtask
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                              <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                              Main Task
-                            </span>
-                          )}
-                        </div>
                         <div className="flex-1 min-w-0">
                           <div className={`text-sm font-medium ${
                             task.isSubtask ? 'text-blue-900 pl-2 border-l-2 border-blue-300' : 'text-gray-900'
@@ -3126,23 +3122,9 @@ Priority: ${task.priority}`;
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{getProjectName(task.project)}</h3>
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Task Type Indicator */}
-                {task.isSubtask ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    Subtask
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                    <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                    Main Task
-                  </span>
-                )}
-                <span className={`px-2 py-1 rounded text-xs font-medium ${PRIORITY_COLORS[task.priority]} border inline-block w-fit`}>
-                  {task.priority}
-                </span>
-              </div>
+              <span className={`px-2 py-1 rounded text-xs font-medium ${PRIORITY_COLORS[task.priority]} border inline-block w-fit`}>
+                {task.priority}
+              </span>
             </div>
             <h4 className={`font-medium text-gray-800 text-sm mb-1 ${
               task.isSubtask ? 'text-blue-900 pl-2 border-l-2 border-blue-300' : ''
@@ -3253,25 +3235,7 @@ Priority: ${task.priority}`;
           <div>
             <div className="flex flex-col gap-1">
               <span className="text-gray-500">Assigned To:</span>
-              <div className="flex items-center gap-2">
-                {/* User Type Indicator */}
-                {task.isAssociate ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                    <Users className="w-3 h-3" />
-                    Associate
-                  </span>
-                ) : task.isExternalUser ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                    <UserPlus className="w-3 h-3" />
-                    External
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                    <User className="w-3 h-3" />
-                    Internal
-                  </span>
-                )}
-              </div>
+              {/* Person's Name - Top */}
               <span className="font-medium text-gray-900">
                 {task.isAssociate ? (
                   <span className="text-purple-700">
@@ -3289,6 +3253,39 @@ Priority: ${task.priority}`;
                   assignedUser?.name || task.assignedTo
                 )}
               </span>
+              {/* User Type Indicator - Middle */}
+              <div className="flex items-center gap-2">
+                {task.isAssociate ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                    <Users className="w-3 h-3" />
+                    Associate
+                  </span>
+                ) : task.isExternalUser ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                    <UserPlus className="w-3 h-3" />
+                    External
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                    <User className="w-3 h-3" />
+                    Internal
+                  </span>
+                )}
+              </div>
+              {/* Task Type Indicator - Bottom */}
+              <div>
+                {task.isSubtask ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    Subtask
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                    <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                    Main Task
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div>
