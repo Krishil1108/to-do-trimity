@@ -2077,17 +2077,39 @@ Priority: ${task.priority}`;
           dueDate.setHours(23, 59, 59, 999); // Set to 11:59:59.999 PM
           const isPastDue = new Date() > dueDate && task.status !== 'Completed';
           if (!(task.status === 'Overdue' || isPastDue)) return false;
+        } else if (filters.statusByDate.startsWith('Overdue - ')) {
+          // Handle combined overdue and status filters
+          const statusPart = filters.statusByDate.replace('Overdue - ', '');
+          const dueDate = new Date(task.outDate);
+          dueDate.setHours(23, 59, 59, 999);
+          const isPastDue = new Date() > dueDate && task.status !== 'Completed';
+          if (!(task.status === 'Overdue' || isPastDue) || task.status !== statusPart) return false;
         } else if (filters.statusByDate === 'Due Today') {
           const today = new Date();
           const dueDate = new Date(task.outDate);
           today.setHours(0, 0, 0, 0);
           dueDate.setHours(0, 0, 0, 0);
           if (today.getTime() !== dueDate.getTime()) return false;
+        } else if (filters.statusByDate.startsWith('Due Today - ')) {
+          // Handle combined due today and status filters
+          const statusPart = filters.statusByDate.replace('Due Today - ', '');
+          const today = new Date();
+          const dueDate = new Date(task.outDate);
+          today.setHours(0, 0, 0, 0);
+          dueDate.setHours(0, 0, 0, 0);
+          if (today.getTime() !== dueDate.getTime() || task.status !== statusPart) return false;
         } else if (filters.statusByDate === 'Due This Week') {
           const today = new Date();
           const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
           const dueDate = new Date(task.outDate);
           if (dueDate < today || dueDate > weekFromNow) return false;
+        } else if (filters.statusByDate.startsWith('Due This Week - ')) {
+          // Handle combined due this week and status filters
+          const statusPart = filters.statusByDate.replace('Due This Week - ', '');
+          const today = new Date();
+          const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+          const dueDate = new Date(task.outDate);
+          if (dueDate < today || dueDate > weekFromNow || task.status !== statusPart) return false;
         }
       }
       
