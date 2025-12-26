@@ -2845,12 +2845,35 @@ Priority: ${task.priority}`;
                 const assignedUser = users.find(u => u.username === task.assignedTo);
                 
                 return (
-                  <tr key={task._id} className={`hover:bg-gray-50 transition-colors ${task.isSubtask ? 'bg-blue-50' : ''}`}>
+                  <tr key={task._id} className={`hover:bg-gray-50 transition-colors ${
+                    task.isSubtask 
+                      ? 'bg-blue-50 border-l-4 border-blue-300' 
+                      : 'bg-white'
+                  }`}>
                     <td className="px-4 py-3">
                       <input type="checkbox" className="rounded border-gray-300" />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          {/* User Type Indicator */}
+                          {task.isAssociate ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                              <Users className="w-3 h-3" />
+                              Associate
+                            </span>
+                          ) : task.isExternalUser ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                              <UserPlus className="w-3 h-3" />
+                              External
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                              <User className="w-3 h-3" />
+                              Internal
+                            </span>
+                          )}
+                        </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">
                             {task.isAssociate && task.associateDetails?.name 
@@ -2866,8 +2889,42 @@ Priority: ${task.priority}`;
                       <div className="text-sm font-medium text-gray-900">{getProjectName(task.project)}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-gray-900">{task.title}</div>
-                      <div className="text-xs text-gray-500">{task.description || 'No description'}</div>
+                      <div className="flex items-start gap-2">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {/* Task Type Indicator */}
+                          {task.isSubtask ? (
+                            <div className="flex items-center gap-1">
+                              <div className="w-4 h-0.5 bg-blue-400"></div>
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                Subtask
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                              <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                              Main Task
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm font-medium ${
+                            task.isSubtask ? 'text-blue-900 pl-2 border-l-2 border-blue-300' : 'text-gray-900'
+                          }`}>
+                            {task.title}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">{task.description || 'No description'}</div>
+                          {/* Show parent task for subtasks */}
+                          {task.isSubtask && task.parentTask && (
+                            <div className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                              </svg>
+                              Parent: {tasks.find(t => t._id === task.parentTask)?.title || 'Unknown'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {formatDate(task.inDate || task.createdAt)}
@@ -3060,17 +3117,46 @@ Priority: ${task.priority}`;
     const assignedByUser = users.find(u => u.username === task.assignedBy);
 
     return (
-      <div className={`bg-white rounded-lg border-2 p-3 sm:p-4 hover:shadow-md transition-all ${STATUS_COLORS[task.status]}`}>
+      <div className={`bg-white rounded-lg border-2 p-3 sm:p-4 hover:shadow-md transition-all ${
+        task.isSubtask 
+          ? 'border-l-4 border-blue-300 bg-blue-50 ml-4' 
+          : 'border-gray-200'
+      } ${STATUS_COLORS[task.status]}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{getProjectName(task.project)}</h3>
-              <span className={`px-2 py-1 rounded text-xs font-medium ${PRIORITY_COLORS[task.priority]} border inline-block w-fit`}>
-                {task.priority}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Task Type Indicator */}
+                {task.isSubtask ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    Subtask
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                    <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                    Main Task
+                  </span>
+                )}
+                <span className={`px-2 py-1 rounded text-xs font-medium ${PRIORITY_COLORS[task.priority]} border inline-block w-fit`}>
+                  {task.priority}
+                </span>
+              </div>
             </div>
-            <h4 className="font-medium text-gray-800 text-sm mb-1">{task.title}</h4>
+            <h4 className={`font-medium text-gray-800 text-sm mb-1 ${
+              task.isSubtask ? 'text-blue-900 pl-2 border-l-2 border-blue-300' : ''
+            }`}>{task.title}</h4>
             <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{task.description || 'No description'}</p>
+            {/* Show parent task for subtasks */}
+            {task.isSubtask && task.parentTask && (
+              <div className="text-xs text-blue-600 mb-2 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                </svg>
+                Parent: {tasks.find(t => t._id === task.parentTask)?.title || 'Unknown'}
+              </div>
+            )}
           </div>
           {showActions && (
             <div className="flex items-center gap-1 ml-2 sm:ml-4 flex-shrink-0">
@@ -3163,26 +3249,47 @@ Priority: ${task.priority}`;
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mb-3">
           <div>
-            <span className="text-gray-500">Assigned To:</span>
-            <span className="ml-1 font-medium text-gray-900">
-              {task.isAssociate ? (
-                <span className="text-purple-700">
-                  {task.associateDetails?.name || 'Associate'} {task.associateDetails?.company ? `(${task.associateDetails.company})` : ''}
-                </span>
-              ) : task.isAssociate ? (
-                <span className="text-purple-700">
-                  {task.associateDetails?.name || task.assignedTo}
-                </span>
-              ) : task.isExternalUser ? (
-                <span className="text-green-700">
-                  {task.externalUserDetails?.name || 'External User'}
-                </span>
-              ) : (
-                assignedUser?.name || task.assignedTo
-              )}
-            </span>
+            <div className="flex flex-col gap-1">
+              <span className="text-gray-500">Assigned To:</span>
+              <div className="flex items-center gap-2">
+                {/* User Type Indicator */}
+                {task.isAssociate ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                    <Users className="w-3 h-3" />
+                    Associate
+                  </span>
+                ) : task.isExternalUser ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                    <UserPlus className="w-3 h-3" />
+                    External
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                    <User className="w-3 h-3" />
+                    Internal
+                  </span>
+                )}
+              </div>
+              <span className="font-medium text-gray-900">
+                {task.isAssociate ? (
+                  <span className="text-purple-700">
+                    {task.associateDetails?.name || 'Associate'} {task.associateDetails?.company ? `(${task.associateDetails.company})` : ''}
+                  </span>
+                ) : task.isAssociate ? (
+                  <span className="text-purple-700">
+                    {task.associateDetails?.name || task.assignedTo}
+                  </span>
+                ) : task.isExternalUser ? (
+                  <span className="text-green-700">
+                    {task.externalUserDetails?.name || 'External User'}
+                  </span>
+                ) : (
+                  assignedUser?.name || task.assignedTo
+                )}
+              </span>
+            </div>
           </div>
           <div>
             <span className="text-gray-500">Assigned By:</span>
@@ -4673,6 +4780,48 @@ Priority: ${task.priority}`;
                 <p className="text-2xl font-bold mt-1">{overdueTasks.length}</p>
               </div>
               <AlertCircle className="w-8 h-8 opacity-50" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Legend for Visual Indicators */}
+        <div className="bg-gray-50 rounded-lg p-4 border">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Visual Guide
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-xs font-semibold text-gray-600 mb-2">Task Types:</h4>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                  <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                  Main Task
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  Subtask
+                </span>
+              </div>
+            </div>
+            <div>
+              <h4 className="text-xs font-semibold text-gray-600 mb-2">User Types:</h4>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                  <User className="w-3 h-3" />
+                  Internal
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                  <Users className="w-3 h-3" />
+                  Associate
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                  <UserPlus className="w-3 h-3" />
+                  External
+                </span>
+              </div>
             </div>
           </div>
         </div>
