@@ -118,7 +118,7 @@ const TaskManagementSystem = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [subtaskFilter, setSubtaskFilter] = useState('all'); // 'all', 'subtasks-only', 'tasks-only'
   const [associateFilters, setAssociateFilters] = useState({});
-  const [sortBy, setSortBy] = useState('latest'); // 'latest' or 'oldest'
+  const [sortBy, setSortBy] = useState('latest'); // 'latest', 'oldest', 'due-date-asc', 'due-date-desc'
   const [associateDateRange, setAssociateDateRange] = useState({ from: '', to: '' });
   const [selectedAssociateTasks, setSelectedAssociateTasks] = useState([]);
   
@@ -2086,13 +2086,26 @@ Priority: ${task.priority}`;
 
     // Apply sorting
     return filteredTasks.sort((a, b) => {
-      const dateA = new Date(a.createdAt || a.inDate);
-      const dateB = new Date(b.createdAt || b.inDate);
-      
-      if (sortBy === 'oldest') {
-        return dateA - dateB; // Oldest first
+      if (sortBy === 'due-date-asc') {
+        // Sort by due date ascending (earliest due dates first)
+        const dueDateA = new Date(a.outDate);
+        const dueDateB = new Date(b.outDate);
+        return dueDateA - dueDateB;
+      } else if (sortBy === 'due-date-desc') {
+        // Sort by due date descending (latest due dates first)
+        const dueDateA = new Date(a.outDate);
+        const dueDateB = new Date(b.outDate);
+        return dueDateB - dueDateA;
       } else {
-        return dateB - dateA; // Latest first (default)
+        // Sort by creation date
+        const dateA = new Date(a.createdAt || a.inDate);
+        const dateB = new Date(b.createdAt || b.inDate);
+        
+        if (sortBy === 'oldest') {
+          return dateA - dateB; // Oldest first
+        } else {
+          return dateB - dateA; // Latest first (default)
+        }
       }
     });
   };
@@ -3583,8 +3596,10 @@ Priority: ${task.priority}`;
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
-                <option value="latest">Latest to Oldest</option>
-                <option value="oldest">Oldest to Latest</option>
+                <option value="latest">Latest to Oldest (Created)</option>
+                <option value="oldest">Oldest to Latest (Created)</option>
+                <option value="due-date-asc">Due Date (Earliest First)</option>
+                <option value="due-date-desc">Due Date (Latest First)</option>
               </select>
             </div>
 
@@ -5046,8 +5061,10 @@ Priority: ${task.priority}`;
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
-                <option value="latest">Latest to Oldest</option>
-                <option value="oldest">Oldest to Latest</option>
+                <option value="latest">Latest to Oldest (Created)</option>
+                <option value="oldest">Oldest to Latest (Created)</option>
+                <option value="due-date-asc">Due Date (Earliest First)</option>
+                <option value="due-date-desc">Due Date (Latest First)</option>
               </select>
             </div>
             <div className="flex items-end">
