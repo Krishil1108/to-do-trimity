@@ -1335,9 +1335,16 @@ const TaskManagementSystem = () => {
     try {
       setLoading(true);
       
+      // Set the correct assignedTo value for associates
+      let finalAssignedTo = formData.assignedTo;
+      if (formData.isAssociate && formData.associateDetails && formData.associateDetails.name) {
+        finalAssignedTo = formData.associateDetails.name;
+      }
+      
       // Clean up the task data before sending
       const taskData = {
         ...formData,
+        assignedTo: finalAssignedTo,
         assignedBy: currentUser.username,
         reminder: formData.reminder && formData.reminder !== '' ? formData.reminder : null,
         associates: Array.isArray(formData.associates) ? formData.associates : []
@@ -1425,7 +1432,8 @@ const TaskManagementSystem = () => {
         assignedTo = 'External User';
       } else if (isAssociateSelected) {
         associateId = subtaskData.assignedTo.replace('associate:', '');
-        assignedTo = 'Associate';
+        const selectedAssociate = associates.find(a => a._id === associateId);
+        assignedTo = selectedAssociate ? selectedAssociate.name : 'Associate';
         isAssociate = true;
       }
       
@@ -1618,6 +1626,14 @@ Priority: ${task.priority}`;
       whatsapp: task.whatsapp,
       status: task.status
     });
+
+    // Set selected associate when editing an associate task
+    if (task.isAssociate && task.associateId) {
+      setSelectedAssociate(task.associateId);
+    } else {
+      setSelectedAssociate('new');
+    }
+
     setEditingTask(task);
     setShowTaskModal(true);
   };
@@ -3154,6 +3170,10 @@ Priority: ${task.priority}`;
               {task.isAssociate ? (
                 <span className="text-purple-700">
                   {task.associateDetails?.name || 'Associate'} {task.associateDetails?.company ? `(${task.associateDetails.company})` : ''}
+                </span>
+              ) : task.isAssociate ? (
+                <span className="text-purple-700">
+                  {task.associateDetails?.name || task.assignedTo}
                 </span>
               ) : task.isExternalUser ? (
                 <span className="text-green-700">
