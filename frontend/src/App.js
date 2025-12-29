@@ -939,12 +939,12 @@ const TaskManagementSystem = () => {
         pushNotificationsEnabled
       });
       
-      // Prevent rapid duplicate calls (5-second window)
+      // Prevent rapid duplicate calls (1-second window)
       const notificationKey = `${userId}_${taskData._id || taskData.id}_${type}`;
       const now = Date.now();
       const lastSent = window.recentNotificationCalls?.get(notificationKey);
       
-      if (lastSent && (now - lastSent) < 5000) {
+      if (lastSent && (now - lastSent) < 1000) {
         console.log(`⏭️ Skipping duplicate notification call for ${userId} (${type}) - sent ${now - lastSent}ms ago`);
         return { success: true, message: 'Duplicate call skipped' };
       }
@@ -997,15 +997,16 @@ const TaskManagementSystem = () => {
       console.log('📤 Sending notification data:', notificationData);
 
       // Send single push notification (no duplicates) 
-      // Priority: username first, then _id as fallback
+      // Priority: _id first (matches subscription), then username as fallback
       let targetUserId = userId;
       let fallbackUserId = null;
       let results = [];
       
-      // Check if we have user._id as fallback
+      // Check if we have user._id - use it as primary (matches subscription)
       const targetUser = users.find(u => u.username === userId);
-      if (targetUser && targetUser._id && targetUser._id !== userId) {
-        fallbackUserId = targetUser._id;
+      if (targetUser && targetUser._id) {
+        targetUserId = targetUser._id;
+        fallbackUserId = userId; // username as fallback
       }
       
       console.log(`📨 Sending single push to: ${targetUserId}`);
@@ -1057,10 +1058,9 @@ const TaskManagementSystem = () => {
       );
       
       if (!hasSuccess) {
-        console.warn('⚠️ All push notification attempts failed');
-        console.log('Failed results:', results);
+        console.log('ℹ️ Push notification attempt result:', results[0]?.value?.data || results[0]?.reason?.response?.data);
       } else {
-        console.log('🎉 At least one push notification succeeded');
+        console.log('🎉 Push notification succeeded');
       }
       
     } catch (error) {
