@@ -253,7 +253,7 @@ const TaskManagementSystem = () => {
       // Auto-refresh tasks every 10 seconds for real-time updates
       const taskInterval = setInterval(() => {
         if (document.visibilityState === 'visible') {
-          loadTasks();
+          loadTasks(true); // Silent refresh - no loading spinner
         }
       }, 10000);
       
@@ -316,7 +316,7 @@ const TaskManagementSystem = () => {
       // Auto-refresh tasks when any notification is received
       if (event.data && event.data.type === 'PUSH_NOTIFICATION_RECEIVED') {
         console.log('📬 Push notification received, refreshing tasks...');
-        setTimeout(() => loadTasks(), 1000); // Small delay to ensure backend is updated
+        setTimeout(() => loadTasks(true), 1000); // Silent refresh with small delay
       }
     };
 
@@ -582,16 +582,16 @@ const TaskManagementSystem = () => {
     return users.filter(u => u.manager === currentUser.username && u.isActive);
   }, [currentUser, users]);
 
-  const loadTasks = async () => {
+  const loadTasks = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params = currentUser?.username ? { username: currentUser.username } : {};
       const response = await axios.get(`${API_URL}/tasks`, { params });
       setTasks(response.data);
     } catch (error) {
       console.error('Error loading tasks:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -976,25 +976,37 @@ const TaskManagementSystem = () => {
       // Record this call
       window.recentNotificationCalls.set(notificationKey, now);
       
+      const title = getNotificationTitle(type, taskData);
+      const body = getNotificationBody(type, taskData);
+      
       // Always show browser notification if permission is granted
       if (Notification.permission === 'granted') {
-        const title = getNotificationTitle(type, taskData);
-        const body = getNotificationBody(type, taskData);
-        
         console.log('📢 Showing browser notification:', { title, body });
         
-        const notification = new Notification(title, {
-          body: body,
-          icon: '/favicon.ico',
-          tag: `task-${taskData._id}-${type}`,
-          requireInteraction: true,
-          vibrate: [200, 100, 200]
+        try {
+          const notification = new Notification(title, {
+            body: body,
+            icon: '/favicon.ico',
+            tag: `task-${taskData._id}-${type}-${Date.now()}`, // Unique tag to prevent replacement
+            requireInteraction: true,
+            vibrate: [200, 100, 200, 100, 200],
+            renotify: true
+          });
+          
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+          };
+        } catch (notifError) {
+          console.error('❌ Browser notification failed:', notifError);
+        }
+      } else if (Notification.permission === 'default') {
+        // Try to request permission if not yet decided
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification(title, { body: body, icon: '/favicon.ico' });
+          }
         });
-        
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-        };
       }
       
       // Also send push notification if enabled
