@@ -3788,48 +3788,7 @@ Priority: ${task.priority}`;
             {/* Test Notifications */}
             {pushNotificationsEnabled && (
                 <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                  <div>
-                    <h4 className="font-medium text-gray-900">Test Notification</h4>
-                    <p className="text-sm text-gray-600">
-                      Send a single test notification to verify everything is working
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={testPushNotification}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                    >
-                      Send Test
-                    </button>
-                    <button
-                      onClick={async () => {
-                        // Direct browser notification - most aggressive
-                        try {
-                          const permission = await Notification.requestPermission();
-                          if (permission === 'granted') {
-                            const notif = new Notification('🚨 DIRECT Browser Test!', {
-                              body: 'This is a DIRECT browser notification - should be VERY visible!',
-                              icon: '/favicon.ico',
-                              requireInteraction: true,
-                              vibrate: [500, 200, 500, 200, 500, 200, 500],
-                              tag: 'direct-test-' + Date.now()
-                            });
-                            notif.onclick = () => window.focus();
-                            console.log('✅ Direct notification sent');
-                          } else {
-                            showError('❌ Notification permission denied');
-                          }
-                        } catch (error) {
-                          showError('❌ Direct notification failed: ' + error.message);
-                        }
-                      }}
-                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                    >
-                      🚨 Direct
-                    </button>
-                  </div>
-                </div>                <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border-l-4 border-orange-400">
+                <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border-l-4 border-orange-400">
                   <div>
                     <h4 className="font-medium text-gray-900 flex items-center gap-2">
                       💥 Active Burst Notifications
