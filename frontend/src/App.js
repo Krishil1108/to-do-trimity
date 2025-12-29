@@ -957,9 +957,31 @@ const TaskManagementSystem = () => {
       // Record this call
       window.recentNotificationCalls.set(notificationKey, now);
       
+      // Always show browser notification if permission is granted
+      if (Notification.permission === 'granted') {
+        const title = getNotificationTitle(type, taskData);
+        const body = getNotificationBody(type, taskData);
+        
+        console.log('📢 Showing browser notification:', { title, body });
+        
+        const notification = new Notification(title, {
+          body: body,
+          icon: '/favicon.ico',
+          tag: `task-${taskData._id}-${type}`,
+          requireInteraction: true,
+          vibrate: [200, 100, 200]
+        });
+        
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      }
+      
+      // Also send push notification if enabled
       if (!pushNotificationsEnabled) {
-        console.log('❌ Push notifications not enabled, skipping...');
-        return;
+        console.log('ℹ️ Push notifications not enabled (browser notification shown)');
+        return { success: true, message: 'Browser notification shown' };
       }
       
       const notificationData = {

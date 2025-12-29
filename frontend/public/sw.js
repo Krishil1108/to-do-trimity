@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v2.3.3-' + Date.now(); // Fixed push notification success detection
+const CACHE_VERSION = 'v2.4.0-' + Date.now(); // Always show browser notifications for task updates
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
