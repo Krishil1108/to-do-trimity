@@ -2621,8 +2621,18 @@ Priority: ${task.priority}`;
       <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-              <Users className="w-8 h-8 text-blue-600" />
+            <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" className="w-full h-full">
+                <defs>
+                  <linearGradient id="loginBg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#F4D35E"/>
+                    <stop offset="0.5" stopColor="#A78BFA"/>
+                  </linearGradient>
+                </defs>
+                <rect width="120" height="120" rx="26" fill="url(#loginBg)"/>
+                <rect y="60" width="120" height="60" rx="26" fill="#000"/>
+                <path d="M45 75L55 85L75 65" stroke="white" strokeWidth="6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
             <h1 className="text-3xl font-bold text-gray-900">TriDo</h1>
             <p className="text-gray-600 mt-2">
