@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
-const { sendTaskCompletionNotification } = require('../services/whatsappService');
 
 // Helper function to populate external user details
 const populateExternalUserDetails = async (tasks) => {
@@ -158,14 +157,7 @@ router.put('/:id', async (req, res) => {
         if (user) completedByName = `${user.name} (Task Creator)`;
       }
       
-      // Send WhatsApp notification (don't await to avoid blocking the response)
-      sendTaskCompletionNotification({
-        title: task.title,
-        project: task.project,
-        completionReason: updateData.completionReason || 'No reason provided'
-      }, completedByName).catch(error => {
-        console.error('WhatsApp notification failed:', error);
-      });
+
     }
     
     res.json(task);

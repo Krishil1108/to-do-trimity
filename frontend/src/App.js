@@ -229,20 +229,6 @@ const TaskManagementSystem = () => {
   const showConfirm = (message, onConfirm, title = 'Confirm Action') => showDialog(title, message, 'confirm', onConfirm, 'Confirm', 'Cancel');
   const showDeleteConfirm = (message, onConfirm, title = 'Confirm Delete') => showDialog(title, message, 'delete', onConfirm, 'Delete', 'Cancel');
   
-  // Helper function to send WhatsApp notifications to Ketul Lathia (Owner)
-  const sendOwnerWhatsAppNotification = async (notificationType, data) => {
-    try {
-      await axios.post(`${API_URL}/whatsapp/notify-owner`, {
-        type: notificationType,
-        data: data,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.log('WhatsApp notification failed:', error.message);
-      // Don't show error to user as this is background notification
-    }
-  };
-  
   
   // Check if user is logged in
   useEffect(() => {
@@ -905,7 +891,7 @@ const TaskManagementSystem = () => {
         return;
       }
 
-      console.log('💥 Testing WhatsApp-style burst notifications...');
+      console.log('💥 Testing burst notifications...');
       
       // Show immediate local feedback first (no waiting)
       notificationService.showActiveNotification().catch(console.error);
@@ -932,7 +918,7 @@ const TaskManagementSystem = () => {
       console.log('🎯 Final burst result:', result);
       
       if (result.success) {
-        showSuccess(`💥 WhatsApp-style burst notifications initiated!\n\n${result.message}\n\n⚡ These should be VERY noticeable - just like WhatsApp or Teams!\n\nYou'll receive 3 notifications over 9 seconds with strong vibration.`, 'Burst Notifications Sent');
+        showSuccess(`💥 Burst notifications initiated!\n\n${result.message}\n\n⚡ These should be VERY noticeable!\n\nYou'll receive 3 notifications over 9 seconds with strong vibration.`, 'Burst Notifications Sent');
       } else {
         showError('❌ Failed to send burst notifications: ' + result.error);
       }
@@ -1278,7 +1264,6 @@ const TaskManagementSystem = () => {
     externalUserId: '',
     externalUserDetails: null,
     reminder: '',
-    whatsapp: false,
     status: 'Pending',
     isConfidential: false
   });
@@ -1307,7 +1292,6 @@ const TaskManagementSystem = () => {
       externalUserId: '',
       externalUserDetails: null,
       reminder: '',
-      whatsapp: false,
       status: 'Pending',
       isConfidential: false
     });
@@ -1373,16 +1357,6 @@ const TaskManagementSystem = () => {
       } else {
         const response = await axios.post(`${API_URL}/tasks`, taskData);
         savedTask = response.data;
-        
-        // Send WhatsApp notification to owner (Ketul Lathia) for task creation
-        await sendOwnerWhatsAppNotification('TASK_CREATED', {
-          taskTitle: formData.title,
-          assignedTo: formData.assignedTo,
-          createdBy: currentUser.name,
-          project: formData.project,
-          priority: formData.priority,
-          dueDate: new Date(formData.outDate).toLocaleDateString('en-IN')
-        });
         
         // Notify assigned user
         await createNotification(
@@ -1454,18 +1428,6 @@ const TaskManagementSystem = () => {
       const response = await axios.post(`${API_URL}/tasks`, newSubtask);
       const savedSubtask = response.data;
       
-      // Send WhatsApp notification to owner (Ketul Lathia) for subtask creation
-      await sendOwnerWhatsAppNotification('SUBTASK_CREATED', {
-        subtaskTitle: subtaskData.title,
-        parentTask: parentTask.title,
-        assignedTo: assignedTo,
-        createdBy: currentUser.name,
-        project: parentTask.project,
-        isExternal: isExternalUserSelected,
-        isAssociate: isAssociate,
-        dueDate: new Date(subtaskData.outDate).toLocaleDateString('en-IN')
-      });
-      
       // Update parent task with subtask reference
       await axios.put(`${API_URL}/tasks/${parentTask._id}`, {
         ...parentTask,
@@ -1501,21 +1463,7 @@ const TaskManagementSystem = () => {
     try {
       setLoading(true);
       
-      // Get task details before deletion for WhatsApp notification
-      const taskToDelete = tasks.find(task => task._id === id);
-      
       await axios.delete(`${API_URL}/tasks/${id}`);
-      
-      // Send WhatsApp notification to owner (Ketul Lathia) for task deletion
-      if (taskToDelete) {
-        await sendOwnerWhatsAppNotification('TASK_DELETED', {
-          taskTitle: taskToDelete.title,
-          deletedBy: currentUser.name,
-          assignedTo: taskToDelete.assignedTo,
-          project: taskToDelete.project,
-          status: taskToDelete.status
-        });
-      }
       
       await loadTasks();
     } catch (error) {
@@ -1560,6 +1508,7 @@ Priority: ${task.priority}`;
     
     window.open(whatsappUrl, '_blank');
   };
+
 
   const copyBulkTasksToClipboard = () => {
     if (selectedAssociateTasks.length === 0) {
@@ -1624,7 +1573,6 @@ Priority: ${task.priority}`;
         company: ''
       },
       reminder: task.reminder ? new Date(task.reminder).toISOString().slice(0, 16) : '',
-      whatsapp: task.whatsapp,
       status: task.status
     });
 
@@ -1902,16 +1850,6 @@ Priority: ${task.priority}`;
       
       await axios.put(`${API_URL}/tasks/${selectedTask._id}`, updatedTask);
       
-      // Send WhatsApp notification to owner (Ketul Lathia) for task completion
-      await sendOwnerWhatsAppNotification('TASK_COMPLETED', {
-        taskTitle: selectedTask.title,
-        completedBy: currentUser.name,
-        assignedTo: selectedTask.assignedTo,
-        project: selectedTask.project,
-        completionReason: completionReason,
-        completionTime: new Date().toLocaleString('en-IN')
-      });
-      
       // Notify task creator
       await createNotification(
         selectedTask._id,
@@ -2005,7 +1943,6 @@ Priority: ${task.priority}`;
         assignedTo: task.assignedTo,
         isAssociate: task.isAssociate || false,
         associateDetails: task.associateDetails || { name: '', email: '', phone: '', company: '' },
-        whatsapp: task.whatsapp || false,
         status: newStatus,
         completionReason: task.completionReason || '',
         overdueReason: task.overdueReason || ''
@@ -2019,16 +1956,6 @@ Priority: ${task.priority}`;
       console.log('Sending task update:', taskUpdateData);
       
       const response = await axios.put(`${API_URL}/tasks/${task._id}`, taskUpdateData);
-      
-      // Send WhatsApp notification to owner (Ketul Lathia) for status change
-      await sendOwnerWhatsAppNotification('TASK_STATUS_CHANGED', {
-        taskTitle: task.title,
-        oldStatus: task.status,
-        newStatus: newStatus,
-        changedBy: currentUser.name,
-        assignedTo: task.assignedTo,
-        project: task.project
-      });
       
       // Notify task creator about status change
       await createNotification(
@@ -3073,7 +3000,7 @@ Priority: ${task.priority}`;
                     {showActions && (
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
-                            {/* Copy and WhatsApp buttons for associate tasks */}
+                            {/* Copy button for associate tasks */}
                             {showCopyButton && (
                               <>
                                 <button
@@ -3150,7 +3077,6 @@ Priority: ${task.priority}`;
                                     externalUserId: '',
                                     externalUserDetails: null,
                                     reminder: task.reminder || '',
-                                    whatsapp: task.whatsapp || false,
                                     status: 'Pending',
                                     isConfidential: task.isConfidential || false
                                   });
@@ -3230,7 +3156,7 @@ Priority: ${task.priority}`;
           </div>
           {showActions && (
             <div className="flex items-center gap-1 ml-2 sm:ml-4 flex-shrink-0">
-              {/* Copy and WhatsApp buttons for associate tasks */}
+              {/* Copy button for associate tasks */}
               {showCopyButton && (
                 <>
                   <button
@@ -3294,7 +3220,6 @@ Priority: ${task.priority}`;
                       externalUserId: '',
                       externalUserDetails: null,
                       reminder: task.reminder || '',
-                      whatsapp: task.whatsapp || false,
                       status: 'Pending',
                       isConfidential: task.isConfidential || false
                     });
@@ -3907,11 +3832,11 @@ Priority: ${task.priority}`;
                 </div>                <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border-l-4 border-orange-400">
                   <div>
                     <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                      💥 WhatsApp-Style Active Notifications
+                      💥 Active Burst Notifications
                       <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-semibold">HOT</span>
                     </h4>
                     <p className="text-sm text-gray-600">
-                      Send 3 attention-grabbing notifications like WhatsApp/Teams with strong vibration
+                      Send 3 attention-grabbing notifications with strong vibration
                     </p>
                     <p className="text-xs text-orange-600 font-medium mt-1">
                       ⚡ These will be VERY noticeable and persistent!
