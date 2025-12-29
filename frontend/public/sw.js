@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v2.6.0-' + Date.now(); // Silent background refresh + enhanced notifications
+const CACHE_VERSION = 'v2.7.0-' + Date.now(); // Meta WhatsApp notification integration
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

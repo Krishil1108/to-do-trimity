@@ -52,6 +52,7 @@ const projectRoutes = require('./routes/projects');
 const associateRoutes = require('./routes/associates');
 const externalUserRoutes = require('./routes/externalUsers');
 const migrationRoutes = require('./routes/migration');
+const metaWhatsappRoutes = require('./routes/metaWhatsapp');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
@@ -60,6 +61,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/associates', associateRoutes);
 app.use('/api/external-users', externalUserRoutes);
 app.use('/api/migration', migrationRoutes);
+app.use('/api/meta-whatsapp', metaWhatsappRoutes);
 
 // Health check endpoints for keep-alive
 app.get('/health', (req, res) => {

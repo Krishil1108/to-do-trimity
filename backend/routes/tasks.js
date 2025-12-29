@@ -96,6 +96,34 @@ router.post('/', async (req, res) => {
     
     const task = new Task(taskData);
     const newTask = await task.save();
+    
+    // Send WhatsApp notification if user has it enabled
+    if (taskData.assignedTo) {
+      try {
+        const User = require('../models/User');
+        const assignedUser = await User.findOne({ username: taskData.assignedTo });
+        
+        if (assignedUser && assignedUser.whatsappNotifications && assignedUser.whatsappNumber) {
+          const metaWhatsAppService = require('../services/metaWhatsAppService');
+          await metaWhatsAppService.sendTaskNotification(
+            assignedUser.whatsappNumber,
+            {
+              title: newTask.title,
+              description: newTask.description,
+              assignedBy: newTask.assignedBy,
+              priority: newTask.priority,
+              status: newTask.status
+            },
+            'assigned'
+          );
+          console.log(`📱 WhatsApp notification sent to ${assignedUser.username}`);
+        }
+      } catch (whatsappError) {
+        console.error('WhatsApp notification error:', whatsappError);
+        // Don't fail task creation if WhatsApp fails
+      }
+    }
+    
     res.status(201).json(newTask);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -157,7 +185,55 @@ router.put('/:id', async (req, res) => {
         if (user) completedByName = `${user.name} (Task Creator)`;
       }
       
+      // Send WhatsApp notification for task completion
+      try {
+        const User = require('../models/User');
+        const metaWhatsAppService = require('../services/metaWhatsAppService');
+        
+        // Notify the person who assigned the task
+        if (currentTask.assignedBy) {
+          const assignedByUser = await User.findOne({ username: currentTask.assignedBy });
+          if (assignedByUser && assignedByUser.whatsappNotifications && assignedByUser.whatsappNumber) {
+            await metaWhatsAppService.sendTaskNotification(
+              assignedByUser.whatsappNumber,
+              {
+                title: task.title,
+                completedBy: completedByName
+              },
+              'completed'
+            );
+            console.log(`📱 WhatsApp completion notification sent to ${assignedByUser.username}`);
+          }
+        }
+      } catch (whatsappError) {
+        console.error('WhatsApp notification error:', whatsappError);
+        // Don't fail task update if WhatsApp fails
+      }
 
+    }
+    
+    // Send WhatsApp notification for general task updates (if not completed)
+    if (!wasCompleted && updateData.assignedTo) {
+      try {
+        const User = require('../models/User');
+        const assignedUser = await User.findOne({ username: updateData.assignedTo });
+        
+        if (assignedUser && assignedUser.whatsappNotifications && assignedUser.whatsappNumber) {
+          const metaWhatsAppService = require('../services/metaWhatsAppService');
+          await metaWhatsAppService.sendTaskNotification(
+            assignedUser.whatsappNumber,
+            {
+              title: task.title,
+              status: task.status
+            },
+            'updated'
+          );
+          console.log(`📱 WhatsApp update notification sent to ${assignedUser.username}`);
+        }
+      } catch (whatsappError) {
+        console.error('WhatsApp notification error:', whatsappError);
+        // Don't fail task update if WhatsApp fails
+      }
     }
     
     res.json(task);

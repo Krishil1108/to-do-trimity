@@ -3879,6 +3879,96 @@ Priority: ${task.priority}`;
           </div>
         </div>
 
+        {/* WhatsApp Notification Settings */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-green-600" />
+            WhatsApp Notifications
+          </h3>
+          
+          <div className="space-y-4">
+            {/* WhatsApp Number */}
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                WhatsApp Number
+              </label>
+              <input
+                type="tel"
+                placeholder="+1234567890 (with country code)"
+                value={currentUser?.whatsappNumber || ''}
+                onChange={async (e) => {
+                  const newNumber = e.target.value;
+                  try {
+                    await axios.put(`${API_URL}/users/${currentUser._id}`, {
+                      ...currentUser,
+                      whatsappNumber: newNumber
+                    });
+                    setCurrentUser({ ...currentUser, whatsappNumber: newNumber });
+                  } catch (error) {
+                    console.error('Error updating WhatsApp number:', error);
+                    showError('Failed to update WhatsApp number');
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your WhatsApp number in international format (e.g., +14155552671)
+              </p>
+            </div>
+
+            {/* Enable/Disable WhatsApp Notifications */}
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+              <div>
+                <h4 className="font-medium text-gray-900">WhatsApp Notifications</h4>
+                <p className="text-sm text-gray-600">
+                  Receive task updates and assignments via WhatsApp
+                </p>
+                <p className="text-xs text-green-600 font-medium mt-1">
+                  ✓ Works even when you're offline
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  const newValue = !currentUser?.whatsappNotifications;
+                  try {
+                    if (newValue && !currentUser?.whatsappNumber) {
+                      showError('Please enter your WhatsApp number first');
+                      return;
+                    }
+                    await axios.put(`${API_URL}/users/${currentUser._id}`, {
+                      ...currentUser,
+                      whatsappNotifications: newValue
+                    });
+                    setCurrentUser({ ...currentUser, whatsappNotifications: newValue });
+                    showSuccess(newValue ? 'WhatsApp notifications enabled' : 'WhatsApp notifications disabled');
+                  } catch (error) {
+                    console.error('Error updating WhatsApp notifications:', error);
+                    showError('Failed to update WhatsApp notifications');
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  currentUser?.whatsappNotifications
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {currentUser?.whatsappNotifications ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+
+            {/* WhatsApp Info */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900 mb-2">📋 What you'll receive via WhatsApp:</h4>
+              <ul className="space-y-1 text-sm text-blue-800">
+                <li>• New task assignments with full details</li>
+                <li>• Task completion notifications</li>
+                <li>• Task status updates</li>
+                <li>• Formatted messages for easy reading</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Notification Types */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">

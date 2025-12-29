@@ -41,6 +41,15 @@ const userSchema = new mongoose.Schema({
   isDemo: {
     type: Boolean,
     default: false
+  },
+  whatsappNumber: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  whatsappNotifications: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
