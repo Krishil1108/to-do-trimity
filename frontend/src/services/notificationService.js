@@ -178,47 +178,22 @@ class NotificationService {
         name: user.name
       });
 
-      // Subscribe with both username and _id to ensure compatibility
-      const subscriptionRequests = [];
+      // Subscribe with the primary user identifier (prefer _id, fallback to username)
+      const primaryUserId = user._id || user.username;
       
-      // Primary subscription with username
-      subscriptionRequests.push(
-        fetch(`${API_URL}/notifications/subscribe`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            subscription: subscription.toJSON(),
-            userId: user.username,
-            userAgent: navigator.userAgent
-          })
+      const response = await fetch(`${API_URL}/notifications/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          subscription: subscription.toJSON(),
+          userId: primaryUserId,
+          userAgent: navigator.userAgent
         })
-      );
+      });
       
-      // Secondary subscription with _id if available
-      if (user._id && user._id !== user.username) {
-        subscriptionRequests.push(
-          fetch(`${API_URL}/notifications/subscribe`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              subscription: subscription.toJSON(),
-              userId: user._id,
-              userAgent: navigator.userAgent
-            })
-          })
-        );
-      }
-      
-      const results = await Promise.allSettled(subscriptionRequests);
-      console.log('Subscription results:', results);
-      
-      // Check if at least one succeeded
-      const hasSuccess = results.some(result => result.status === 'fulfilled' && result.value.ok);
-      if (!hasSuccess) {
+      if (!response.ok) {
         throw new Error('Failed to send subscription to server');
       }
 

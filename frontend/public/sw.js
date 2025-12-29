@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v2.3.0-' + Date.now(); // Removed Twilio/WhatsApp backend integration
+const CACHE_VERSION = 'v2.3.1-' + Date.now(); // Fixed duplicate notification on enable
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
