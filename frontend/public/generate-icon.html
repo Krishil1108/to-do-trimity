@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Icon</title>
+</head>
+<body>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Create gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+        gradient.addColorStop(0, '#F4D35E');
+        gradient.addColorStop(0.5, '#A78BFA');
+        
+        // Draw rounded rectangle background
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, 512, 512, 162);
+        ctx.fill();
+        
+        // Draw black bottom section
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.roundRect(0, 256, 512, 256, [0, 0, 162, 162]);
+        ctx.fill();
+        
+        // Draw white checkmark
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 25;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(192, 320);
+        ctx.lineTo(234, 362);
+        ctx.lineTo(320, 276);
+        ctx.stroke();
+        
+        // Convert to PNG
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'icon-512.png';
+            a.click();
+        });
+    </script>
+</body>
+</html>

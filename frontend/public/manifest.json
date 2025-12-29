@@ -4,44 +4,20 @@
   "description": "Professional task management with push notifications, team collaboration, and mobile-first design",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F4D35E'/%3E%3Cstop offset='0.5' stop-color='%23A78BFA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='38' fill='url(%23bg)'/%3E%3Crect y='60' width='120' height='60' rx='38' fill='%23000'/%3E%3Cpath d='M45 75L55 85L75 65' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAGGklEQVR4nO2ce0yTVxjG+xUGiAqKjnuh4gWVichFLhZBQUQUlYtcBEFAEQEBuQsIclFRQEBQQVRAQJCbgIAgoNwRRQFBbi2ltLRQSoGWS2kppbT9dk7TsrYgFWm/dnT/JE/S5uT0fM/7vud9z3nPIQhCQ0NDQ0NDQ0NDQ0NDQ0NDQ/OfY9S4MTBNnozFX37h0yuXOPB7fDw+/vADeHl4wN3VFWvXrMHiBQsQ9PFH8HB3x8YNG7Bo4UIEB3+KwE8+gY+3Nzw9PLBq5UpERkTg2NGjSEhIQGJCIk6cOIF9v/yCH3/4AeFhYdi1cyd27tiBbVu3YuuWLQgJ+QYhISH4+quvsPmrr7Bp0yZs3LABGzasR0jI1/jqyy+xYf16rFu7FmvXrMHqVauwcuVKrFixAsuXL8eyZcuwdMkSLF60CMHBwQgMDMSCBQvwwfvvw8fHB97e3li5YgUOfPMNLp0/j+9jYrBn1y5s3bIF//3BEdH0lkxMTfHe3LlY5OcHTw8PfOjlhcD580XykiVLEBQUBH8/PykWLVyIBQsWYP78+Zg/fz58fX0xb948zJ07F76+vnj//ffh7e0NLy8vBQR99BFWrVyJ5cuXY+mSJVi0cCHmz5+PgPnzERAQgDlz5mDOnDmYPXs23nnnHXh5eSHQzw9xR47g/NmzSExIwMH9+/H1l19KPs8PDkZISAi++vJLbN60CRvWr8e6detYP1y1ciWWLVuGxYsXY+H8+QgMDIS/nx/mzJ6NWbNmwdvbG94eHvBwd8fM6dPhOXMm3Js/p+fMmZg+bRpmTJ+OGdOm4d3p0+E+bRo8pk2DR/O/XT09xT9v+mSeA23dujXmzp2LmTNnYtq0aXB3d8eUKVPg5uYGFxcXuLq6YtKkSXj99dexZMkS/HXhAm5duYLo336TRJSfnw/Qd/S0adPw+uuvc/j3u+++i7ffflvy7xkzZuDNN99k/zd92jS4u7nB09MTHs3/ntb8b8/mf0+fOhVT3dzg7ubGEfvvSa6ucHd1hfvUqXB3c5N9xtXJCZMcHeFgbw/biRNhZ2cHaytrbN2yBX9fvoz7ycl4kJKC7Oxs5OTkID8/HwUFBSjMy0NhQQGKCgtRXFSE4qIilBQVobSkBKUlJSgrLUU5ny8rQ/ndu6iorERldTUqq6tRVV2NB6zfw7o6VNfWYvfu3QDTg5qaqakp/P394ezsjAkTJsDa2hqWlpaws7PD+PHjYWNjgzFjxmDEiBE4HBGBmzduIPZ4LA59+62gqmtqUF1Tg5raWlTV1qK6rg7VNTV4UFeLmrpa1DT/u+Z+DWru16D2fi3u19aipq4ONfdrUFNXx/67praW/f/q5s/V1NWhsroaVc3PVzZ/l/LaWpSXlVlfHF6zxvqSixOv+Hh4enpi/PjxsLS0hKWlJaytrWFnZ4fx48dj3LhxGDt2LEaMGIHhw4dj8KBBGDBgAPr16wc/Pz8kJCSgeWQPpKqqSiBJnLiqKg56LuSoRVX1vQ5Jqn5Qg/u1tXhQW8uGIf/vmoez5sED/P7bb4iLi/vm0jVrs+t//GGxf98+ODo6YuzYsbC2toaFhQWsra1hZ2eHsWPHYuTIkRg9ejRGjRqFUaNGYcSIERg+fDiGDBmCQYMGYcCAAejbty969eqFHj16oFu3bujatSucHB1RVlYmkFRZWYmKigpUVFSgvLycxZeUn1/IK/S84ovRnIqKCpSXl6Ospgal5eUoLy/H3bt3UVNby35j1bVrePRfkPT/oHv37vDx8cHw4cMxbNgwDB06FEOGDMGgQYPQv39/9O3bF3369EHv3r3Rs2dPdO3aFV26dEGnTp3QsWNHdOjQAe3bt0e7du3Qtm1btGnTBq1bt8bLL72EzMxM/Nu4dOkSXn31VQDgeu+lMEn/GywsLLB+/Xo8ffq07z/pbPbt2wdWUsePH0dmZibS0tKQlpaG1NRUpKamIiUlBSkpKUhOTkZSUhISExORkJCAhIQExMfHIz4+HnFxcTh79izOnj2LM2fOICYmBjExMTh9+jSioqIQFRWFyMhIREZGIiIiAocPH0Z4eDgOHTqEAwcO4MCBA/j5558REhKCrVu3on///oBWktRYmJiYYOXKlWhqairWZqjBc+fOHZw4cQIAoJWkhoRRYhPTb2N60L9Fz549AdCP1tDQ0NDQ0NDQ0NDQ0NAg/gdIJUmYt5uTnwAAAABJRU5ErkJggg==",
       "sizes": "72x72",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F4D35E'/%3E%3Cstop offset='0.5' stop-color='%23A78BFA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='38' fill='url(%23bg)'/%3E%3Crect y='60' width='120' height='60' rx='38' fill='%23000'/%3E%3Cpath d='M45 75L55 85L75 65' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAACXBIWXMAAAsTAAALEwEAmpwYAAAIFElEQVR4nO2de2wUVRTG+wdYKNZCBRQfUB4+EFFBfCBBQQQVH4gvVEQFRVRAUFFBBEQFFRQUFUQQQUVFBRUVRBBBRQUVVFRQUUEFFUUFFRQUFBQU8IGv33fv7M7s7szszHZ3tnPSk2x2Z+7cub/vnHPuvefehhpqqKGGGmqooYYaaqihhhrqv6ZR48bBJHkylixcyBf68Ufe0a9feYe+/ZJ39N13/NGvXuEd+vIL3r7Pv+Ad+uwT3r7PP+Ud/PRT3rFPPuId++hj3pGPPuQ",
       "sizes": "96x96",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F4D35E'/%3E%3Cstop offset='0.5' stop-color='%23A78BFA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='38' fill='url(%23bg)'/%3E%3Crect y='60' width='120' height='60' rx='38' fill='%23000'/%3E%3Cpath d='M45 75L55 85L75 65' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
-      "sizes": "128x128",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F4D35E'/%3E%3Cstop offset='0.5' stop-color='%23A78BFA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='38' fill='url(%23bg)'/%3E%3Crect y='60' width='120' height='60' rx='38' fill='%23000'/%3E%3Cpath d='M45 75L55 85L75 65' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
-      "sizes": "144x144",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F4D35E'/%3E%3Cstop offset='0.5' stop-color='%23A78BFA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='38' fill='url(%23bg)'/%3E%3Crect y='60' width='120' height='60' rx='38' fill='%23000'/%3E%3Cpath d='M45 75L55 85L75 65' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
-      "sizes": "152x152",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
       "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F4D35E'/%3E%3Cstop offset='0.5' stop-color='%23A78BFA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='38' fill='url(%23bg)'/%3E%3Crect y='60' width='120' height='60' rx='38' fill='%23000'/%3E%3Cpath d='M45 75L55 85L75 65' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F4D35E'/%3E%3Cstop offset='0.5' stop-color='%23A78BFA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='38' fill='url(%23bg)'/%3E%3Crect y='60' width='120' height='60' rx='38' fill='%23000'/%3E%3Cpath d='M45 75L55 85L75 65' stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E",
-      "sizes": "384x384",
       "type": "image/svg+xml",
       "purpose": "any"
     },

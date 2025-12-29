@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v2.8.0-' + Date.now(); // Updated pill-shaped logo design
+const CACHE_VERSION = 'v2.9.0-' + Date.now(); // PNG icons for better PWA support
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
