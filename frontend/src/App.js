@@ -2629,8 +2629,8 @@ Priority: ${task.priority}`;
                     <stop offset="0.5" stopColor="#A78BFA"/>
                   </linearGradient>
                 </defs>
-                <rect width="120" height="120" rx="26" fill="url(#loginBg)"/>
-                <rect y="60" width="120" height="60" rx="26" fill="#000"/>
+                <rect width="120" height="120" rx="38" fill="url(#loginBg)"/>
+                <rect y="60" width="120" height="60" rx="38" fill="#000"/>
                 <path d="M45 75L55 85L75 65" stroke="white" strokeWidth="6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
