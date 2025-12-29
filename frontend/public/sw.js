@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v2.4.1-' + Date.now(); // Fixed subscription ID mismatch and notification blocking
+const CACHE_VERSION = 'v2.5.0-' + Date.now(); // Real-time task sync - auto-refresh every 10s
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
@@ -150,6 +150,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', (event) => {
   console.log('🔔 Push event received in service worker:', event);
   console.log('Push data available:', !!event.data);
+  
+  // Notify clients that a push notification was received
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'PUSH_NOTIFICATION_RECEIVED',
+          timestamp: Date.now()
+        });
+      });
+    })
+  );
   
   let notificationData = {
     title: 'TriDo - Task Management',

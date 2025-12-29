@@ -249,9 +249,21 @@ const TaskManagementSystem = () => {
       loadProjects();
       loadAssociates();
       loadExternalUsers();
+      
+      // Auto-refresh tasks every 10 seconds for real-time updates
+      const taskInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          loadTasks();
+        }
+      }, 10000);
+      
       // Poll for new notifications every 30 seconds
-      const interval = setInterval(loadNotifications, 30000);
-      return () => clearInterval(interval);
+      const notificationInterval = setInterval(loadNotifications, 30000);
+      
+      return () => {
+        clearInterval(taskInterval);
+        clearInterval(notificationInterval);
+      };
     }
   }, [isLoggedIn, currentUser]);
 
@@ -290,7 +302,8 @@ const TaskManagementSystem = () => {
     const handleServiceWorkerMessage = (event) => {
       if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
         console.log('🔔 Notification clicked, received in app:', event.data);
-        // Could auto-navigate to relevant task or refresh notifications
+        // Refresh tasks and notifications
+        loadTasks();
         loadNotifications();
         
         // Visual feedback - flash the notification icon
@@ -298,6 +311,12 @@ const TaskManagementSystem = () => {
         if (notificationIcon) {
           notificationIcon.style.animation = 'pulse 0.5s ease-in-out 3';
         }
+      }
+      
+      // Auto-refresh tasks when any notification is received
+      if (event.data && event.data.type === 'PUSH_NOTIFICATION_RECEIVED') {
+        console.log('📬 Push notification received, refreshing tasks...');
+        setTimeout(() => loadTasks(), 1000); // Small delay to ensure backend is updated
       }
     };
 
