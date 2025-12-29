@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v2.3.2-' + Date.now(); // Simplified notification tests - kept only Active Burst
+const CACHE_VERSION = 'v2.3.3-' + Date.now(); // Fixed push notification success detection
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

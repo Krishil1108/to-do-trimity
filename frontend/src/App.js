@@ -1025,16 +1025,18 @@ const TaskManagementSystem = () => {
       console.log('📊 Push notification results summary:', results.map(r => ({
         status: r.status,
         success: r.status === 'fulfilled' ? r.value?.data?.success : false,
+        data: r.status === 'fulfilled' ? r.value?.data : null,
         error: r.status === 'rejected' ? r.reason?.response?.data || r.reason?.message : null
       })));
       
       // Check if any succeeded
       const hasSuccess = results.some(result => 
-        result.status === 'fulfilled' && result.value?.data?.success
+        result.status === 'fulfilled' && result.value?.data?.success === true
       );
       
       if (!hasSuccess) {
         console.warn('⚠️ All push notification attempts failed');
+        console.log('Failed results:', results);
       } else {
         console.log('🎉 At least one push notification succeeded');
       }
