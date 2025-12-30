@@ -178,6 +178,21 @@ const TaskManagementSystem = () => {
   const [showTaskDetailsModal, setShowTaskDetailsModal] = useState(false);
   const [taskDetails, setTaskDetails] = useState(null);
   
+  // MOM (Minutes of Meeting) states
+  const [showMOMModal, setShowMOMModal] = useState(false);
+  const [selectedTaskForMOM, setSelectedTaskForMOM] = useState(null);
+  const [momContent, setMomContent] = useState('');
+  const [momMetadata, setMomMetadata] = useState({
+    title: 'Minutes of Meeting',
+    date: new Date().toLocaleDateString('en-US'),
+    time: '',
+    location: '',
+    attendees: []
+  });
+  const [processingMOM, setProcessingMOM] = useState(false);
+  const [processedMOMText, setProcessedMOMText] = useState('');
+  const [momAttendeeInput, setMomAttendeeInput] = useState('');
+  
   // PWA Installation states
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
@@ -3097,7 +3112,27 @@ Priority: ${task.priority}`;
                               <Eye className="w-4 h-4" />
                             </button>
 
-
+                            {/* MOM (Minutes of Meeting) button */}
+                            <button
+                              onClick={() => {
+                                setSelectedTaskForMOM(task);
+                                setMomContent('');
+                                setProcessedMOMText('');
+                                setMomMetadata({
+                                  title: 'Minutes of Meeting',
+                                  date: new Date().toLocaleDateString('en-US'),
+                                  time: '',
+                                  location: '',
+                                  attendees: []
+                                });
+                                setMomAttendeeInput('');
+                                setShowMOMModal(true);
+                              }}
+                              className="p-1.5 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded transition-colors"
+                              title="Generate MOM (Minutes of Meeting)"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
 
                             {/* Edit button - always visible for editable tasks */}
                             <button
@@ -8652,6 +8687,290 @@ Priority: ${task.priority}`;
               >
                 Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MOM (Minutes of Meeting) Modal */}
+      {showMOMModal && selectedTaskForMOM && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">Minutes of Meeting (MOM)</h3>
+                  <p className="text-sm text-gray-600">Task: {selectedTaskForMOM.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowMOMModal(false);
+                  setSelectedTaskForMOM(null);
+                  setMomContent('');
+                  setProcessedMOMText('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* MOM Metadata */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Title</label>
+                  <input
+                    type="text"
+                    value={momMetadata.title}
+                    onChange={(e) => setMomMetadata({...momMetadata, title: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Minutes of Meeting"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="text"
+                    value={momMetadata.date}
+                    onChange={(e) => setMomMetadata({...momMetadata, date: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                  <input
+                    type="text"
+                    value={momMetadata.time}
+                    onChange={(e) => setMomMetadata({...momMetadata, time: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="10:00 AM - 11:00 AM"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={momMetadata.location}
+                    onChange={(e) => setMomMetadata({...momMetadata, location: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Conference Room A / Online"
+                  />
+                </div>
+              </div>
+
+              {/* Attendees */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Attendees</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={momAttendeeInput}
+                    onChange={(e) => setMomAttendeeInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && momAttendeeInput.trim()) {
+                        setMomMetadata({
+                          ...momMetadata,
+                          attendees: [...momMetadata.attendees, momAttendeeInput.trim()]
+                        });
+                        setMomAttendeeInput('');
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Add attendee name and press Enter"
+                  />
+                  <button
+                    onClick={() => {
+                      if (momAttendeeInput.trim()) {
+                        setMomMetadata({
+                          ...momMetadata,
+                          attendees: [...momMetadata.attendees, momAttendeeInput.trim()]
+                        });
+                        setMomAttendeeInput('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {momMetadata.attendees.map((attendee, index) => (
+                    <span key={index} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                      {attendee}
+                      <button
+                        onClick={() => {
+                          setMomMetadata({
+                            ...momMetadata,
+                            attendees: momMetadata.attendees.filter((_, i) => i !== index)
+                          });
+                        }}
+                        className="text-gray-500 hover:text-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* MOM Content Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Meeting Notes
+                  <span className="text-gray-500 text-xs ml-2">(Supports English, Gujarati, or improper English)</span>
+                </label>
+                <textarea
+                  value={momContent}
+                  onChange={(e) => setMomContent(e.target.value)}
+                  rows={8}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="આજે મીટિંગ સારી રહી... or write in English (proper or improper)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Tip: You can write in Gujarati or improper English - it will be automatically corrected!
+                </p>
+              </div>
+
+              {/* Processed Text Display */}
+              {processedMOMText && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <label className="text-sm font-medium text-green-900">Processed Text (Ready for PDF)</label>
+                  </div>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded border border-green-100">
+                    {processedMOMText}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 pt-4 border-t">
+                <button
+                  onClick={async () => {
+                    if (!momContent.trim()) {
+                      showError('Please enter meeting notes');
+                      return;
+                    }
+
+                    setProcessingMOM(true);
+                    try {
+                      const response = await axios.post(`${API_URL}/mom/process-text`, {
+                        text: momContent
+                      });
+
+                      if (response.data.success) {
+                        setProcessedMOMText(response.data.data.final);
+                        showSuccess('Text processed successfully! ✨');
+                      }
+                    } catch (error) {
+                      showError('Failed to process text: ' + (error.response?.data?.error || error.message));
+                    } finally {
+                      setProcessingMOM(false);
+                    }
+                  }}
+                  disabled={processingMOM || !momContent.trim()}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {processingMOM ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Process Text
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const contentToUse = processedMOMText || momContent;
+                    if (!contentToUse.trim()) {
+                      showError('Please enter meeting notes or process the text first');
+                      return;
+                    }
+
+                    setProcessingMOM(true);
+                    try {
+                      const response = await axios.post(`${API_URL}/mom/generate-pdf`, {
+                        taskId: selectedTaskForMOM._id,
+                        title: momMetadata.title,
+                        date: momMetadata.date,
+                        time: momMetadata.time,
+                        location: momMetadata.location,
+                        attendees: momMetadata.attendees,
+                        rawContent: contentToUse,
+                        companyName: 'Trido Task Management'
+                      }, {
+                        responseType: 'blob'
+                      });
+
+                      // Create download link
+                      const blob = new Blob([response.data], { type: 'application/pdf' });
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `MOM_${selectedTaskForMOM.title}_${Date.now()}.pdf`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+
+                      showSuccess('PDF downloaded successfully! 📄');
+                      
+                      // Close modal after successful download
+                      setTimeout(() => {
+                        setShowMOMModal(false);
+                        setSelectedTaskForMOM(null);
+                        setMomContent('');
+                        setProcessedMOMText('');
+                      }, 1000);
+                    } catch (error) {
+                      showError('Failed to generate PDF: ' + (error.response?.data?.error || error.message));
+                    } finally {
+                      setProcessingMOM(false);
+                    }
+                  }}
+                  disabled={processingMOM || (!momContent.trim() && !processedMOMText)}
+                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {processingMOM ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5" />
+                      Download PDF
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowMOMModal(false);
+                    setSelectedTaskForMOM(null);
+                    setMomContent('');
+                    setProcessedMOMText('');
+                  }}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 text-center">
+                💾 Note: PDFs are generated on-demand and not stored in the database
+              </p>
             </div>
           </div>
         </div>
