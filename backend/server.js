@@ -53,6 +53,7 @@ const associateRoutes = require('./routes/associates');
 const externalUserRoutes = require('./routes/externalUsers');
 const migrationRoutes = require('./routes/migration');
 const twilioWhatsappRoutes = require('./routes/twilioWhatsapp');
+const momRoutes = require('./routes/mom');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
@@ -62,6 +63,7 @@ app.use('/api/associates', associateRoutes);
 app.use('/api/external-users', externalUserRoutes);
 app.use('/api/migration', migrationRoutes);
 app.use('/api/twilio-whatsapp', twilioWhatsappRoutes);
+app.use('/api/mom', momRoutes);
 
 // Health check endpoints for keep-alive
 app.get('/health', (req, res) => {

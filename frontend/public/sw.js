@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v3.0.0-' + Date.now(); // Twilio WhatsApp integration
+const CACHE_VERSION = 'v3.1.0-' + Date.now(); // MOM system with PDF generation
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
