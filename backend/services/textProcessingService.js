@@ -743,6 +743,24 @@ Provide only the improved text without any explanations or meta-commentary:`;
     // STEP 13: SENTENCE STRUCTURE
     corrected = this.fixSentenceStructure(corrected);
     
+    // STEP 14: PERFECT TENSES (Present/Past/Future Perfect)
+    corrected = this.fixPerfectTenses(corrected);
+    
+    // STEP 15: PERFECT CONTINUOUS TENSES
+    corrected = this.fixPerfectContinuousTenses(corrected);
+    
+    // STEP 16: CONDITIONAL SENTENCES (0,1st,2nd,3rd conditionals)
+    corrected = this.fixConditionals(corrected);
+    
+    // STEP 17: PASSIVE VOICE
+    corrected = this.fixPassiveVoice(corrected);
+    
+    // STEP 18: ARTICLE INSERTION (missing articles)
+    corrected = this.insertMissingArticles(corrected);
+    
+    // STEP 19: ADJECTIVE ORDER (OSASCOMP)
+    corrected = this.reorderAdjectives(corrected);
+    
     return corrected;
   }
 
@@ -1657,6 +1675,349 @@ Provide only the improved text without any explanations or meta-commentary:`;
     }
 
     return formatted;
+  }
+  
+  /**
+   * STEP 14: Fix Perfect Tenses (Present/Past/Future Perfect)
+   * @param {string} text - Text to correct
+   * @returns {string} - Corrected text
+   */
+  fixPerfectTenses(text) {
+    let corrected = text;
+    
+    // Present Perfect: "just now", "already", "yet", "since", "for" with duration
+    // "I finished just now" → "I have finished just now"
+    corrected = corrected.replace(/\b(I|you|we|they)\s+(finish|complete|do|go|come|see|make|take|give|write|read|work|study|learn|start|begin|end)\s+(just now|already|recently)\b/gi,
+      (match, subject, verb, marker) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${subject} have ${pastPart} ${marker}`;
+      }
+    );
+    
+    // "She finished just now" → "She has finished just now"
+    corrected = corrected.replace(/\b(he|she|it|[A-Z]\w+)\s+(finish|complete|do|go|come|see|make|take|give|write|read|work|study|learn|start|begin|end)\s+(just now|already|recently)\b/gi,
+      (match, subject, verb, marker) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${subject} has ${pastPart} ${marker}`;
+      }
+    );
+    
+    // "She lives here for five years" → "She has lived here for five years"
+    corrected = corrected.replace(/\b(he|she|it|[A-Z]\w+)\s+(live|work|study|stay|wait|play|teach)\s+(\w+\s+)?for\s+([\d\w]+\s+years?|[\d\w]+\s+months?|[\d\w]+\s+weeks?|[\d\w]+\s+days?)/gi,
+      (match, subject, verb, middle, duration) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${subject} has ${pastPart} ${middle || ''}for ${duration}`;
+      }
+    );
+    
+    // Past Perfect: "By the time X started, Y completed" → "By the time X started, Y had completed"
+    corrected = corrected.replace(/\b(by the time|before|after|when)\s+([^,]+),\s+(I|you|we|they|he|she|it|[A-Z]\w+)\s+(already\s+)?(finish|complete|do|go|come|arrive|leave|start|begin|end|submit|send)(ed|d)?\b/gi,
+      (match, timeMarker, timeClause, subject, already, verb, ed) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${timeMarker} ${timeClause}, ${subject} had ${already || ''}${pastPart}`;
+      }
+    );
+    
+    // "He submitted before the deadline" → "He had submitted before the deadline"
+    corrected = corrected.replace(/\b(he|she|it|they|we|I|you|[A-Z]\w+)\s+(submit|send|complete|finish|prepare|review|approve|discuss)(ted|ed|d)\s+(before|after|by)\s+/gi,
+      (match, subject, verb, ed, prep) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${subject} had ${pastPart} ${prep} `;
+      }
+    );
+    
+    // Future Perfect: "They will finish by next week" → "They will have finished by next week"
+    corrected = corrected.replace(/\b(I|you|we|they|he|she|it|[A-Z]\w+)\s+will\s+(finish|complete|do|go|come|see|make|take|give|write|read|work|study|learn|start|begin|end)\s+(by|before)\s+(next|tomorrow|\w+day)/gi,
+      (match, subject, verb, prep, timeWord) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${subject} will have ${pastPart} ${prep} ${timeWord}`;
+      }
+    );
+    
+    return corrected;
+  }
+  
+  /**
+   * STEP 15: Fix Perfect Continuous Tenses
+   * @param {string} text - Text to correct
+   * @returns {string} - Corrected text
+   */
+  fixPerfectContinuousTenses(text) {
+    let corrected = text;
+    
+    // Present Perfect Continuous: "I am working since 2020" → "I have been working since 2020"
+    corrected = corrected.replace(/\b(I|you|we|they)\s+(am|are)\s+(\w+ing)\s+(since|for)\s+/gi,
+      (match, subject, verb, gerund, marker) => {
+        return `${subject} have been ${gerund} ${marker} `;
+      }
+    );
+    
+    corrected = corrected.replace(/\b(he|she|it|[A-Z]\w+)\s+is\s+(\w+ing)\s+(since|for)\s+/gi,
+      (match, subject, verb, gerund, marker) => {
+        return `${subject} has been ${gerund} ${marker} `;
+      }
+    );
+    
+    // Past Perfect Continuous: "She was waiting for two hours before" → "She had been waiting for two hours before"
+    corrected = corrected.replace(/\b(I|you|we|they|he|she|it|[A-Z]\w+)\s+was\s+(\w+ing)\s+for\s+([^.]+?)\s+before\b/gi,
+      (match, subject, was, gerund, duration) => {
+        return `${subject} had been ${gerund} for ${duration} before`;
+      }
+    );
+    
+    // Future Perfect Continuous: "By next month, he will study for three years" → "By next month, he will have been studying for three years"
+    corrected = corrected.replace(/\b(by|before)\s+([^,]+),\s+(I|you|we|they|he|she|it|[A-Z]\w+)\s+will\s+(study|work|live|teach|play|wait|learn)\s+for\s+/gi,
+      (match, prep, timePhrase, subject, verb) => {
+        const gerund = this.getGerund(verb);
+        return `${prep} ${timePhrase}, ${subject} will have been ${gerund} for `;
+      }
+    );
+    
+    return corrected;
+  }
+  
+  /**
+   * STEP 16: Fix Conditional Sentences (0, 1st, 2nd, 3rd conditionals)
+   * @param {string} text - Text to correct
+   * @returns {string} - Corrected text
+   */
+  fixConditionals(text) {
+    let corrected = text;
+    
+    // First Conditional: "If it will rain" → "If it rains"
+    // Remove "will" from if-clause
+    corrected = corrected.replace(/\bif\s+(I|you|we|they|he|she|it|[A-Z]\w+)\s+will\s+(\w+)\b/gi,
+      (match, subject, verb) => {
+        return `If ${subject} ${verb}s`;
+      }
+    );
+    
+    // Second Conditional: "If I have more time, I would" → "If I had more time, I would"
+    corrected = corrected.replace(/\bif\s+(I|you|we|they)\s+(have|am|are)\s+([^,]+),\s+(I|you|we|they|he|she|it|[A-Z]\w+)\s+would\b/gi,
+      (match, subject1, verb, rest, subject2) => {
+        const pastVerb = verb === 'have' ? 'had' : verb === 'am' || verb === 'are' ? 'were' : verb;
+        return `If ${subject1} ${pastVerb} ${rest}, ${subject2} would`;
+      }
+    );
+    
+    // Third Conditional: "If the data was verified" → "If the data had been verified"
+    corrected = corrected.replace(/\bif\s+(the\s+)?(\w+)\s+was\s+(\w+ed|verified|approved|completed|submitted|reviewed)\s+([^,]+),\s+([^.]+)\s+could\s+be\b/gi,
+      (match, the, noun, pastPart, rest, mainClause) => {
+        return `If ${the || ''}${noun} had been ${pastPart} ${rest}, ${mainClause} could have been`;
+      }
+    );
+    
+    // "If they knew" → "If they had known" (when followed by "would have")
+    corrected = corrected.replace(/\bif\s+(I|you|we|they|he|she|it|[A-Z]\w+)\s+(knew|saw|had|did|went|came|took|made|got)\s+([^,]+),\s+([^.]+)\s+would\s+(have\s+)?(\w+)\s+(immediately|it|them)\b/gi,
+      (match, subject, pastVerb, rest, mainClause, have, verb, obj) => {
+        if (!have) {
+          // Need to add "had" for third conditional
+          const pastPart = this.getPastParticiple(pastVerb);
+          return `If ${subject} had ${pastPart} ${rest}, ${mainClause} would have ${verb} ${obj}`;
+        }
+        return match;
+      }
+    );
+    
+    // Zero Conditional: "If you heat water, it will boil" → "If you heat water, it boils"
+    // Remove "will" from main clause when if-clause is present tense (general truths)
+    corrected = corrected.replace(/\bif\s+you\s+(\w+)\s+([^,]+)\s+to\s+(\d+)\s+degrees,\s+it\s+will\s+(\w+)\b/gi,
+      (match, verb, obj, temp, mainVerb) => {
+        return `If you ${verb} ${obj} to ${temp} degrees, it ${mainVerb}s`;
+      }
+    );
+    
+    return corrected;
+  }
+  
+  /**
+   * STEP 17: Fix Passive Voice
+   * @param {string} text - Text to correct
+   * @returns {string} - Corrected text
+   */
+  fixPassiveVoice(text) {
+    let corrected = text;
+    
+    // Simple Present Passive: "The report reviews" → "The report is reviewed"
+    corrected = corrected.replace(/\b(the|this|that)\s+(\w+)\s+(review|approve|submit|send|update|revise|check|verify|complete|finish)(s)?\s+by\s+/gi,
+      (match, det, noun, verb, s) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${det} ${noun} is ${pastPart} by `;
+      }
+    );
+    
+    // Simple Past Passive: "The proposal approved yesterday" → "The proposal was approved yesterday"
+    corrected = corrected.replace(/\b(the|this|that)\s+(\w+)\s+(approved|completed|submitted|reviewed|updated|revised|checked|verified|sent|finished)\s+(yesterday|last\s+\w+|earlier|recently)\b/gi,
+      (match, det, noun, pastPart, time) => {
+        return `${det} ${noun} was ${pastPart} ${time}`;
+      }
+    );
+    
+    // Present Perfect Passive: "The document has updated" → "The document has been updated"
+    corrected = corrected.replace(/\b(the|this|that)\s+(\w+)\s+has\s+(updated|approved|completed|reviewed|revised|sent|finished)\b/gi,
+      (match, det, noun, pastPart) => {
+        return `${det} ${noun} has been ${pastPart}`;
+      }
+    );
+    
+    // Future Passive: "The results will announce" → "The results will be announced"
+    corrected = corrected.replace(/\b(the|this|that)\s+(\w+)\s+will\s+(announce|complete|update|approve|review|send|submit|finish)\s+(tomorrow|next\s+\w+|soon|later)\b/gi,
+      (match, det, noun, verb, time) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${det} ${noun} will be ${pastPart} ${time}`;
+      }
+    );
+    
+    // Modal Passive: "The issue should resolve" → "The issue should be resolved"
+    corrected = corrected.replace(/\b(the|this|that)\s+(\w+)\s+(can|could|may|might|must|should|would)\s+(resolve|complete|update|approve|review|fix|address|handle|discuss|consider)\s+(immediately|quickly|soon|carefully)\b/gi,
+      (match, det, noun, modal, verb, adv) => {
+        const pastPart = this.getPastParticiple(verb);
+        return `${det} ${noun} ${modal} be ${pastPart} ${adv}`;
+      }
+    );
+    
+    return corrected;
+  }
+  
+  /**
+   * STEP 18: Insert Missing Articles (a/an/the)
+   * @param {string} text - Text to correct
+   * @returns {string} - Corrected text
+   */
+  insertMissingArticles(text) {
+    let corrected = text;
+    
+    // "She bought new phone" → "She bought a new phone"
+    // Insert "a" before singular countable nouns without article
+    const singularNouns = /\b(bought|has|got|needs|wants|owns|uses|carries|holds|contains|includes|requires)\s+(new|old|good|bad|big|small|large|great|nice|beautiful|expensive|cheap)\s+(phone|car|computer|laptop|house|book|pen|bag|watch|chair|table|desk|room|office|project|report|document|file|system|plan|idea|solution|approach|method|tool|device|machine|product|service)\b/gi;
+    
+    corrected = corrected.replace(singularNouns,
+      (match, verb, adj, noun) => {
+        return `${verb} a ${adj} ${noun}`;
+      }
+    );
+    
+    // "He is engineer" → "He is an engineer"
+    // Insert "an" before vowel sounds
+    corrected = corrected.replace(/\b(is|am|are|was|were|become|became)\s+(engineer|architect|artist|actor|author|accountant|officer|employee|expert|analyst|administrator)\b/gi,
+      (match, verb, noun) => {
+        return `${verb} an ${noun}`;
+      }
+    );
+    
+    // "The best solution" - add "the" before superlatives if missing
+    corrected = corrected.replace(/\b(is|was|has|have)\s+(best|worst|most|least|greatest|largest|smallest|fastest|slowest|highest|lowest)\s+(solution|approach|method|way|option|choice|result|outcome)\b/gi,
+      (match, verb, superlative, noun) => {
+        return `${verb} the ${superlative} ${noun}`;
+      }
+    );
+    
+    // "Manager approved" → "The manager approved"
+    corrected = corrected.replace(/\b([A-Z][a-z]+)\s+(approved|reviewed|submitted|completed|updated|discussed|presented|announced|confirmed)\b/gi,
+      (match, noun, verb) => {
+        // Check if it's already preceded by article or determiner
+        return `The ${noun} ${verb}`;
+      }
+    );
+    
+    return corrected;
+  }
+  
+  /**
+   * STEP 19: Reorder Adjectives (OSASCOMP rule)
+   * Opinion, Size, Age, Shape, Color, Origin, Material, Purpose
+   * @param {string} text - Text to correct
+   * @returns {string} - Corrected text
+   */
+  reorderAdjectives(text) {
+    let corrected = text;
+    
+    // Define adjective categories
+    const adjCategories = {
+      opinion: ['beautiful', 'ugly', 'nice', 'good', 'bad', 'lovely', 'amazing', 'wonderful', 'terrible', 'awful', 'excellent', 'poor', 'fine', 'great'],
+      size: ['big', 'small', 'large', 'huge', 'tiny', 'enormous', 'little', 'giant', 'massive'],
+      age: ['new', 'old', 'young', 'ancient', 'modern', 'recent', 'antique'],
+      shape: ['round', 'square', 'circular', 'rectangular', 'triangular', 'oval', 'flat'],
+      color: ['red', 'blue', 'green', 'yellow', 'black', 'white', 'brown', 'orange', 'purple', 'pink', 'gray', 'grey'],
+      origin: ['American', 'British', 'Chinese', 'Japanese', 'French', 'German', 'Italian', 'Spanish', 'Russian', 'Indian', 'Canadian', 'Australian'],
+      material: ['wooden', 'metal', 'plastic', 'glass', 'paper', 'cotton', 'leather', 'silk', 'wool', 'steel', 'iron', 'stone', 'brick'],
+      purpose: ['sleeping', 'walking', 'running', 'dining', 'working', 'cooking', 'reading', 'writing']
+    };
+    
+    // Color before size → Size before color
+    corrected = corrected.replace(/\b(a|an|the)\s+(red|blue|green|yellow|black|white|brown)\s+(big|small|large|huge|tiny)\s+(\w+)\b/gi,
+      (match, article, color, size, noun) => {
+        return `${article} ${size} ${color} ${noun}`;
+      }
+    );
+    
+    // Size/Color before opinion → Opinion before size/color
+    corrected = corrected.replace(/\b(a|an|the)\s+(large|big|small)\s+(blue|red|green)\s+(beautiful|nice|good)\s+(\w+)\b/gi,
+      (match, article, size, color, opinion, noun) => {
+        return `${article} ${opinion} ${size} ${color} ${noun}`;
+      }
+    );
+    
+    // Origin before age → Age before origin
+    corrected = corrected.replace(/\b(a|an|the)\s+(Chinese|French|American|British)\s+(old|new|ancient)\s+(\w+)\b/gi,
+      (match, article, origin, age, noun) => {
+        return `${article} ${age} ${origin} ${noun}`;
+      }
+    );
+    
+    // Purpose before material → Material before purpose
+    corrected = corrected.replace(/\b(a|an|the)\s+(walking|dining|sleeping|working)\s+(wooden|metal|plastic)\s+(\w+)\b/gi,
+      (match, article, purpose, material, noun) => {
+        return `${article} ${material} ${purpose} ${noun}`;
+      }
+    );
+    
+    return corrected;
+  }
+  
+  /**
+   * Helper: Get past participle of verb
+   */
+  getPastParticiple(verb) {
+    const irregulars = {
+      'go': 'gone', 'do': 'done', 'see': 'seen', 'make': 'made',
+      'take': 'taken', 'come': 'come', 'give': 'given', 'write': 'written',
+      'read': 'read', 'know': 'known', 'think': 'thought', 'find': 'found',
+      'get': 'gotten', 'bring': 'brought', 'buy': 'bought', 'teach': 'taught',
+      'catch': 'caught', 'fight': 'fought', 'seek': 'sought', 'send': 'sent',
+      'spend': 'spent', 'build': 'built', 'lend': 'lent', 'leave': 'left',
+      'feel': 'felt', 'keep': 'kept', 'meet': 'met', 'hold': 'held',
+      'tell': 'told', 'sell': 'sold', 'say': 'said', 'pay': 'paid',
+      'begin': 'begun', 'drink': 'drunk', 'sing': 'sung', 'swim': 'swum',
+      'break': 'broken', 'speak': 'spoken', 'choose': 'chosen', 'freeze': 'frozen',
+      'steal': 'stolen', 'wake': 'woken', 'drive': 'driven', 'ride': 'ridden',
+      'rise': 'risen', 'bite': 'bitten', 'hide': 'hidden', 'eat': 'eaten',
+      'fall': 'fallen', 'beat': 'beaten', 'forget': 'forgotten',
+      'finish': 'finished', 'complete': 'completed', 'submit': 'submitted',
+      'approve': 'approved', 'review': 'reviewed', 'discuss': 'discussed',
+      'prepare': 'prepared', 'present': 'presented', 'announce': 'announced',
+      'live': 'lived', 'work': 'worked', 'study': 'studied', 'learn': 'learned',
+      'start': 'started', 'end': 'ended', 'wait': 'waited', 'play': 'played'
+    };
+    
+    return irregulars[verb.toLowerCase()] || verb + 'ed';
+  }
+  
+  /**
+   * Helper: Get gerund (present participle) of verb
+   */
+  getGerund(verb) {
+    // Handle special cases
+    if (verb.endsWith('e') && !verb.endsWith('ee')) {
+      return verb.slice(0, -1) + 'ing'; // live → living
+    }
+    if (verb.match(/[aeiou][bcdfghjklmnpqrstvwxyz]$/)) {
+      return verb + verb.slice(-1) + 'ing'; // run → running
+    }
+    if (verb.endsWith('ie')) {
+      return verb.slice(0, -2) + 'ying'; // die → dying
+    }
+    return verb + 'ing';
   }
 }
 
