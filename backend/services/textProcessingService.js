@@ -216,9 +216,21 @@ class TextProcessingService {
    * @returns {Promise<string>} - Improved text
    */
   async improveEnglishText(text) {
+    // STEP 0: Protect adjectives BEFORE any processing including LanguageTool
+    const adjectiveProtection = [];
+    let protectionIndex = 0;
+    let protectedText = text.replace(/\b(was|were|is|are|am|be|been|being)\s+(tired|excited|interested|confused|surprised|amazed|bored|worried|scared|frightened|pleased|satisfied|disappointed|frustrated|exhausted|relaxed|stressed|concerned|involved|engaged|committed|dedicated|motivated|inspired|impressed|shocked|stunned|astonished|delighted|thrilled|annoyed|irritated|disturbed|troubled|affected|influenced|prepared|qualified|skilled|experienced|trained|educated|informed|aware|convinced|persuaded|determined|willing|able|unable|ready|eager|reluctant|hesitant|confident|certain|sure|doubtful|unsure|unclear|obvious|apparent|evident|visible|hidden|absent|present|available|unavailable|necessary|essential|important|critical|vital|crucial|significant|relevant|useful|helpful|valuable|beneficial|harmful|dangerous|risky|safe|secure|stable|unstable|consistent|inconsistent|appropriate|inappropriate|suitable|unsuitable|adequate|inadequate|sufficient|insufficient|complete|incomplete|perfect|imperfect|correct|incorrect|accurate|inaccurate|precise|vague|clear|unclear|simple|complex|easy|difficult|hard|soft|tough|weak|strong)\b/gi,
+      (match, verb, adj) => {
+        const placeholder = `ADJPROTECT${protectionIndex}ADJPROTECT`;
+        adjectiveProtection.push({ placeholder, original: match });
+        protectionIndex++;
+        return placeholder;
+      }
+    );
+    
     // STEP 1: Apply context-aware custom rules FIRST (before LanguageTool)
     console.log('🔧 Applying context-aware grammar rules...');
-    let preProcessedText = this.applyContextAwareGrammarRules(text);
+    let preProcessedText = this.applyContextAwareGrammarRules(protectedText);
     
     // Try LanguageTool public API
     try {
@@ -298,6 +310,11 @@ class TextProcessingService {
         // FINAL: Post-process to fix any remaining issues
         correctedText = this.postProcessGrammar(correctedText);
         
+        // Restore protected adjectives
+        adjectiveProtection.forEach((item) => {
+          correctedText = correctedText.replace(new RegExp(item.placeholder, 'gi'), item.original);
+        });
+        
         return this.enhanceTextProfessionalism(correctedText);
       }
       
@@ -305,7 +322,13 @@ class TextProcessingService {
       console.log('✅ LanguageTool: No corrections needed, applying advanced rules...');
       const advancedCorrected = this.applyContextAwareGrammarRules(preProcessedText);
       const finalCorrected = this.applyAdvancedGrammarRules(advancedCorrected);
-      const postProcessed = this.postProcessGrammar(finalCorrected);
+      let postProcessed = this.postProcessGrammar(finalCorrected);
+      
+      // Restore protected adjectives
+      adjectiveProtection.forEach((item) => {
+        postProcessed = postProcessed.replace(new RegExp(item.placeholder, 'gi'), item.original);
+      });
+      
       return this.enhanceTextProfessionalism(postProcessed);
       
     } catch (languageToolError) {
@@ -572,6 +595,53 @@ Provide only the improved text without any explanations or meta-commentary:`;
   applyAdvancedGrammarRules(text) {
     let corrected = text;
     
+    // STEP 0: CRITICAL PRE-PROCESSING - Fix common mistakes before NLP
+    
+    // 0.1: Fix "for + verb" → "to + verb" (infinitive purpose clauses)
+    // Match both base form and past tense/participle
+    corrected = corrected.replace(/\bfor\s+(finish(ed)?|complet(e|ed)?|review(ed)?|start(ed)?|begin|begun|end(ed)?|make|made|do(ne)?|did|have|had|be(en)?|go(ne)?|went|come|came|take|took|taken|give|gave|given|get|got|gotten|see|saw|seen|know(n)?|knew|think|thought|work(ed)?|stud(y|ied)|learn(ed|t)?|teach|taught|write|wrote|written|read|help(ed)?|support(ed)?|improv(e|ed)|enhanc(e|ed)|develop(ed)?|creat(e|ed)|build|built|design(ed)?|test(ed)?|deploy(ed)?|implement(ed)?|manag(e|ed)|handl(e|ed)|process(ed)?|analyz(e|ed)|evaluat(e|ed)|assess(ed)?|discuss(ed)?|present(ed)?|deliver(ed)?|achiev(e|ed)|reach(ed)?|accomplish(ed)?|perform(ed)?|execut(e|ed)|conduct(ed)?|organiz(e|ed)|plan(ned)?|prepar(e|ed)|resolv(e|ed)|solv(e|ed)|fix(ed)?|updat(e|ed)|upgrad(e|ed)|modif(y|ied)|chang(e|ed)|adjust(ed)?|adapt(ed)?|coordinat(e|ed)|collaborat(e|ed)|communicat(e|ed)|inform(ed)?|notif(y|ied)|report(ed)?|document(ed)?|record(ed)?|track(ed)?|monitor(ed)?|measur(e|ed)|ensur(e|ed)|verif(y|ied)|validat(e|ed)|confirm(ed)?|approv(e|ed)|accept(ed)?|reject(ed)?|declin(e|ed)|cancel(led)?|postpone(d)?|reschedul(e|ed)|extend(ed)?|expand(ed)?|reduc(e|ed)|minimiz(e|ed)|maximiz(e|ed)|optimiz(e|ed)|streamlin(e|ed)|automat(e|ed))\b/gi,
+      (match, verb) => {
+        // Extract base form
+        const baseForm = verb.replace(/(ed|d|en|n|ing|t)$/i, '').replace(/i(ed)$/i, 'y');
+        return `to ${baseForm}`;
+      }
+    );
+    
+    // 0.2: Fix redundant conjunctions "Although...but", "Because...so"
+    corrected = corrected.replace(/\b(although|though|even though)\s+([^,]+),\s+but\s+/gi, '$1 $2, ');
+    corrected = corrected.replace(/\bbecause\s+([^,]+),\s+so\s+/gi, 'because $1, ');
+    
+    // 0.3: Fix modal + past participle → modal + base verb
+    // "can reviewed" → "can review", "will completed" → "will complete"
+    corrected = corrected.replace(/\b(can|could|may|might|must|shall|should|will|would)\s+(\w+ed|went|came|did|saw|had|took|made|got|gave|found)\b/gi,
+      (match, modal, pastVerb) => {
+        const baseForm = {
+          'went': 'go', 'came': 'come', 'did': 'do', 'saw': 'see',
+          'had': 'have', 'took': 'take', 'made': 'make', 'got': 'get',
+          'gave': 'give', 'found': 'find', 'told': 'tell', 'thought': 'think',
+          'brought': 'bring', 'bought': 'buy', 'taught': 'teach', 'caught': 'catch',
+          'fought': 'fight', 'sought': 'seek', 'felt': 'feel', 'kept': 'keep',
+          'left': 'leave', 'meant': 'mean', 'sent': 'send', 'spent': 'spend',
+          'built': 'build', 'lent': 'lend', 'bent': 'bend', 'held': 'hold'
+        }[pastVerb.toLowerCase()] || pastVerb.replace(/(ed|d)$/i, '');
+        return `${modal} ${baseForm}`;
+      }
+    );
+    
+    // 0.4: Protect adjectives after "was/were/is/are/be/been/being"
+    // "was tired" should stay "was tired", NOT "was tiring"
+    // Store these before ANY processing including NLP
+    const adjectiveProtection = [];
+    let protectionIndex = 0;
+    corrected = corrected.replace(/\b(was|were|is|are|am|be|been|being)\s+(tired|excited|interested|confused|surprised|amazed|bored|worried|scared|frightened|pleased|satisfied|disappointed|frustrated|exhausted|relaxed|stressed|concerned|involved|engaged|committed|dedicated|motivated|inspired|impressed|shocked|stunned|astonished|delighted|thrilled|annoyed|irritated|disturbed|troubled|affected|influenced|prepared|qualified|skilled|experienced|trained|educated|informed|aware|convinced|persuaded|determined|willing|able|unable|ready|eager|reluctant|hesitant|confident|certain|sure|doubtful|unsure|unclear|obvious|apparent|evident|visible|hidden|absent|present|available|unavailable|necessary|essential|important|critical|vital|crucial|significant|relevant|useful|helpful|valuable|beneficial|harmful|dangerous|risky|safe|secure|stable|unstable|consistent|inconsistent|appropriate|inappropriate|suitable|unsuitable|adequate|inadequate|sufficient|insufficient|complete|incomplete|perfect|imperfect|correct|incorrect|accurate|inaccurate|precise|vague|clear|unclear|simple|complex|easy|difficult|hard|soft|tough|weak|strong)\b/gi,
+      (match, verb, adj) => {
+        const placeholder = `__PROTECTED_ADJ_${protectionIndex}__`;
+        adjectiveProtection.push({ placeholder, original: match });
+        protectionIndex++;
+        return placeholder;
+      }
+    );
+    
     // STEP 1: USE COMPROMISE NLP FOR INTELLIGENT GRAMMAR CORRECTION
     try {
       let doc = nlp(corrected);
@@ -596,6 +666,11 @@ Provide only the improved text without any explanations or meta-commentary:`;
     } catch (nlpError) {
       console.log('NLP processing warning:', nlpError.message);
     }
+    
+    // Restore protected adjectives AFTER ALL other processing
+    adjectiveProtection.forEach((item) => {
+      corrected = corrected.replace(item.placeholder, item.original);
+    });
     
     // STEP 2: GENERALIZED SPELLING CORRECTIONS (pattern-based)
     corrected = this.applySpellingCorrections(corrected);

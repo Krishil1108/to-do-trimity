@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v3.5.0-' + Date.now(); // Advanced grammar engine updates (adjectives, modals, purpose clauses)
+const CACHE_VERSION = 'v3.6.0-' + Date.now(); // Fixed adjective placeholder restoration bug
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
