@@ -646,6 +646,21 @@ Provide only the improved text without any explanations or meta-commentary:`;
     corrected = corrected.replace(/\b(although|though|even though)\s+([^,]+),\s+but\s+/gi, '$1 $2, ');
     corrected = corrected.replace(/\bbecause\s+([^,]+),\s+so\s+/gi, 'because $1, ');
     
+    // 0.2a: Fix idiomatic verb patterns
+    // "go for shopping" → "go shopping", "go for swimming" → "go swimming"
+    corrected = corrected.replace(/\bgo\s+for\s+(shopping|swimming|running|walking|hiking|cycling|fishing|camping|dancing|skiing|skating|jogging|climbing)\b/gi, 'go $1');
+    
+    // 0.2b: Fix parallel structure in lists with "and"
+    // "go...and eating" → "go...and eat" (both base verbs)
+    // "want to go...and eating" → "want to go...and eat"
+    corrected = corrected.replace(/\b(to\s+)?(go|come|start|begin|try|attempt|want|need|decide|plan)\s+([^and]+)\s+and\s+(\w+ing)\b/gi,
+      (match, to, verb, middle, gerund) => {
+        // Convert gerund to base form for parallel structure
+        const baseForm = gerund.replace(/ing$/i, '').replace(/([^aeiou])([aeiou])\2ing$/i, '$1$2');
+        return `${to || ''}${verb} ${middle} and ${baseForm}`;
+      }
+    );
+    
     // 0.3: Fix modal + past participle → modal + base verb
     // "can reviewed" → "can review", "will completed" → "will complete"
     corrected = corrected.replace(/\b(can|could|may|might|must|shall|should|will|would)\s+(\w+ed|went|came|did|saw|had|took|made|got|gave|found)\b/gi,
@@ -662,6 +677,10 @@ Provide only the improved text without any explanations or meta-commentary:`;
         return `${modal} ${baseForm}`;
       }
     );
+    
+    // 0.3a: Fix "for + infinitive" → "to + infinitive"
+    // "for make" → "to make", "for do" → "to do"
+    corrected = corrected.replace(/\bfor\s+(make|do|get|have|take|give|see|go|come|help|create|complete|finish|start|begin|achieve|reach|obtain|acquire|develop|improve|enhance|build|design|implement|execute|perform|conduct|manage|organize|coordinate|arrange|plan|prepare|learn|study|understand|know|realize|recognize|discover|explore|investigate|examine|analyze|evaluate|assess|review|check|verify|confirm|ensure|guarantee|provide|supply|deliver|offer|present|introduce|explain|describe|discuss|talk|speak|say|tell|ask|request|require|need|want|wish|hope|expect|anticipate|predict|forecast|estimate|calculate|compute|determine|decide|choose|select|pick|prefer|like|love|enjoy|appreciate|value|respect|admire|trust|believe|think|feel|sense|perceive|observe|notice|detect|identify|locate|find|search|seek|look)\b/gi, 'to $1');
     
     // 0.4: Protect adjectives after "was/were/is/are/be/been/being"
     // "was tired" should stay "was tired", NOT "was tiring"

@@ -12,6 +12,7 @@ import './pwa-styles.css';
 import notificationService from './services/notificationService';
 import UpdateChecker from './components/UpdateChecker';
 import CustomDialog from './components/CustomDialog';
+import { setupGrammarTester } from './utils/grammarTester';
 
 // Server optimization for render.com deployment
 const keepServerAlive = () => {
@@ -253,6 +254,9 @@ const TaskManagementSystem = () => {
       setCurrentUser(user);
       setIsLoggedIn(true);
     }
+    
+    // Initialize grammar testing tools for console debugging
+    setupGrammarTester();
   }, []);
 
   // Load data when logged in

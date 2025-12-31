@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v3.8.0-' + Date.now(); // Enhanced low-perfection topics (Perfect tenses, Conditionals, Passive, Articles, Adjective order)
+const CACHE_VERSION = 'v3.9.0-' + Date.now(); // Added console grammar testing tools + idiomatic verb patterns + parallel structure fixes
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
