@@ -64,7 +64,7 @@ class TextProcessingService {
   }
 
   /**
-   * Improve English text using LanguageTool API + write-good
+   * Improve English text using LanguageTool API + advanced grammar rules
    * Falls back to Gemini AI if available, then basic cleanup
    * @param {string} text - Text to improve
    * @returns {Promise<string>} - Improved text
@@ -77,7 +77,8 @@ class TextProcessingService {
       const response = await axios.post('https://api.languagetoolplus.com/v2/check', null, {
         params: {
           text: text,
-          language: 'en-US'
+          language: 'en-US',
+          enabledOnly: 'false'
         },
         timeout: 10000
       });
@@ -102,12 +103,17 @@ class TextProcessingService {
         }
         
         console.log(`✅ LanguageTool: Fixed ${sortedMatches.length} issues`);
+        
+        // Apply additional advanced grammar corrections
+        correctedText = this.applyAdvancedGrammarRules(correctedText);
+        
         return this.enhanceTextProfessionalism(correctedText);
       }
       
-      // No corrections needed
-      console.log('✅ LanguageTool: No corrections needed');
-      return this.enhanceTextProfessionalism(text);
+      // No LanguageTool corrections, but apply advanced rules
+      console.log('✅ LanguageTool: No corrections needed, applying advanced rules...');
+      const advancedCorrected = this.applyAdvancedGrammarRules(text);
+      return this.enhanceTextProfessionalism(advancedCorrected);
       
     } catch (languageToolError) {
       console.log('⚠️ LanguageTool API failed, trying Gemini AI...', languageToolError.message);
@@ -137,9 +143,75 @@ Provide only the improved text without any explanations or meta-commentary:`;
         }
       } else {
         // Fallback to basic cleanup if no API key
-        return this.basicTextCleanup(text);
+        const advancedCorrected = this.applyAdvancedGrammarRules(text);
+        return this.basicTextCleanup(advancedCorrected);
       }
     }
+  }
+
+  /**
+   * Apply advanced grammar rules for tense, subject-verb agreement, etc.
+   * @param {string} text - Text to correct
+   * @returns {string} - Corrected text
+   */
+  applyAdvancedGrammarRules(text) {
+    let corrected = text;
+    
+    // Fix past tense with future time markers
+    corrected = corrected
+      // "was/were [verb]ing tomorrow/next week/later" -> "will be [verb]ing"
+      .replace(/\b(was|were)\s+(\w+ing)\s+(tomorrow|next\s+\w+|later|soon|tonight)\b/gi, 
+        (match, pastVerb, presentParticiple, timeMarker) => {
+          return `will be ${presentParticiple} ${timeMarker}`;
+        })
+      // "was/were going to [verb]" -> "will be going to [verb]"
+      .replace(/\b(was|were)\s+going\s+to\s+(\w+)\s+(tomorrow|next\s+\w+|later|soon)\b/gi,
+        (match, pastVerb, verb, timeMarker) => {
+          return `will be going to ${verb} ${timeMarker}`;
+        });
+    
+    // Fix pronoun case (me/I, him/he, etc.) BEFORE verb agreement
+    corrected = corrected
+      // "me and [name/pronoun]" at start of sentence -> "I and"
+      .replace(/\bMe\s+and\s+(\w+)/g, 'I and $1')
+      // "him and [pronoun]" at start -> "he and"
+      .replace(/\bHim\s+and\s+(\w+)/g, 'He and $1')
+      // "her and [pronoun]" at start -> "she and"  
+      .replace(/\bHer\s+and\s+(\w+)\s+/gi, 'She and $1 ');
+    
+    // Fix subject-verb agreement (do this AFTER pronoun fixes)
+    corrected = corrected
+      // Compound subjects (X and Y) always use "were" (plural)
+      .replace(/\b(\w+)\s+and\s+(\w+)\s+was\b/gi, '$1 and $2 were')
+      // "I/we/they was" -> "I/we/they were"
+      .replace(/\b(I|we|they)\s+was\b/gi, '$1 were')
+      // "he/she/it were" -> "he/she/it was"
+      .replace(/\b(he|she|it)\s+were\b/gi, '$1 was')
+      // "I is" -> "I am"
+      .replace(/\bI\s+is\b/gi, 'I am')
+      // "you is" -> "you are"
+      .replace(/\byou\s+is\b/gi, 'you are')
+      // "we/they is" -> "we/they are"
+      .replace(/\b(we|they)\s+is\b/gi, '$1 are');
+    
+    // Fix double negatives
+    corrected = corrected
+      .replace(/\bdon't\s+have\s+no\b/gi, "don't have any")
+      .replace(/\bcan't\s+get\s+no\b/gi, "can't get any")
+      .replace(/\bdidn't\s+see\s+nothing\b/gi, "didn't see anything");
+    
+    // Fix incorrect verb forms
+    corrected = corrected
+      .replace(/\bhas\s+went\b/gi, 'has gone')
+      .replace(/\bhave\s+went\b/gi, 'have gone')
+      .replace(/\bhas\s+came\b/gi, 'has come')
+      .replace(/\bhave\s+came\b/gi, 'have come')
+      .replace(/\bhas\s+did\b/gi, 'has done')
+      .replace(/\bhave\s+did\b/gi, 'have done')
+      .replace(/\bhas\s+saw\b/gi, 'has seen')
+      .replace(/\bhave\s+saw\b/gi, 'have seen');
+    
+    return corrected;
   }
 
   /**
