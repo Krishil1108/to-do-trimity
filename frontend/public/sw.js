@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v3.9.0-' + Date.now(); // Added console grammar testing tools + idiomatic verb patterns + parallel structure fixes
+const CACHE_VERSION = 'v4.0.0-' + Date.now(); // MAJOR UPDATE: 12 new grammar modules (Perfect Continuous, Gerunds/Infinitives, Phrasal Verbs, Comparatives, Reported Speech, Countable/Uncountable, Fragments, Run-ons, Advanced Punctuation, Parallel Structure, Complex Passive, Ellipsis)
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

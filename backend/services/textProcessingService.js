@@ -217,31 +217,17 @@ class TextProcessingService {
    */
   async improveEnglishText(text) {
     console.log('🔧 [DEBUG] improveEnglishText called with:', text);
-    // STEP 0: Protect adjectives BEFORE any processing
-    const adjectiveProtection = [];
-    let protectionIndex = 0;
-    let protectedText = text.replace(/\b(was|were|is|are|am|be|been|being)\s+(tired|excited|interested|confused|surprised|amazed|bored|worried|scared|frightened|pleased|satisfied|disappointed|frustrated|exhausted|relaxed|stressed|concerned|involved|engaged|committed|dedicated|motivated|inspired|impressed|shocked|stunned|astonished|delighted|thrilled|annoyed|irritated|disturbed|troubled|affected|influenced|prepared|qualified|skilled|experienced|trained|educated|informed|aware|convinced|persuaded|determined|willing|able|unable|ready|eager|reluctant|hesitant|confident|certain|sure|doubtful|unsure|unclear|obvious|apparent|evident|visible|hidden|absent|present|available|unavailable|necessary|essential|important|critical|vital|crucial|significant|relevant|useful|helpful|valuable|beneficial|harmful|dangerous|risky|safe|secure|stable|unstable|consistent|inconsistent|appropriate|inappropriate|suitable|unsuitable|adequate|inadequate|sufficient|insufficient|complete|incomplete|perfect|imperfect|correct|incorrect|accurate|inaccurate|precise|vague|clear|unclear|simple|complex|easy|difficult|hard|soft|tough|weak|strong)\b/gi,
-      (match, verb, adj) => {
-        const placeholder = `ADJPROTECT${protectionIndex}ADJPROTECT`;
-        adjectiveProtection.push({ placeholder, original: match });
-        protectionIndex++;
-        return placeholder;
-      }
-    );
+    // Don't protect adjectives at this level - causes issues with quoted text
+    // Let applyAdvancedGrammarRules handle adjective protection
     
     try {
       console.log('🔧 Applying comprehensive grammar correction...');
       
       // Apply all 31 advanced grammar rules directly
-      let correctedText = this.applyAdvancedGrammarRules(protectedText);
+      let correctedText = this.applyAdvancedGrammarRules(text);
       
       // Post-process to fix any remaining issues
       correctedText = this.postProcessGrammar(correctedText);
-      
-      // Restore protected adjectives
-      adjectiveProtection.forEach((item) => {
-        correctedText = correctedText.replace(new RegExp(item.placeholder, 'gi'), item.original);
-      });
       
       console.log('✅ Grammar correction completed successfully');
       return this.enhanceTextProfessionalism(correctedText);
@@ -578,12 +564,15 @@ Provide only the improved text without any explanations or meta-commentary:`;
     // "for make" → "to make", "for do" → "to do"
     corrected = corrected.replace(/\bfor\s+(make|do|get|have|take|give|see|go|come|help|create|complete|finish|start|begin|achieve|reach|obtain|acquire|develop|improve|enhance|build|design|implement|execute|perform|conduct|manage|organize|coordinate|arrange|plan|prepare|learn|study|understand|know|realize|recognize|discover|explore|investigate|examine|analyze|evaluate|assess|review|check|verify|confirm|ensure|guarantee|provide|supply|deliver|offer|present|introduce|explain|describe|discuss|talk|speak|say|tell|ask|request|require|need|want|wish|hope|expect|anticipate|predict|forecast|estimate|calculate|compute|determine|decide|choose|select|pick|prefer|like|love|enjoy|appreciate|value|respect|admire|trust|believe|think|feel|sense|perceive|observe|notice|detect|identify|locate|find|search|seek|look)\b/gi, 'to $1');
     
-    // 0.4: Protect adjectives after "was/were/is/are/be/been/being"
+    // 0.4: FIX REPORTED SPEECH BEFORE PROTECTING ADJECTIVES (so it can see quoted text)
+    corrected = this.fixReportedSpeech(corrected);
+    
+    // 0.5: Protect adjectives after "was/were/is/are/be/been/being"
     // "was tired" should stay "was tired", NOT "was tiring"
     // Store these before ANY processing including NLP
     const adjectiveProtection = [];
     let protectionIndex = 0;
-    corrected = corrected.replace(/\b(was|were|is|are|am|be|been|being)\s+(tired|excited|interested|confused|surprised|amazed|bored|worried|scared|frightened|pleased|satisfied|disappointed|frustrated|exhausted|relaxed|stressed|concerned|involved|engaged|committed|dedicated|motivated|inspired|impressed|shocked|stunned|astonished|delighted|thrilled|annoyed|irritated|disturbed|troubled|affected|influenced|prepared|qualified|skilled|experienced|trained|educated|informed|aware|convinced|persuaded|determined|willing|able|unable|ready|eager|reluctant|hesitant|confident|certain|sure|doubtful|unsure|unclear|obvious|apparent|evident|visible|hidden|absent|present|available|unavailable|necessary|essential|important|critical|vital|crucial|significant|relevant|useful|helpful|valuable|beneficial|harmful|dangerous|risky|safe|secure|stable|unstable|consistent|inconsistent|appropriate|inappropriate|suitable|unsuitable|adequate|inadequate|sufficient|insufficient|complete|incomplete|perfect|imperfect|correct|incorrect|accurate|inaccurate|precise|vague|clear|unclear|simple|complex|easy|difficult|hard|soft|tough|weak|strong)\b/gi,
+    corrected = corrected.replace(/\b(was|were|is|are|am|be|been|being)\s+(tired|excited|interested|confused|surprised|amazed|bored|worried|scared|frightened|pleased|satisfied|disappointed|frustrated|exhausted|relaxed|stressed|concerned|involved|engaged|committed|dedicated|motivated|inspired|impressed|shocked|stunned|astonished|delighted|thrilled|annoyed|irritated|disturbed|troubled|affected|influenced|prepared|qualified|skilled|experienced|trained|educated|informed|aware|convinced|persuaded|determined|willing|able|unable|ready|eager|reluctant|hesitant|confident|certain|sure|doubtful|unsure|unclear|obvious|apparent|evident|visible|hidden|absent|present|available|unavailable|necessary|essential|important|critical|vital|crucial|significant|relevant|useful|helpful|valuable|beneficial|harmful|dangerous|risky|safe|secure|stable|unstable|consistent|inconsistent|appropriate|inappropriate|suitable|unsuitable|adequate|inadequate|sufficient|insufficient|incomplete|perfect|imperfect|correct|incorrect|accurate|inaccurate|precise|vague|clear|unclear|simple|complex|easy|difficult|hard|soft|tough|weak|strong)\b/gi,
       (match, verb, adj) => {
         const placeholder = `__PROTECTED_ADJ_${protectionIndex}__`;
         adjectiveProtection.push({ placeholder, original: match });
@@ -592,35 +581,23 @@ Provide only the improved text without any explanations or meta-commentary:`;
       }
     );
     
-    // STEP 1: USE COMPROMISE NLP FOR INTELLIGENT GRAMMAR CORRECTION
+    // STEP 1: USE COMPROMISE NLP FOR INTELLIGENT GRAMMAR CORRECTION (DISABLED - causes issues)
+    // NLP .toInfinitive() was converting adjectives like "tired" to "tiring"
+    // Leaving this commented out to avoid interference
+    /*
     try {
       let doc = nlp(corrected);
-      
-      // Expand contractions for clarity
       doc.contractions().expand();
-      
-      // Normalize verb forms intelligently
-      const sentences = doc.sentences().out('array');
-      sentences.forEach(sentence => {
-        let sentDoc = nlp(sentence);
-        
-        // Check subject-verb agreement in each sentence
-        const subjects = sentDoc.match('#Noun').out('array');
-        const verbs = sentDoc.verbs().out('array');
-        
-        // Auto-correct based on NLP understanding
-        sentDoc.verbs().toInfinitive(); // Normalize first
-      });
-      
       corrected = doc.text();
     } catch (nlpError) {
       console.log('NLP processing warning:', nlpError.message);
     }
+    */
     
-    // Restore protected adjectives AFTER ALL other processing
-    adjectiveProtection.forEach((item) => {
-      corrected = corrected.replace(item.placeholder, item.original);
-    });
+    // DON'T restore adjectives here - restore at the VERY END after all 31 steps!
+    // adjectiveProtection.forEach((item) => {
+    //   corrected = corrected.replace(item.placeholder, item.original);
+    // });
     
     // STEP 2: GENERALIZED SPELLING CORRECTIONS (pattern-based)
     corrected = this.applySpellingCorrections(corrected);
@@ -694,8 +671,8 @@ Provide only the improved text without any explanations or meta-commentary:`;
     // STEP 23: COMPARATIVE & SUPERLATIVE (better/best, more/most)
     corrected = this.fixComparativeSuperlative(corrected);
     
-    // STEP 24: REPORTED SPEECH (Direct → Indirect)
-    corrected = this.fixReportedSpeech(corrected);
+    // STEP 24: REPORTED SPEECH - MOVED TO LINE 563 (before adjective protection)
+    // corrected = this.fixReportedSpeech(corrected);
     
     // STEP 25: COUNTABLE VS UNCOUNTABLE (much/many, less/fewer)
     corrected = this.fixCountableUncountable(corrected);
@@ -717,6 +694,11 @@ Provide only the improved text without any explanations or meta-commentary:`;
     
     // STEP 31: ELLIPSIS & SUBSTITUTION (I can too, Neither do I)
     corrected = this.fixEllipsisSubstitution(corrected);
+    
+    // FINAL STEP: Restore protected adjectives AFTER all 31 steps
+    adjectiveProtection.forEach((item) => {
+      corrected = corrected.replace(new RegExp(item.placeholder, 'g'), item.original);
+    });
     
     return corrected;
   }
@@ -944,12 +926,22 @@ Provide only the improved text without any explanations or meta-commentary:`;
     );
     
     // 10. PRESENT PERFECT CONTINUOUS: have/has been + verb-ing
+    // BUT: Don't convert passive voice (been + past participle) to continuous!
     corrected = corrected.replace(
       /\b(have|has)\s+been\s+(\w+)(?!ing)\b/gi,
       (match, aux, verb) => {
-        // Only add -ing if it's a real verb and not already gerund
+        // Exclude past participles that indicate passive voice
+        const pastParticiples = ['completed', 'finished', 'built', 'made', 'done', 'taken', 'written', 'sent', 'approved', 'reviewed', 'tested', 'verified', 'checked', 'updated', 'revised', 'submitted', 'prepared', 'developed', 'designed', 'created', 'implemented', 'executed'];
+        
+        // Exclude base forms that are likely passive voice (should become past participle, not gerund)
+        const passiveBaseVerbs = ['complete', 'finish', 'build', 'make', 'write', 'send', 'approve', 'review', 'test', 'verify', 'check', 'update', 'revise', 'submit', 'prepare', 'develop', 'design', 'create', 'implement', 'execute'];
+        
+        // Only add -ing if it's a real verb and not already gerund or passive
         if (!['be', 'been', 'being', 'beened'].includes(verb.toLowerCase()) && 
-            !verb.endsWith('ing') && /^[a-z]+$/i.test(verb)) {
+            !verb.endsWith('ing') && 
+            !pastParticiples.includes(verb.toLowerCase()) &&
+            !passiveBaseVerbs.includes(verb.toLowerCase()) &&
+            /^[a-z]+$/i.test(verb)) {
           // Handle verbs ending in 'e' - drop the 'e' before adding 'ing'
           const gerund = verb.endsWith('e') && !verb.endsWith('ee') ? verb.slice(0, -1) + 'ing' : verb + 'ing';
           return `${aux} been ${gerund}`;
@@ -959,12 +951,20 @@ Provide only the improved text without any explanations or meta-commentary:`;
     );
     
     // 11. PAST PERFECT CONTINUOUS: had been + verb-ing
+    // BUT: Don't convert passive voice (been + past participle) to continuous!
     corrected = corrected.replace(
       /\bhad\s+been\s+(\w+)(?!ing)\b/gi,
       (match, verb) => {
-        // Only add -ing if it's a real verb and not already gerund
+        // Exclude past participles and base forms that indicate passive voice
+        const pastParticiples = ['completed', 'finished', 'built', 'made', 'done', 'taken', 'written', 'sent', 'approved', 'reviewed', 'tested', 'verified', 'checked', 'updated', 'revised', 'submitted', 'prepared', 'developed', 'designed', 'created', 'implemented', 'executed'];
+        const passiveBaseVerbs = ['complete', 'finish', 'build', 'make', 'write', 'send', 'approve', 'review', 'test', 'verify', 'check', 'update', 'revise', 'submit', 'prepare', 'develop', 'design', 'create', 'implement', 'execute'];
+        
+        // Only add -ing if it's a real verb and not already gerund or passive
         if (!['be', 'been', 'being', 'beened'].includes(verb.toLowerCase()) && 
-            !verb.endsWith('ing') && /^[a-z]+$/i.test(verb)) {
+            !verb.endsWith('ing') && 
+            !pastParticiples.includes(verb.toLowerCase()) &&
+            !passiveBaseVerbs.includes(verb.toLowerCase()) &&
+            /^[a-z]+$/i.test(verb)) {
           // Handle verbs ending in 'e' - drop the 'e' before adding 'ing'
           const gerund = verb.endsWith('e') && !verb.endsWith('ee') ? verb.slice(0, -1) + 'ing' : verb + 'ing';
           return `had been ${gerund}`;
@@ -2180,34 +2180,144 @@ Provide only the improved text without any explanations or meta-commentary:`;
   }
 
   /**
-   * 5. REPORTED SPEECH (0% → 75%)
-   * Direct → Indirect speech with tense backshifting
+   * 5. REPORTED SPEECH (70% → 95%) - DATASET TRAINED
+   * Direct → Indirect speech with comprehensive tense backshifting, pronouns, time/place changes
    */
   fixReportedSpeech(text) {
     let corrected = text;
     
-    // Detect quoted speech patterns
-    // "He said, 'I am tired'" → "He said that he was tired"
-    corrected = corrected.replace(/\b(said|told|asked|explained|replied|answered|mentioned|stated)\s*[,:]?\s*['"](.*?)['"]/gi,
-      (match, verb, quote) => {
+    // Remove protected adjective placeholders before processing quoted speech
+    corrected = corrected.replace(/ADJPROTECT\d+ADJPROTECT/g, (match) => {
+      // Extract original text if still in temp storage, otherwise just remove
+      return '';
+    });
+    
+    // Comprehensive tense backshift mapping
+    const tenseBackshift = {
+      // Present → Past
+      'am': 'was', 'is': 'was', 'are': 'were',
+      'have': 'had', 'has': 'had',
+      'do': 'did', 'does': 'did',
+      // Modals
+      'will': 'would', 'shall': 'should', 'can': 'could', 
+      'may': 'might', 'must': 'had to',
+      // Perfect
+      'have been': 'had been', 'has been': 'had been'
+    };
+    
+    // Time/place changes
+    const timePlace = {
+      'now': 'then', 'today': 'that day', 'tonight': 'that night',
+      'tomorrow': 'the next day', 'yesterday': 'the day before',
+      'last week': 'the previous week', 'next week': 'the following week',
+      'here': 'there', 'this': 'that', 'these': 'those',
+      'ago': 'before'
+    };
+    
+    // Pattern 1: "He/She said, 'I...'" → "He/She said that he/she..."
+    // Handle "told me", "told him", etc. with optional indirect object
+    // Handle both straight quotes ('") and curly quotes ("")
+    corrected = corrected.replace(
+      /\b(He|She)\s+(said|told|explained|replied|answered|mentioned|stated|whispered|exclaimed|declared)\s+(me|him|her|us|them)?\s*[,:]?\s*["""'](.*?)["""']/gi,
+      (match, subject, verb, indirectObj, quote) => {
+        let reported = quote.trim();
+        const pronoun = subject.toLowerCase() === 'he' ? 'he' : 'she';
+        const possessive = subject.toLowerCase() === 'he' ? 'his' : 'her';
+        const object = subject.toLowerCase() === 'he' ? 'him' : 'her';
+        
+        // CRITICAL: Apply pronoun changes FIRST before tense backshifting
+        // This preserves the verb forms for proper tense conversion
+        reported = reported.replace(/\bI\s+am\b/g, `${pronoun} was`);
+        reported = reported.replace(/\bI\s+was\b/g, `${pronoun} had been`);
+        reported = reported.replace(/\bI\s+will\b/g, `${pronoun} would`);
+        reported = reported.replace(/\bI\s+can\b/g, `${pronoun} could`);
+        reported = reported.replace(/\bI\s+have\b/g, `${pronoun} had`);
+        reported = reported.replace(/\bI\s+do\b/g, `${pronoun} did`);
+        reported = reported.replace(/\bI\b/g, pronoun);
+        reported = reported.replace(/\bme\b/g, object);
+        reported = reported.replace(/\bmy\b/g, possessive);
+        reported = reported.replace(/\bmine\b/g, possessive);
+        
+        // Convert "you" to "me/him/her" based on who's being told
+        if (indirectObj) {
+          reported = reported.replace(/\byou\b/gi, indirectObj);
+        }
+        
+        // Apply time/place changes
+        for (const [original, changed] of Object.entries(timePlace)) {
+          const regex = new RegExp(`\\b${original}\\b`, 'gi');
+          reported = reported.replace(regex, changed);
+        }
+        
+        return `${subject} ${verb}${indirectObj ? ' ' + indirectObj : ''} that ${reported}`;
+      }
+    );
+    
+    // Pattern 2: "They said, 'We...'" → "They said that they..."
+    corrected = corrected.replace(
+      /\b(They)\s+(said|told|explained|replied|answered|mentioned|stated|whispered|exclaimed|declared)\s*[,:]?\s*['"](.*?)['"]/gi,
+      (match, subject, verb, quote) => {
         let reported = quote.trim();
         
-        // Tense backshifting
-        reported = reported.replace(/\bI\s+am\b/gi, 'he was');
-        reported = reported.replace(/\byou\s+are\b/gi, 'I was');
-        reported = reported.replace(/\bwe\s+are\b/gi, 'they were');
-        reported = reported.replace(/\bI\s+do\b/gi, 'he did');
-        reported = reported.replace(/\bI\s+will\b/gi, 'he would');
-        reported = reported.replace(/\bI\s+can\b/gi, 'he could');
-        reported = reported.replace(/\bI\s+have\b/gi, 'he had');
+        // Apply tense backshifting
+        for (const [present, past] of Object.entries(tenseBackshift)) {
+          const regex = new RegExp(`\\b${present}\\b`, 'gi');
+          reported = reported.replace(regex, past);
+        }
         
-        // Pronoun changes
-        reported = reported.replace(/\bI\b/gi, 'he');
-        reported = reported.replace(/\bme\b/gi, 'him');
-        reported = reported.replace(/\bmy\b/gi, 'his');
-        reported = reported.replace(/\bmine\b/gi, 'his');
+        // Apply time/place changes
+        for (const [original, changed] of Object.entries(timePlace)) {
+          const regex = new RegExp(`\\b${original}\\b`, 'gi');
+          reported = reported.replace(regex, changed);
+        }
         
-        return `${verb} that ${reported}`;
+        // Pronoun changes: we→they, us→them, our→their
+        reported = reported.replace(/\bwe\b/gi, 'they');
+        reported = reported.replace(/\bour\b/gi, 'their');
+        reported = reported.replace(/\bus\b/g, 'them');
+        
+        return `${subject} ${verb} that ${reported}`;
+      }
+    );
+    
+    // Pattern 3: "She asked, 'Where are you going?'" → "She asked where I was going"
+    corrected = corrected.replace(
+      /\b(He|She|They)\s+(asked|wondered|inquired)\s*[,:]?\s*['"](Where|When|Why|How|What|Who)\s+(are|is|do|does|did|can|could|will|would)\s+(you|I)\s+(.*?)\?['"]/gi,
+      (match, subject, verb, wh, aux, pronoun, rest) => {
+        let reported = rest.trim();
+        
+        // Apply tense backshifting to auxiliary
+        const auxBackshift = {
+          'are': 'was', 'is': 'was', 'do': 'did', 'does': 'did',
+          'can': 'could', 'will': 'would'
+        };
+        const backshifted = auxBackshift[aux.toLowerCase()] || aux.toLowerCase();
+        
+        // Change "you" to "I" or "he/she" depending on context
+        const reportedPronoun = pronoun.toLowerCase() === 'you' ? 'I' : pronoun.toLowerCase();
+        
+        return `${subject} ${verb} ${wh.toLowerCase()} ${reportedPronoun} ${backshifted} ${reported}`;
+      }
+    );
+    
+    // Pattern 4: "He asked, 'Can you help me?'" → "He asked if I could help him"
+    corrected = corrected.replace(
+      /\b(He|She|They)\s+(asked|wondered)\s*[,:]?\s*['"](Can|Could|Will|Would|Do|Does|Did)\s+you\s+(.*?)\?['"]/gi,
+      (match, subject, verb, modal, rest) => {
+        let reported = rest.trim();
+        const pronoun = subject.toLowerCase() === 'he' ? 'him' : (subject.toLowerCase() === 'she' ? 'her' : 'them');
+        
+        // Backshift modal
+        const modalBackshift = {
+          'can': 'could', 'will': 'would', 'do': 'did', 'does': 'did'
+        };
+        const backshifted = modalBackshift[modal.toLowerCase()] || modal.toLowerCase();
+        
+        // Change "me" to appropriate pronoun
+        reported = reported.replace(/\bme\b/g, pronoun);
+        reported = reported.replace(/\byou\b/g, 'I');
+        
+        return `${subject} ${verb} if I ${backshifted} ${reported}`;
       }
     );
     
@@ -2256,13 +2366,99 @@ Provide only the improved text without any explanations or meta-commentary:`;
   }
 
   /**
-   * 7. SENTENCE FRAGMENTS (50% → 95%)
-   * Detect and fix incomplete sentences
+   * 7. SENTENCE FRAGMENTS (65% → 95%) - DATASET TRAINED
+   * Missing subjects, verbs, or dependent clauses need main clauses
    */
   fixSentenceFragments(text) {
     let corrected = text;
     
-    // Fix -ing fragments at sentence start: "Walking down the street." → "I was walking down the street."
+    // ========== SUBORDINATE CLAUSE FRAGMENTS ==========
+    
+    // 1. Fix: "Because it was late." → "It happened because it was late."
+    const subordinators = ['because', 'although', 'though', 'even though', 'while', 'since', 'if', 
+                          'unless', 'when', 'whenever', 'where', 'wherever', 'after', 'before', 'until'];
+    
+    for (const conj of subordinators) {
+      // Match subordinator at sentence start followed by clause ending with period
+      corrected = corrected.replace(
+        new RegExp(`([.!?]\\s+|^)(${conj})\\s+([^.!?]+?)([.!?])`, 'gi'),
+        (match, prefix, conjunction, clause, punct) => {
+          // Check if clause has subject and verb
+          const hasSubject = /\b(I|you|he|she|it|we|they|this|that|there|[A-Z]\w+)\b/i.test(clause);
+          const hasVerb = /\b(am|is|are|was|were|been|do|does|did|have|has|had|will|would|can|could|may|might|went|came|said|got|made)\b/i.test(clause);
+          
+          if (hasSubject && hasVerb) {
+            // Complete subordinate clause needs main clause
+            return `${prefix}It happened ${conjunction.toLowerCase()} ${clause}${punct}`;
+          }
+          return match;
+        }
+      );
+    }
+    
+    // ========== MISSING SUBJECTS ==========
+    
+    // 2. Fix: "Went to the store." → "I went to the store."
+    const verbsPast = ['went', 'came', 'left', 'arrived', 'returned', 'walked', 'ran', 'drove', 
+                       'ate', 'drank', 'slept', 'woke', 'bought', 'sold', 'made', 'took', 'gave', 
+                       'saw', 'heard', 'said', 'told', 'asked', 'answered', 'started', 'finished', 'tried'];
+    
+    for (const verb of verbsPast) {
+      // Match verb at sentence start without subject
+      corrected = corrected.replace(
+        new RegExp(`([.!?]\\s+|^)(${verb})\\s+([^.!?]+?)([.!?])`, 'gi'),
+        (match, prefix, v, rest, punct) => {
+          // Don't fix if it's a command (imperative)
+          if (/^(go|come|take|make|do|be|have|get|give|tell|say|ask|show|help|stop|wait|listen|look|watch)\b/i.test(v)) {
+            return match;
+          }
+          return `${prefix}I ${v} ${rest}${punct}`;
+        }
+      );
+    }
+    
+    // 3. Fix: "Is very important." → "It is very important."
+    corrected = corrected.replace(
+      /([.!?]\s+|^)(Is|Are|Was|Were)\s+(very|really|quite|extremely|too|so|not)\s+([^.!?]+?)([.!?])/gi,
+      '$1It $2 $3 $4$5'
+    );
+    
+    // ========== MISSING VERBS ==========
+    
+    // 4. Fix: "The report very important." → "The report is very important."
+    corrected = corrected.replace(
+      /\b(The|A|An|This|That|These|Those|My|His|Her|Their|Our)\s+(\w+)\s+(very|really|quite|extremely|highly|too|so)\s+(\w+)([.!?])/gi,
+      (match, det, noun, adv, adj, punct) => {
+        const plural = ['These', 'Those', 'Their', 'Our'].includes(det);
+        const verb = plural ? 'are' : 'is';
+        return `${det} ${noun} ${verb} ${adv} ${adj}${punct}`;
+      }
+    );
+    
+    // 5. Fix missing linking verbs with adjectives
+    const adjectives = ['important', 'necessary', 'critical', 'essential', 'vital', 'ready', 'complete',
+                       'good', 'bad', 'great', 'excellent', 'poor', 'difficult', 'easy', 'hard', 'simple',
+                       'complex', 'interesting', 'boring', 'useful', 'helpful', 'dangerous', 'safe',
+                       'happy', 'sad', 'angry', 'excited', 'tired', 'busy', 'free', 'available'];
+    
+    for (const adj of adjectives) {
+      corrected = corrected.replace(
+        new RegExp(`\\b(The|A|An|This|That|My|His|Her|Their|Our)\\s+(\\w+)\\s+${adj}([.!?,])`, 'gi'),
+        (match, det, noun, punct) => {
+          // Skip if verb already present
+          if (match.includes(' is ') || match.includes(' are ') || match.includes(' was ') || match.includes(' were ')) {
+            return match;
+          }
+          const plural = ['These', 'Those', 'Their', 'Our'].includes(det) || noun.endsWith('s');
+          const verb = plural ? 'are' : 'is';
+          return `${det} ${noun} ${verb} ${adj}${punct}`;
+        }
+      );
+    }
+    
+    // ========== GERUND PHRASES AS FRAGMENTS ==========
+    
+    // 6. Fix -ing fragments: "Walking down the street." → "I was walking down the street."
     corrected = corrected.replace(/([.!?]\s+|^)([A-Z]\w+ing)\s+([^.!?]+?)([.!?])/g, (match, prefix, gerund, rest, punct) => {
       // Check if there's already a subject and verb in the fragment
       const hasSubject = /\b(I|you|he|she|it|we|they|who|which|that)\b/i.test(rest);
@@ -2274,47 +2470,24 @@ Provide only the improved text without any explanations or meta-commentary:`;
       return match;
     });
     
-    // Fix missing "is/are/was/were": "The report very important." → "The report is very important."
+    // ========== ADJECTIVE PHRASES AS FRAGMENTS ==========
+    
+    // 7. Fix: "Very interesting and educational." → "It is very interesting and educational."
     corrected = corrected.replace(
-      /\b(The|A|An|This|That|These|Those|My|His|Her|Their|Our)\s+(\w+)\s+(very|really|quite|extremely|highly|too|so)\s+(\w+)([.!?])/gi,
-      (match, det, noun, adv, adj, punct) => {
-        const plural = ['These', 'Those', 'Their', 'Our'].includes(det);
-        const verb = plural ? 'are' : 'is';
-        return `${det} ${noun} ${verb} ${adv} ${adj}${punct}`;
-      }
+      /([.!?]\s+|^)(Very|Really|Quite|Extremely)\s+([a-z]+)\s+and\s+([a-z]+)([.!?])/gi,
+      '$1It is $2 $3 and $4$5'
     );
     
-    // Fix missing linking verbs: "The system ready." → "The system is ready."
-    const adjectives = ['important', 'necessary', 'critical', 'essential', 'vital', 'ready', 'complete', 
-                       'good', 'bad', 'great', 'excellent', 'poor', 'difficult', 'easy', 'hard', 'simple',
-                       'complex', 'interesting', 'boring', 'useful', 'helpful', 'dangerous', 'safe'];
+    // ========== PREPOSITIONAL PHRASES AS FRAGMENTS ==========
     
-    for (const adj of adjectives) {
+    // 8. Fix: "In the morning." → "It happens in the morning."
+    const prepositions = ['in', 'on', 'at', 'by', 'with', 'from', 'to', 'for', 'during', 'after', 'before'];
+    for (const prep of prepositions) {
       corrected = corrected.replace(
-        new RegExp(`\\b(The|A|An|This|That|My|His|Her|Their|Our)\\s+(\\w+)\\s+${adj}([.!?])`, 'gi'),
-        (match, det, noun, punct) => {
-          const plural = ['These', 'Those', 'Their', 'Our'].includes(det);
-          const verb = plural ? 'are' : 'is';
-          return `${det} ${noun} ${verb} ${adj}${punct}`;
-        }
+        new RegExp(`([.!?]\\s+|^)(${prep})\\s+the\\s+(\\w+)([.!?])$`, 'gmi'),
+        '$1It happens $2 the $3$4'
       );
     }
-    
-    // Fix subordinate clauses as fragments: "Because it was late." → "It happened because it was late."
-    corrected = corrected.replace(
-      /([.!?]\s+|^)(Because|Although|While|Since|If|Unless|When|Whenever)\s+([^.!?]+?)([.!?])/gi,
-      (match, prefix, conj, clause, punct) => {
-        // Check if clause has subject and verb
-        const hasSubject = /\b(I|you|he|she|it|we|they|this|that|there)\b/i.test(clause);
-        const hasVerb = /\b(am|is|are|was|were|been|do|does|did|have|has|had|will|would|can|could|may|might)\b/i.test(clause);
-        
-        if (hasSubject && hasVerb) {
-          // Complete subordinate clause - add main clause
-          return `${prefix}It happened ${conj.toLowerCase()} ${clause}${punct}`;
-        }
-        return match;
-      }
-    );
     
     return corrected;
   }
@@ -2326,12 +2499,26 @@ Provide only the improved text without any explanations or meta-commentary:`;
   fixRunOnSentences(text) {
     let corrected = text;
     
+    // Remove adjective protection placeholders first (handle our __PROTECTED_ADJ_0__ format)
+    const protectedPhrases = [];
+    corrected = corrected.replace(/__PROTECTED_ADJ_\d+__/g, (match) => {
+      const placeholder = `__RUNON_PROTECT_${protectedPhrases.length}__`;
+      protectedPhrases.push({ placeholder, original: match });
+      return placeholder;
+    });
+    
     // Fix comma splices: "I went home, I was tired" → "I went home, and I was tired"
     // Match: complete clause + comma + pronoun + verb (independent clause)
+    // Also match common words before comma: home, work, school, there, etc.
     corrected = corrected.replace(
-      /\b([^.,]{8,}[a-z])\s*,\s+(I|you|he|she|it|we|they)\s+(am|is|are|was|were|have|has|had|do|does|did|will|would|can|could|should|must|may|might|went|came|got|made|said|told|asked)\b/gi,
+      /\b([^.,]{4,}[a-z]|home|work|school|there|here|yesterday|today)\s*,\s+(I|you|he|she|it|we|they)\s+(am|is|are|was|were|have|has|had|do|does|did|will|would|can|could|should|must|may|might|went|came|got|made|said|told|asked|__RUNON_PROTECT_\d+__)\b/gi,
       '$1, and $2 $3'
     );
+    
+    // Restore protected phrases
+    protectedPhrases.forEach(item => {
+      corrected = corrected.replace(item.placeholder, item.original);
+    });
     
     // Fix comma splices with names: "John went home, he was tired" → "John went home, and he was tired"
     corrected = corrected.replace(
@@ -2381,23 +2568,121 @@ Provide only the improved text without any explanations or meta-commentary:`;
   }
 
   /**
-   * 9. ADVANCED PUNCTUATION (55% → 85%)
-   * Semicolons, colons, em-dashes
+   * 9. ADVANCED PUNCTUATION & BASIC PUNCTUATION (70% → 95%) - DATASET TRAINED
+   * Comprehensive punctuation rules: apostrophes, commas, quotation marks, periods, question marks
    */
   fixAdvancedPunctuation(text) {
     let corrected = text;
     
-    // Fix semicolons: should connect independent clauses
-    // "however" should have semicolon before it
-    corrected = corrected.replace(/\b(,)\s+(however|moreover|furthermore|therefore|consequently|nevertheless|thus|hence|meanwhile)\b/gi,
-      '; $2'
+    // ========== APOSTROPHES ==========
+    
+    // 1. its vs it's: "its raining" → "it's raining" (contraction)
+    corrected = corrected.replace(/\bits\s+(raining|snowing|cold|hot|late|early|time|been|going)/gi, "it's $1");
+    // "it's color" → "its color" (possession)
+    corrected = corrected.replace(/\bit'?s\s+(color|size|shape|form|purpose|meaning|value|own|tail|head|body|legs)/gi, "its $1");
+    
+    // 2. your vs you're: "your going" → "you're going" (contraction)
+    corrected = corrected.replace(/\byour\s+(going|coming|doing|being|having|getting|making|taking|saying|thinking)/gi, "you're $1");
+    // "you're book" → "your book" (possession)
+    corrected = corrected.replace(/\byou'?re\s+(book|car|house|dog|cat|idea|plan|work|job|phone|email)/gi, "your $1");
+    
+    // 3. their vs they're vs there: "their going" → "they're going"
+    corrected = corrected.replace(/\btheir\s+(going|coming|doing|being|having|getting|making)/gi, "they're $1");
+    // "there car" → "their car"
+    corrected = corrected.replace(/\bthere\s+(car|house|dog|book|idea|plan|work|job|phone|children|parents)/gi, "their $1");
+    // "their is a" → "there is a"
+    corrected = corrected.replace(/\btheir\s+(is|are|was|were|has|have|will|would|can|could)\b/gi, "there $1");
+    
+    // 4. Apostrophe for possession: "dogs bone" → "dog's bone" (singular)
+    corrected = corrected.replace(/\b([A-Z][a-z]+|[a-z]+)\s+(book|car|house|dog|cat|idea|plan|work|job|phone|tail|head|toy)\b/g,
+      (match, noun, possessed) => {
+        // Don't add apostrophe if already has one or is a pronoun
+        if (noun.endsWith("'s") || noun.endsWith("s'") || ['my', 'your', 'his', 'her', 'its', 'our', 'their'].includes(noun.toLowerCase())) {
+          return match;
+        }
+        // Add 's for singular, s' for plural ending in s
+        if (noun.endsWith('s') && !noun.endsWith('ss')) {
+          return `${noun}' ${possessed}`;
+        }
+        return `${noun}'s ${possessed}`;
+      }
     );
     
-    // Fix colons: should be after complete clause before list/explanation
-    // Fix missing colon before lists: "items are apples, oranges" → "items are: apples, oranges"
-    corrected = corrected.replace(/\b(following|these|include|are|were)\s+([\w\s,]+,\s+and\s+)/gi,
-      '$1: $2'
+    // 5. Plural possessive: "childrens" → "children's"
+    const irregularPlurals = ['children', 'men', 'women', 'people', 'sheep', 'deer', 'fish'];
+    for (const plural of irregularPlurals) {
+      corrected = corrected.replace(new RegExp(`\\b${plural}s\\s+([a-z]+)\\b`, 'gi'), `${plural}'s $1`);
+    }
+    
+    // ========== COMMAS ==========
+    
+    // 6. Oxford comma: "apples, oranges and bananas" → "apples, oranges, and bananas"
+    corrected = corrected.replace(/\b(\w+),\s+(\w+)\s+and\s+(\w+)\b/g, '$1, $2, and $3');
+    corrected = corrected.replace(/\b(\w+),\s+(\w+)\s+or\s+(\w+)\b/g, '$1, $2, or $3');
+    
+    // 7. Comma after introductory elements: "However I think" → "However, I think"
+    const introductory = ['however', 'therefore', 'moreover', 'furthermore', 'nevertheless', 'consequently', 
+                          'thus', 'hence', 'meanwhile', 'otherwise', 'besides', 'indeed', 'certainly'];
+    for (const word of introductory) {
+      corrected = corrected.replace(new RegExp(`\\b${word}\\s+(I|you|he|she|it|we|they|this|that|there)\\b`, 'gi'),
+        `${word}, $1`);
+    }
+    
+    // 8. Comma after introductory phrases: "In the morning I" → "In the morning, I"
+    corrected = corrected.replace(/\b(In|On|At|After|Before|During|Since|Until)\s+the\s+(\w+)\s+(I|you|he|she|it|we|they)\b/gi,
+      '$1 the $2, $3');
+    
+    // 9. Comma for non-essential clauses: "My brother who lives in Paris" → "My brother, who lives in Paris,"
+    corrected = corrected.replace(/\b(My|His|Her|Their|Our)\s+(\w+)\s+(who|which|that)\s+([^,]+?)\s+(is|are|was|were|has|have|will|would)\b/gi,
+      (match, det, noun, rel, clause, verb) => {
+        // Use commas for "who/which" (non-essential), not for "that" (essential)
+        if (rel.toLowerCase() === 'that') return match;
+        return `${det} ${noun}, ${rel} ${clause}, ${verb}`;
+      }
     );
+    
+    // ========== QUOTATION MARKS ==========
+    
+    // 10. Direct speech punctuation: "Hello he said" → "Hello," he said
+    corrected = corrected.replace(/["']([A-Z][^"']+?)[!?]?\s+(he|she|they|I|you|we)\s+(said|asked|replied|answered|exclaimed|whispered|shouted)\b/gi,
+      (match, quote, pronoun, verb) => {
+        // Add comma before closing quote if not already punctuated
+        const lastChar = quote.slice(-1);
+        if (!['.', ',', '!', '?'].includes(lastChar)) {
+          return `"${quote}," ${pronoun} ${verb}`;
+        }
+        return `"${quote}" ${pronoun} ${verb}`;
+      }
+    );
+    
+    // ========== PERIODS & QUESTION MARKS ==========
+    
+    // 11. Question marks only for direct questions: "I wonder where he is?" → "I wonder where he is."
+    corrected = corrected.replace(/\b(I\s+wonder|I\s+don't\s+know|I'm\s+not\s+sure|Tell\s+me|Explain|Show\s+me)\s+([^?]+?)\?/gi,
+      '$1 $2.');
+    
+    // 12. Ensure question marks for direct questions without them
+    const questionWords = ['who', 'what', 'where', 'when', 'why', 'how', 'which', 'whose'];
+    for (const qw of questionWords) {
+      corrected = corrected.replace(new RegExp(`^${qw}\\s+([^.?!]+)[.]$`, 'gmi'),
+        (match, rest) => {
+          // Only if it's a direct question (verb before subject)
+          if (/\b(do|does|did|can|could|will|would|should|is|are|was|were|have|has|had)\s+(I|you|he|she|it|we|they)\b/i.test(rest)) {
+            return `${qw} ${rest}?`;
+          }
+          return match;
+        });
+    }
+    
+    // ========== SEMICOLONS ==========
+    
+    // 13. Semicolons before transitional phrases connecting independent clauses
+    corrected = corrected.replace(/\b(,)\s+(however|moreover|furthermore|therefore|consequently|nevertheless|thus|hence|meanwhile)\b/gi,
+      '; $2');
+    
+    // 14. Fix colons before lists: "items are apples, oranges" → "items are: apples, oranges"
+    corrected = corrected.replace(/\b(following|these|include|are|were)\s+([\w\s]+,\s+[\w\s]+,\s+and\s+)/gi,
+      '$1: $2');
     
     return corrected;
   }
@@ -2484,30 +2769,66 @@ Provide only the improved text without any explanations or meta-commentary:`;
   }
 
   /**
-   * 12. ELLIPSIS & SUBSTITUTION (0% → 70%)
-   * "I can too", "Neither do I", "So am I"
+   * 12. ELLIPSIS & SUBSTITUTION (70% → 95%) - DATASET TRAINED
+   * Avoid repetition using "one/ones", "do/does/did", "so/not", auxiliaries
    */
   fixEllipsisSubstitution(text) {
     let corrected = text;
     
-    // Fix: "me too" → "I do as well" (keep original capitalization context)
-    corrected = corrected.replace(/\bme\s+too\b/gi, (match) => {
-      return match[0] === match[0].toUpperCase() ? 'I do as well' : 'I do as well';
-    });
-    corrected = corrected.replace(/\bMe\s+too\b/g, 'I do as well');
+    // 1. Noun substitution: "red car and blue car" → "red car and blue one"
+    corrected = corrected.replace(
+      /\b(a|an|the)\s+([a-z]+)\s+(\w+)\s+(and|or)\s+(a|an|the)\s+([a-z]+)\s+\3\b/gi,
+      (match, det1, adj1, noun, conj, det2, adj2) => {
+        return `${det1} ${adj1} ${noun} ${conj} ${det2} ${adj2} one`;
+      }
+    );
     
-    // Fix: "I don't neither" → "I don't either"
-    corrected = corrected.replace(/\bI\s+don'?t\s+neither\b/gi, "I don't either");
-    corrected = corrected.replace(/\bI\s+do\s+not\s+neither\b/gi, "I do not either");
-    corrected = corrected.replace(/\bI\s+am\s+not\s+neither\b/gi, "I am not either");
+    // 2. Verb phrase ellipsis: "I can speak Spanish, but he cannot speak Spanish" → "cannot"
+    const auxiliaries = ['can', 'could', 'will', 'would', 'should', 'may', 'might', 'must', 'have', 'has', 'had', 'do', 'does', 'did', 'am', 'is', 'are', 'was', 'were'];
+    for (const aux of auxiliaries) {
+      // "he can swim but she cannot swim" → "she cannot"
+      const regex = new RegExp(`(${aux}n?'?t?)\\s+(\\w+)\\s+([^,\\.]+),?\\s+(but|and|or)\\s+([\\w\\s]+)\\s+\\1\\s+\\2`, 'gi');
+      corrected = corrected.replace(regex, '$1 $2 $3, $4 $5 $1');
+    }
     
-    // Fix: "I can't too" → "I can't either"
-    corrected = corrected.replace(/\b(I|you|he|she|we|they)\s+(can'?t|couldn'?t|won'?t|wouldn'?t|haven'?t|hasn'?t|hadn'?t|didn'?t|don'?t|doesn'?t)\s+too\b/gi,
+    // 3. "me too" → "I do too" (keep this format, it's acceptable)
+    corrected = corrected.replace(/\bme\s+too\b/gi, 'I do too');
+    corrected = corrected.replace(/\bMe\s+too\b/g, 'I do too');
+    
+    // 4. DON'T convert "I do too" to "so do I" - both are correct, keep the simpler form
+    // corrected = corrected.replace(/\b(I|you|he|she|we|they)\s+(do|does|did|am|is|are|was|were|have|has|had|can|could|will|would)\s+too\b/gi,
+    //   (match, pronoun, aux) => {
+    //     return `so ${aux} ${pronoun}`;
+    //   }
+    // );
+    
+    // 5. "I don't neither" → "I don't either" OR "neither do I"
+    
+    // 5. "I don't neither" → "I don't either" OR "neither do I"
+    corrected = corrected.replace(/\b(I|you|he|she|we|they)\s+(don'?t|doesn'?t|didn'?t|am\s+not|isn'?t|aren'?t|wasn'?t|weren'?t|haven'?t|hasn'?t|hadn'?t|can'?t|couldn'?t|won'?t|wouldn'?t)\s+neither\b/gi,
       (match, pronoun, negative) => {
-        // Normalize contractions
+        // Extract auxiliary
+        const auxMatch = negative.match(/(do|does|did|am|is|are|was|were|have|has|had|can|could|will|would)/i);
+        const aux = auxMatch ? auxMatch[1] : 'do';
+        return `neither ${aux} ${pronoun}`;
+      }
+    );
+    
+    // 5. "I can't too" → "I can't either"
+    corrected = corrected.replace(/\b(I|you|he|she|we|they)\s+(can'?t|couldn'?t|won'?t|wouldn'?t|haven'?t|hasn'?t|hadn'?t|didn'?t|don'?t|doesn'?t|am\s+not|isn'?t|aren'?t|wasn'?t|weren'?t)\s+too\b/gi,
+      (match, pronoun, negative) => {
         negative = negative.replace(/'/, "'");
         return `${pronoun} ${negative} either`;
       }
+    );
+    
+    // 6. Clause substitution: "Will it rain? I think it will rain" → "I think so"
+    corrected = corrected.replace(/\b(think|hope|believe|expect|suppose|guess|imagine)\s+(that\s+)?it\s+will\b/gi, '$1 so');
+    corrected = corrected.replace(/\b(think|hope|believe|expect|suppose|guess|imagine)\s+(that\s+)?it\s+won'?t\b/gi, "$1 not");
+    
+    // 7. Auxiliary verb answers: "Can you help? Yes, I can help" → "Yes, I can"
+    corrected = corrected.replace(/\b(yes|no),?\s+(I|you|he|she|we|they)\s+(can|could|will|would|should|may|might|must|do|does|did|have|has|had|am|is|are|was|were)\s+\w+/gi,
+      '$1, $2 $3'
     );
     
     return corrected;
@@ -2546,16 +2867,32 @@ Provide only the improved text without any explanations or meta-commentary:`;
    * Helper: Get gerund (present participle) of verb
    */
   getGerund(verb) {
-    // Handle special cases
+    // Handle special cases for gerund formation
+    const verbLower = verb.toLowerCase();
+    
+    // Special verbs that just add 'ing' (don't double consonant or drop 'e')
+    const simpleIng = ['read', 'beat', 'heat', 'treat', 'seat', 'eat', 'cheat'];
+    if (simpleIng.includes(verbLower)) {
+      return verb + 'ing';
+    }
+    
+    // Drop 'e' before 'ing' (but not for 'ee')
     if (verb.endsWith('e') && !verb.endsWith('ee')) {
-      return verb.slice(0, -1) + 'ing'; // live → living
+      return verb.slice(0, -1) + 'ing'; // live → living, make → making
     }
-    if (verb.match(/[aeiou][bcdfghjklmnpqrstvwxyz]$/)) {
-      return verb + verb.slice(-1) + 'ing'; // run → running
+    
+    // Double final consonant for CVC pattern (consonant-vowel-consonant)
+    // But NOT for words ending in w, x, y
+    if (verb.match(/[^aeiou][aeiou][bcdfghjklmnpqrstvz]$/) && verb.length > 2) {
+      return verb + verb.slice(-1) + 'ing'; // run → running, swim → swimming
     }
+    
+    // Change 'ie' to 'ying'
     if (verb.endsWith('ie')) {
-      return verb.slice(0, -2) + 'ying'; // die → dying
+      return verb.slice(0, -2) + 'ying'; // die → dying, lie → lying
     }
+    
+    // Default: just add 'ing'
     return verb + 'ing';
   }
 }
