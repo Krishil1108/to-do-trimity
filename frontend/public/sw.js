@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v3.3.0-' + Date.now(); // LibreTranslate + enhanced grammar correction
+const CACHE_VERSION = 'v3.4.0-' + Date.now(); // SVO + All 12 Tenses implementation
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
