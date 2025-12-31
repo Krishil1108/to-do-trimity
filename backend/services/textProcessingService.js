@@ -262,12 +262,7 @@ class TextProcessingService {
               return false;
             }
             
-            // Skip if replacing verb with verb + period (like "was" -> "was.")
-            if (original.match(/^(was|were|is|are|will|would|can|could)$/i) && 
-                replacement.includes('.')) {
-              return false;
-            }
-            
+            // 
             // CRITICAL: Skip tense changes that conflict with time markers
             const textAround = preProcessedText.substring(Math.max(0, m.offset - 30), Math.min(preProcessedText.length, m.offset + m.length + 30));
             
@@ -283,6 +278,25 @@ class TextProcessingService {
             if (textAround.match(/\b(tomorrow|next\s+\w+|later|soon|upcoming)\b/i)) {
               if (original.match(/\b(is|are|am|have)\b/i) && replacement.match(/\b(was|were|had)\b/i)) {
                 console.log(`⚠️ Skipping present→past change near future time marker: "${original}" → "${replacement}"`);
+                return false;
+              }
+            }
+            
+            // CRITICAL: Maintain tense consistency across sentence
+            // If the sentence has past tense verbs (worked, could), don't change other past tense to future
+            if (preProcessedText.match(/\b(worked|completed|finished|started|began|did|went|came|had|could|would|should|might|walked|talked|called|asked|helped|tried|used|said|told|made|took|gave)\b/i)) {
+              // Don't change "was/were X-ing" to "will be X-ing" in past tense context
+              if (original.match(/\bwas\s+\w+ing\b/i) && replacement.match(/\bwill\s+be\s+\w+ing\b/i)) {
+                console.log(`⚠️ Skipping past continuous→future continuous in past context: "${original}" → "${replacement}"`);
+                return false;
+              }
+              if (original.match(/\bwere\s+\w+ing\b/i) && replacement.match(/\bwill\s+be\s+\w+ing\b/i)) {
+                console.log(`⚠️ Skipping past continuous→future continuous in past context: "${original}" → "${replacement}"`);
+                return false;
+              }
+              // Also block simple "was/were" → "will be" changes when past verbs present
+              if (original.match(/\b(was|were)\b/i) && replacement.match(/\b(will|shall)\s+be\b/i)) {
+                console.log(`⚠️ Skipping past→future auxiliary change in past tense context: "${original}" → "${replacement}"`);
                 return false;
               }
             }
@@ -388,14 +402,22 @@ Provide only the improved text without any explanations or meta-commentary:`;
       const pastMarkers = doc.match('(yesterday|#Date ago|last #Duration|earlier|previously)').out('array');
       const futureMarkers = doc.match('(tomorrow|next #Duration|later|soon|upcoming)').out('array');
       
-      // If past markers found, ensure past tense
-      if (pastMarkers.length > 0) {
+      // IMPORTANT: Don't blindly change all verbs - only change if there's a strong past/future context
+      // AND the sentence doesn't already have consistent tenses
+      
+      // Check if sentence already has consistent past tense verbs
+      const hasPastVerbs = /\b(worked|completed|finished|started|began|did|went|came|had|could|would|should|was|were)\b/i.test(corrected);
+      const hasFutureVerbs = /\b(will|shall|going\s+to)\b/i.test(corrected);
+      
+      // If past markers found AND no future verbs, ensure past tense
+      if (pastMarkers.length > 0 && !hasFutureVerbs) {
         doc.verbs().toPastTense();
         corrected = doc.text();
       }
       
-      // If future markers found, ensure future tense
-      if (futureMarkers.length > 0) {
+      // If future markers found AND sentence doesn't already have consistent past tense narrative
+      // Only convert if the future marker is at sentence start or is a primary time reference
+      if (futureMarkers.length > 0 && !hasPastVerbs) {
         doc.verbs().toFutureTense();
         corrected = doc.text();
       }
@@ -453,6 +475,14 @@ Provide only the improved text without any explanations or meta-commentary:`;
     
     futureTimePatterns.forEach(pattern => {
       if (pattern.test(corrected)) {
+        // DON'T convert if sentence already has consistent past tense narrative
+        const hasPastTenseNarrative = /\b(worked|completed|finished|started|began|did|went|came|could|would|should)\b/i.test(corrected);
+        
+        if (hasPastTenseNarrative) {
+          // Skip future conversion - this is a past tense narrative that happens to mention future events
+          return;
+        }
+        
         // Convert past to future
         corrected = corrected.replace(
           /\b(was|were)\s+(\w+ing)\b/gi,
@@ -560,13 +590,18 @@ Provide only the improved text without any explanations or meta-commentary:`;
       }
     );
     
-    // Fix "was/were...tomorrow"
-    corrected = corrected.replace(
-      /\b(was|were)\s+([^.]+?)\s+(tomorrow|next\s+\w+|later|soon|upcoming)\b/gi,
-      (match, verb, middle, timeMarker) => {
-        return `will be ${middle} ${timeMarker}`;
-      }
-    );
+    // Fix "was/were...tomorrow" BUT ONLY if not in a past tense narrative
+    // Don't change if the sentence has consistent past tense (worked, could, etc.)
+    const hasPastNarrative = /\b(worked|completed|finished|started|began|did|went|came|could|would|should)\b/i.test(corrected);
+    
+    if (!hasPastNarrative) {
+      corrected = corrected.replace(
+        /\b(was|were)\s+([^.]+?)\s+(tomorrow|next\s+\w+|later|soon|upcoming)\b/gi,
+        (match, verb, middle, timeMarker) => {
+          return `will be ${middle} ${timeMarker}`;
+        }
+      );
+    }
     
     // Fix incorrect period insertion: "I and. John" -> "I and John"
     corrected = corrected.replace(/\b(and|or|to|at|in|on|by|with)\.(\s+[A-Z])/g, '$1$2');

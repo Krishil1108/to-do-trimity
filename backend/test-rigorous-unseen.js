@@ -20,6 +20,16 @@ const rigorousTests = [
       correct: 'Although she was tired after the long meeting, she stayed late to finish the report so the team can review it this morning'
     }
   },
+  
+  // TENSE CONSISTENCY - Maintain tense across clauses
+  {
+    category: 'Tense Consistency',
+    input: 'Because the deadline was approaching, they worked late in the office to finalize the proposal so the client could review it before the next meeting',
+    expected: {
+      fixes: ['Maintain past tense throughout (was approaching, worked, could)'],
+      correct: 'Because the deadline was approaching, they worked late in the office to finalize the proposal so the client could review it before the next meeting'
+    }
+  },
 
   // SIMILAR PATTERNS - Adjective vs Gerund
   {
