@@ -17,7 +17,7 @@ const MOMHistory = () => {
   const fetchTasksWithMoms = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/mom/tasks-with-moms`);
+      const response = await axios.get(`${API_URL}/mom/tasks-with-moms`);
       setTasksWithMoms(response.data.data || []);
       setError(null);
     } catch (err) {
@@ -31,7 +31,7 @@ const MOMHistory = () => {
   const fetchMomHistory = async (taskId) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/mom/history/${taskId}`);
+      const response = await axios.get(`${API_URL}/mom/history/${taskId}`);
       setMomHistory(response.data.data.moms || []);
       setSelectedTask(response.data.data.task);
       setError(null);
@@ -45,7 +45,7 @@ const MOMHistory = () => {
 
   const viewMomDetails = async (momId) => {
     try {
-      const response = await axios.get(`${API_URL}/api/mom/view/${momId}`);
+      const response = await axios.get(`${API_URL}/mom/view/${momId}`);
       setSelectedMom(response.data.data);
     } catch (err) {
       console.error('Error fetching MOM details:', err);
@@ -56,7 +56,7 @@ const MOMHistory = () => {
   const downloadMomPdf = async (momId) => {
     try {
       const response = await axios.post(
-        `${API_URL}/api/mom/regenerate-pdf/${momId}`,
+        `${API_URL}/mom/regenerate-pdf/${momId}`,
         {},
         { responseType: 'blob' }
       );
@@ -78,7 +78,7 @@ const MOMHistory = () => {
     if (!window.confirm('Are you sure you want to delete this MOM?')) return;
 
     try {
-      await axios.delete(`${API_URL}/api/mom/${momId}`);
+      await axios.delete(`${API_URL}/mom/${momId}`);
       alert('MOM deleted successfully');
       if (selectedTask) {
         fetchMomHistory(selectedTask._id);
