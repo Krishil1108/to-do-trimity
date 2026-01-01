@@ -20,22 +20,14 @@ router.post('/process-text', async (req, res) => {
   try {
     const { text } = req.body;
 
-    console.log('🔍 [DEBUG] Received process-text request');
-    console.log('🔍 [DEBUG] Input text length:', text?.length);
-
     if (!text || text.trim().length === 0) {
-      console.log('❌ [DEBUG] Empty text received');
       return res.status(400).json({
         success: false,
         error: 'Text is required'
       });
     }
 
-    console.log('📝 Processing MOM text with ChatGPT...');
     const result = await textProcessingService.processMOMText(text);
-    
-    console.log('✅ [DEBUG] Processing complete');
-    console.log('🔍 [DEBUG] Result structure:', JSON.stringify(result, null, 2));
 
     res.json({
       success: true,
@@ -101,6 +93,7 @@ router.post('/generate-pdf', async (req, res) => {
 
     // Step 3: Generate PDF
     console.log('📄 Generating PDF...');
+    console.log('🔍 [DEBUG] Processed text:', processedResult.processedText?.substring(0, 100));
     
     const filename = pdfGenerationService.generateFilename(
       taskId || 'general',
@@ -118,7 +111,7 @@ router.post('/generate-pdf', async (req, res) => {
       time,
       location,
       attendees,
-      content: processedResult.final,
+      content: processedResult.processedText || rawContent,
       taskTitle,
       taskId,
       companyName: companyName || 'Trido Task Management'
@@ -219,7 +212,7 @@ router.post('/generate-complete', async (req, res) => {
       time,
       location,
       attendees,
-      content: processedResult.final,
+      content: processedResult.processedText || rawContent,
       taskTitle,
       taskId,
       companyName: companyName || 'Trido Task Management'

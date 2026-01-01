@@ -287,13 +287,17 @@ export const setupGrammarTester = () => {
     return grammarTester.checkGrammar(text);
   };
 
-  console.log('✅ Grammar Testing Tools Loaded!');
-  console.log('\n📚 Available Commands:');
-  console.log('   window.testGrammar("your text here")');
-  console.log('   window.testGrammar(["text 1", "text 2", ...])');
-  console.log('   window.testGrammarDetailed("text", "expected output")');
-  console.log('   window.runGrammarTests()  // Run full test suite');
-  console.log('   window.checkGrammar("text")  // Just get corrected text\n');
+  // Only show logs in development
+  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isDev) {
+    console.log('✅ Grammar Testing Tools Loaded!');
+    console.log('\n📚 Available Commands:');
+    console.log('   window.testGrammar("your text here")');
+    console.log('   window.testGrammar(["text 1", "text 2", ...])');
+    console.log('   window.testGrammarDetailed("text", "expected output")');
+    console.log('   window.runGrammarTests()  // Run full test suite');
+    console.log('   window.checkGrammar("text")  // Just get corrected text\n');
+  }
 };
 
 export default grammarTester;

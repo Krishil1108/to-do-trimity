@@ -29,18 +29,14 @@ const keepServerAlive = () => {
 // Wake up server immediately for faster notifications
 const wakeServer = async () => {
   if (process.env.NODE_ENV === 'production') {
-    console.log('⏰ Waking up render server for faster notifications...');
     try {
       const start = Date.now();
       await fetch(API_URL.replace('/api', '/health'), { 
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
-      const duration = Date.now() - start;
-      console.log(`✅ Server awake in ${duration}ms`);
       return true;
     } catch (error) {
-      console.warn('⚠️ Server wake-up failed:', error.message);
       return false;
     }
   }

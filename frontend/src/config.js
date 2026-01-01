@@ -4,10 +4,12 @@ const isDevelopment = window.location.hostname === 'localhost' || window.locatio
 const API_URL = process.env.REACT_APP_API_URL || 
   (isDevelopment ? 'http://localhost:5000/api' : 'https://to-do-trimity-backend.onrender.com/api');
 
-console.log('🌐 API Configuration:', {
-  environment: isDevelopment ? 'development' : 'production',
-  apiUrl: API_URL,
-  hostname: window.location.hostname
-});
+// Only log in development
+if (isDevelopment) {
+  console.log('🌐 API Configuration:', {
+    environment: 'development',
+    apiUrl: API_URL
+  });
+}
 
 export default API_URL;

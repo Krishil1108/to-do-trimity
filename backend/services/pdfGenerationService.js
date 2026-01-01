@@ -208,14 +208,8 @@ class PDFGenerationService {
    * @param {PDFDocument} doc - PDF document
    */
   addSignatureArea(doc) {
-    const yPos = doc.page.height - 150;
-    
-    // Check if we need a new page
-    if (doc.y > yPos - 50) {
-      doc.addPage();
-    } else {
-      doc.y = yPos;
-    }
+    // Add some space before signatures
+    doc.moveDown(2);
 
     doc.fontSize(9)
        .fillColor('#64748b')

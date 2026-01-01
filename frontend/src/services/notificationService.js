@@ -17,32 +17,24 @@ class NotificationService {
 
     try {
       // Register service worker
-      console.log('Registering service worker...');
       this.registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('SW registered:', this.registration);
       
       // Wait for service worker to be ready
-      console.log('Waiting for service worker to be ready...');
       const registration = await navigator.serviceWorker.ready;
       this.registration = registration;
-      console.log('Service Worker is ready:', registration);
       
       // Wait a bit for the service worker to fully activate
       if (registration.active) {
-        console.log('Service Worker is active and ready for push notifications');
         return true;
       } else {
-        console.log('Waiting for Service Worker to activate...');
         return new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
-            console.warn('Service Worker activation timeout');
             resolve(true); // Still resolve to allow push functionality
           }, 5000);
           
           const checkActivation = () => {
             if (registration.active) {
               clearTimeout(timeout);
-              console.log('Service Worker activated successfully');
               resolve(true);
             }
           };
