@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v5.1.0-' + Date.now(); // Puppeteer PDF: HTML-based rendering with letterhead template, absolute positioning
+const CACHE_VERSION = 'v5.1.2-' + Date.now(); // MOM Save Button: Save to history without PDF generation
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
