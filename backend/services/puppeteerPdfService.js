@@ -14,11 +14,25 @@ class PuppeteerPDFService {
     try {
       console.log('🚀 Starting Puppeteer PDF generation...');
 
-      // Launch browser
-      browser = await puppeteer.launch({
+      // Launch browser with Render.com compatible configuration
+      const browserConfig = {
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu',
+          '--window-size=1920x1080'
+        ]
+      };
+
+      // Use Puppeteer's bundled Chromium or system Chrome if available
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        browserConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      }
+
+      browser = await puppeteer.launch(browserConfig);
 
       const page = await browser.newPage();
 

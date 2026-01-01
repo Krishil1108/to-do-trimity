@@ -1,0 +1,20 @@
+services:
+  # Backend API
+  - type: web
+    name: trido-backend
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: |
+      cd backend
+      # Install Chromium dependencies for Puppeteer
+      npm install
+      # Puppeteer will download Chromium automatically
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: false
+      - key: PUPPETEER_EXECUTABLE_PATH
+        sync: false
