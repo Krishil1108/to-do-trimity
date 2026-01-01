@@ -14,21 +14,34 @@ class PuppeteerPDFService {
     let browser;
     try {
       console.log('🚀 Starting Puppeteer PDF generation...');
+      console.log('📍 Environment:', process.env.NODE_ENV || 'development');
 
       // Launch browser with serverless-optimized Chromium for production
       // Falls back to local Puppeteer for development
-      let browser;
       
       if (process.env.NODE_ENV === 'production') {
-        // Use @sparticuz/chromium for Render.com
-        browser = await puppeteerCore.launch({
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(),
-          headless: chromium.headless,
-        });
+        console.log('🌐 Using @sparticuz/chromium for production...');
+        try {
+          const executablePath = await chromium.executablePath();
+          console.log('✅ Chromium executable path:', executablePath);
+          
+          browser = await puppeteerCore.launch({
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: executablePath,
+            headless: chromium.headless,
+          });
+        } catch (chromiumError) {
+          console.error('❌ Failed to launch with @sparticuz/chromium:', chromiumError.message);
+          console.log('🔄 Falling back to puppeteer...');
+          const puppeteer = require('puppeteer');
+          browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+          });
+        }
       } else {
-        // Use regular puppeteer for local development
+        console.log('💻 Using local puppeteer for development...');
         const puppeteer = require('puppeteer');
         browser = await puppeteer.launch({
           headless: 'new',

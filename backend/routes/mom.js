@@ -118,9 +118,8 @@ router.post('/generate-pdf', async (req, res) => {
       companyName: companyName || 'Trido Task Management'
     };
 
-    await puppeteerPdfService.generateMOMPDF(momData, outputPath);
-
-    // Step 4: Save MOM to database
+    // Step 4: Save MOM to database BEFORE generating PDF (so it's saved even if PDF fails)
+    let momRecordId = null;
     try {
       const momRecord = new MOM({
         taskId,
@@ -134,14 +133,30 @@ router.post('/generate-pdf', async (req, res) => {
         companyName: companyName || 'Trimity Consultants'
       });
       
-      await momRecord.save();
-      console.log('✅ MOM saved to database:', momRecord._id);
+      const savedMom = await momRecord.save();
+      momRecordId = savedMom._id;
+      console.log('✅ MOM saved to database:', momRecordId);
     } catch (dbError) {
       console.error('⚠️  Failed to save MOM to database:', dbError);
-      // Continue even if DB save fails
+      // Continue to try generating PDF even if DB save fails
     }
 
-    // Step 5: Send PDF as download
+    // Step 5: Generate PDF
+    try {
+      await puppeteerPdfService.generateMOMPDF(momData, outputPath);
+      console.log('✅ PDF generated successfully');
+    } catch (pdfError) {
+      console.error('❌ PDF generation failed:', pdfError.message);
+      // Return saved MOM info even if PDF failed
+      return res.status(500).json({
+        success: false,
+        error: 'PDF generation failed but MOM was saved',
+        momId: momRecordId,
+        message: 'Your MOM has been saved in history. You can regenerate the PDF from MOM History page.'
+      });
+    }
+
+    // Step 6: Send PDF as download
     res.download(outputPath, filename, (err) => {
       if (err) {
         console.error('Error sending PDF:', err);
