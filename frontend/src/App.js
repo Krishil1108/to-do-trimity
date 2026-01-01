@@ -12,6 +12,7 @@ import './pwa-styles.css';
 import notificationService from './services/notificationService';
 import UpdateChecker from './components/UpdateChecker';
 import CustomDialog from './components/CustomDialog';
+import MOMHistory from './components/MOMHistory';
 import { setupGrammarTester } from './utils/grammarTester';
 
 // Server optimization for render.com deployment
@@ -7374,6 +7375,18 @@ Priority: ${task.priority}`;
               )}
               
               <button
+                onClick={() => { setCurrentView('mom-history'); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  currentView === 'mom-history' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  MOM History
+                </div>
+              </button>
+              
+              <button
                 onClick={() => { setCurrentView('settings'); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   currentView === 'settings' ? 'bg-gray-600 text-white' : 'text-gray-600 hover:bg-gray-50'
@@ -7482,6 +7495,18 @@ Priority: ${task.priority}`;
               )}
               
               <button
+                onClick={() => { setCurrentView('mom-history'); setShowAdvancedMenu(false); }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  currentView === 'mom-history' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  MOM History
+                </div>
+              </button>
+              
+              <button
                 onClick={() => { setCurrentView('settings'); setShowAdvancedMenu(false); }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   currentView === 'settings' ? 'bg-gray-600 text-white' : 'text-gray-600 hover:bg-gray-50'
@@ -7506,6 +7531,7 @@ Priority: ${task.priority}`;
         {currentView === 'external-tasks' && <ExternalTasksView />}
         {currentView === 'confidential-tasks' && currentUser?.name === 'Ketul Lathia' && <ConfidentialTasksView />}
         {currentView === 'admin-reports' && currentUser?.name === 'Ketul Lathia' && <AdminReportsView />}
+        {currentView === 'mom-history' && <MOMHistory />}
         {currentView === 'settings' && <NotificationSettingsView />}
       </div>
 
@@ -9071,6 +9097,15 @@ Priority: ${task.priority}`;
               <span className="text-xs font-medium whitespace-nowrap">Reports</span>
             </button>
           )}
+          <button
+            onClick={() => setCurrentView('mom-history')}
+            className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+              currentView === 'mom-history' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
+            }`}
+          >
+            <FileText className="w-4 h-4 mb-1" />
+            <span className="text-xs font-medium whitespace-nowrap">MOMs</span>
+          </button>
           <button
             onClick={() => setCurrentView('settings')}
             className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
