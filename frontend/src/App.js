@@ -8928,6 +8928,60 @@ Priority: ${task.priority}`;
 
                     setProcessingMOM(true);
                     try {
+                      const response = await axios.post(`${API_URL}/mom/save`, {
+                        taskId: selectedTaskForMOM._id,
+                        title: momMetadata.title,
+                        date: momMetadata.date,
+                        time: momMetadata.time,
+                        location: momMetadata.location,
+                        attendees: momMetadata.attendees,
+                        rawContent: contentToUse,
+                        companyName: 'Trimity Consultants'
+                      });
+
+                      showSuccess('MOM saved to history! 💾 You can download PDF later from MOM History page.');
+                      
+                      // Close modal after successful save
+                      setTimeout(() => {
+                        setShowMOMModal(false);
+                        setSelectedTaskForMOM(null);
+                        setMomContent('');
+                        setProcessedMOMText('');
+                      }, 2000);
+                    } catch (error) {
+                      showError('Failed to save MOM: ' + (error.response?.data?.error || error.message));
+                    } finally {
+                      setProcessingMOM(false);
+                    }
+                  }}
+                  disabled={processingMOM || (!momContent.trim() && !processedMOMText)}
+                  className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {processingMOM ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                      </svg>
+                      Save to History
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const contentToUse = processedMOMText || momContent;
+                    if (!contentToUse.trim()) {
+                      showError('Please enter meeting notes or process the text first');
+                      return;
+                    }
+
+                    setProcessingMOM(true);
+                    try {
                       const response = await axios.post(`${API_URL}/mom/generate-pdf`, {
                         taskId: selectedTaskForMOM._id,
                         title: momMetadata.title,
@@ -8952,7 +9006,7 @@ Priority: ${task.priority}`;
                       document.body.removeChild(link);
                       window.URL.revokeObjectURL(url);
 
-                      showSuccess('PDF downloaded successfully! 📄');
+                      showSuccess('PDF downloaded successfully! 📄 Also saved to MOM History.');
                       
                       // Close modal after successful download
                       setTimeout(() => {

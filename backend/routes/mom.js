@@ -45,6 +45,89 @@ router.post('/process-text', async (req, res) => {
 });
 
 /**
+ * POST /api/mom/save
+ * Save MOM to history without generating PDF
+ */
+router.post('/save', async (req, res) => {
+  try {
+    const {
+      taskId,
+      title = 'Minutes of Meeting',
+      date,
+      time,
+      location,
+      attendees = [],
+      rawContent,
+      companyName
+    } = req.body;
+
+    if (!rawContent || rawContent.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Meeting content is required'
+      });
+    }
+
+    // Get task details if taskId provided
+    let taskTitle = null;
+    if (taskId) {
+      try {
+        const task = await Task.findById(taskId);
+        if (task) {
+          taskTitle = task.title;
+        }
+      } catch (err) {
+        console.log('Task not found, continuing without task details');
+      }
+    }
+
+    // Process the text (translate and improve)
+    console.log('📝 Processing MOM content for save...');
+    const processedResult = await textProcessingService.processMOMText(rawContent);
+    
+    if (!processedResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to process MOM content'
+      });
+    }
+
+    // Save MOM to database
+    const momRecord = new MOM({
+      taskId,
+      title: taskTitle || title,
+      visitDate: date || new Date().toLocaleDateString('en-IN'),
+      location,
+      attendees: attendees.map(a => ({ name: typeof a === 'string' ? a : a.name })),
+      rawContent,
+      processedContent: processedResult.processedText || rawContent,
+      pdfFilename: `MOM_${taskId}_${Date.now()}.pdf`,
+      companyName: companyName || 'Trimity Consultants'
+    });
+    
+    const savedMom = await momRecord.save();
+    console.log('✅ MOM saved to database:', savedMom._id);
+
+    res.json({
+      success: true,
+      message: 'MOM saved successfully to history',
+      data: {
+        momId: savedMom._id,
+        processedText: processedResult.processedText
+      }
+    });
+
+  } catch (error) {
+    console.error('Error saving MOM:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to save MOM'
+    });
+  }
+});
+
+
+/**
  * POST /api/mom/generate-pdf
  * Generate MOM PDF and download
  */
