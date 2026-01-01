@@ -237,7 +237,18 @@ class PDFGenerationService {
     // Prepared by
     doc.fontSize(10)
        .fillColor('#1e293b')
-       .font('Hematching professional format
+       .font('Helvetica');
+    
+    doc.text('_____________________', col1X, doc.y);
+    doc.text('Prepared By', col1X, doc.y + 5);
+
+    // Approved by
+    doc.text('_____________________', col2X, doc.y - 15);
+    doc.text('Approved By', col2X, doc.y + 5);
+  }
+
+  /**
+   * Add footer matching professional format
    * @param {PDFDocument} doc - PDF document
    */
   addFooter(doc) {
