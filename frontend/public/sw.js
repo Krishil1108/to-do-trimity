@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v4.3.0-' + Date.now(); // Professional PDF Letterhead: Replicate exact format with blue header, structured layout
+const CACHE_VERSION = 'v4.4.0-' + Date.now(); // Trimity Professional Format: Table-based MOM with logo, borders, signatures
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

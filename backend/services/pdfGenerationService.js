@@ -4,7 +4,7 @@ const path = require('path');
 
 class PDFGenerationService {
   /**
-   * Generate a professional letterhead PDF with MOM content matching Samruddh Vatika format
+   * Generate Trimity Consultants professional MOM PDF with table format
    * @param {object} momData - MOM data
    * @param {string} outputPath - Path to save the PDF
    * @returns {Promise<string>} - Path to generated PDF
@@ -16,10 +16,10 @@ class PDFGenerationService {
         const doc = new PDFDocument({
           size: 'A4',
           margins: {
-            top: 50,
-            bottom: 50,
-            left: 50,
-            right: 50
+            top: 30,
+            bottom: 30,
+            left: 30,
+            right: 30
           }
         });
 
@@ -27,14 +27,17 @@ class PDFGenerationService {
         const stream = fs.createWriteStream(outputPath);
         doc.pipe(stream);
 
-        // Add letterhead header
-        this.addLetterhead(doc, momData.companyName || 'Trido Task Management');
+        // Add Trimity Consultants letterhead
+        this.addTrimityLetterhead(doc);
 
-        // Add MOM content
-        this.addMOMContent(doc, momData);
+        // Add project and participant details
+        this.addProjectDetails(doc, momData);
 
-        // Add footer
-        this.addFooter(doc);
+        // Add MOM table
+        this.addMOMTable(doc, momData);
+
+        // Add footer with signatures
+        this.addTrimityFooter(doc);
 
         // Finalize the PDF
         doc.end();
@@ -57,245 +60,229 @@ class PDFGenerationService {
   }
 
   /**
-   * Add professional letterhead matching Samruddh Vatika format
+   * Add Trimity Consultants letterhead with company details
    * @param {PDFDocument} doc - PDF document
-   * @param {string} companyName - Company name
    */
-  addLetterhead(doc, companyName = 'Trido Task Management') {
+  addTrimityLetterhead(doc) {
     const pageWidth = doc.page.width;
     
-    // Top colored bar (blue professional header)
-    doc.rect(0, 0, pageWidth, 90)
-       .fill('#2563eb');
+    // Draw outer border
+    doc.rect(30, 30, pageWidth - 60, doc.page.height - 60)
+       .stroke('#000000');
 
-    // Company name (centered and bold)
-    doc.fontSize(28)
-       .fillColor('#ffffff')
+    // Company Logo Area (Blue background strip at top)
+    doc.rect(40, 40, pageWidth - 80, 60)
+       .fill('#FF8C00'); // Orange color like Trimity
+
+    // Company Name
+    doc.fontSize(20)
+       .fillColor('#FFFFFF')
        .font('Helvetica-Bold')
-       .text(companyName, 0, 20, {
-         width: pageWidth,
-         align: 'center'
-       });
+       .text('TR', 60, 55, { continued: true })
+       .fillColor('#000000')
+       .text('i', { continued: true })
+       .fillColor('#FFFFFF')
+       .text('M', { continued: true })
+       .fillColor('#000000')
+       .text('i', { continued: true })
+       .fillColor('#FFFFFF')
+       .text('TY', { continued: false });
 
-    // Tagline
-    doc.fontSize(11)
-       .fillColor('#e0e7ff')
+    doc.fontSize(10)
+       .fillColor('#FFFFFF')
        .font('Helvetica')
-       .text('Professional Task & Project Management', 0, 55, {
-         width: pageWidth,
-         align: 'center'
-       });
+       .text('CONSULTANTS', 60, 80);
 
-    // Reset to body position
-    doc.y = 100;
+    // Company Address and Contact Details (right side)
+    doc.fontSize(7)
+       .fillColor('#000000')
+       .font('Helvetica')
+       .text('1402-B, Yash Anant, Ashram road,', pageWidth - 250, 45, { width: 200, align: 'left' })
+       .text('Opposite old Reserve bank of India,', pageWidth - 250, 56)
+       .text('Navrangpura, Ahmedabad, Gujarat 380009', pageWidth - 250, 67);
+
+    // Horizontal line after header
+    doc.moveTo(40, 105).lineTo(pageWidth - 40, 105).stroke('#FF8C00');
+
+    // Contact details below
+    doc.fontSize(7)
+       .fillColor('#000000')
+       .text('E mail: trimityconsultants@gmail.com', 60, 110)
+       .text('Website: www.trimity.co.in', 220, 110)
+       .text('Mobile No: +91 9662474538, +91 8128228872', 360, 110);
+
+    doc.y = 130;
   }
 
   /**
-   * Add MOM content in Samruddh Vatika format
+   * Add project details and participant information
    * @param {PDFDocument} doc - PDF document
    * @param {object} momData - MOM data
    */
-  addMOMContent(doc, momData) {
-    const {
-      title = 'Minutes of Meeting',
-      date,
-      time,
-      location,
-      attendees = [],
-      content,
-      taskTitle,
-      taskId
-    } = momData;
-
+  addProjectDetails(doc, momData) {
+    const pageWidth = doc.page.width;
     let yPos = doc.y;
 
-    // Document Title (centered and underlined)
-    doc.fontSize(16)
+    // Project name and Date on same line
+    doc.fontSize(9)
        .fillColor('#000000')
        .font('Helvetica-Bold')
-       .text(title, 50, yPos, {
-         width: 495,
-         align: 'center',
-         underline: true
-       });
+       .text(`Project name :- ${momData.title || 'N/A'}`, 50, yPos, { continued: false });
 
-    yPos += 40;
-
-    // Meeting Details Section
-    doc.fontSize(10)
-       .fillColor('#000000')
-       .font('Helvetica');
-
-    // Date
-    if (date) {
-      doc.font('Helvetica-Bold').text('Date: ', 50, yPos, { continued: true })
-         .font('Helvetica').text(date);
-      yPos += 20;
-    }
-
-    // Time
-    if (time) {
-      doc.font('Helvetica-Bold').text('Time: ', 50, yPos, { continued: true })
-         .font('Helvetica').text(time);
-      yPos += 20;
-    }
-
-    // Location/Venue
-    if (location) {
-      doc.font('Helvetica-Bold').text('Venue: ', 50, yPos, { continued: true })
-         .font('Helvetica').text(location);
-      yPos += 20;
-    }
-
-    // Related Task (if applicable)
-    if (taskTitle) {
-      doc.font('Helvetica-Bold').text('Related Task: ', 50, yPos, { continued: true })
-         .font('Helvetica').text(taskTitle);
-      yPos += 20;
-    }
-
-    if (taskId) {
-      doc.font('Helvetica-Bold').text('Task ID: ', 50, yPos, { continued: true })
-         .font('Helvetica').text(taskId);
-      yPos += 20;
-    }
-
-    yPos += 10;
-
-    // Attendees Section
-    if (attendees && attendees.length > 0) {
-      doc.font('Helvetica-Bold')
-         .fontSize(11)
-         .text('Attendees:', 50, yPos);
-      
-      yPos += 18;
-      doc.fontSize(10)
-         .font('Helvetica');
-
-      attendees.forEach((attendee, index) => {
-        const attendeeName = typeof attendee === 'string' ? attendee : attendee.name || 'Unknown';
-        doc.text(`${index + 1}. ${attendeeName}`, 60, yPos);
-        yPos += 15;
-      });
-
-      yPos += 10;
-    }
-
-    // Horizontal separator line
-    doc.strokeColor('#cccccc')
-       .lineWidth(0.5)
-       .moveTo(50, yPos)
-       .lineTo(545, yPos)
-       .stroke();
+    doc.text(`Date of visit :- ${momData.date || 'N/A'}`, pageWidth - 250, yPos, { width: 200 });
 
     yPos += 20;
 
-    // Meeting Notes Header
-    doc.font('Helvetica-Bold')
-       .fontSize(12)
+    // Participant names
+    doc.text('Participant name :- ', 50, yPos, { continued: false });
+    
+    yPos += 12;
+    
+    const attendees = momData.attendees || [];
+    attendees.forEach((attendee, index) => {
+      const name = typeof attendee === 'string' ? attendee : attendee.name || 'Unknown';
+      doc.font('Helvetica').text(`:- ${name}`, 120, yPos);
+      yPos += 12;
+    });
+
+    // Add site visit type
+    doc.font('Helvetica-Bold').text('Site visit :- ', 50, yPos - 12, { continued: true });
+    doc.font('Helvetica').text(momData.location || 'Routine / Special', { underline: true });
+
+    yPos += 10;
+    doc.y = yPos;
+  }
+
+  /**
+   * Add Minutes of Meeting table
+   * @param {PDFDocument} doc - PDF document
+   * @param {object} momData - MOM data
+   */
+  addMOMTable(doc, momData) {
+    const pageWidth = doc.page.width;
+    let yPos = doc.y + 10;
+
+    // Table title
+    doc.fontSize(11)
        .fillColor('#000000')
-       .text('Meeting Notes:', 50, yPos);
+       .font('Helvetica-Bold')
+       .text('Minutes of Meeting (MoM)', 50, yPos, { width: pageWidth - 100, align: 'center', underline: true });
 
     yPos += 25;
 
-    // Meeting Notes Content
-    if (content) {
-      doc.fontSize(10)
-         .fillColor('#000000')
-         .font('Helvetica')
-         .text(content, 50, yPos, {
-           width: 495,
-           align: 'justify',
-           lineGap: 5
-         });
+    // Table header
+    const tableLeft = 50;
+    const tableRight = pageWidth - 50;
+    const tableWidth = tableRight - tableLeft;
+    const col1Width = 50; // Sr. No. column
+    const col2Width = tableWidth - col1Width; // Points column
+
+    // Draw table header
+    doc.rect(tableLeft, yPos, tableWidth, 30).stroke();
+    doc.moveTo(tableLeft + col1Width, yPos).lineTo(tableLeft + col1Width, yPos + 30).stroke();
+
+    // Header text
+    doc.fontSize(9)
+       .font('Helvetica-Bold')
+       .text('Sr.', tableLeft + 5, yPos + 5, { width: col1Width - 10, align: 'center' })
+       .text('No.', tableLeft + 5, yPos + 15, { width: col1Width - 10, align: 'center' });
+
+    doc.text('Point of discussion/ Observation', tableLeft + col1Width + 10, yPos + 10, { 
+      width: col2Width - 20, 
+      align: 'center' 
+    });
+
+    yPos += 30;
+
+    // Parse content into points
+    const content = momData.content || '';
+    const points = this.parseContentIntoPoints(content);
+
+    // Add table rows
+    const rowHeight = 30;
+    const maxRows = 15; // Maximum rows that fit on page
+    
+    for (let i = 0; i < maxRows; i++) {
+      // Draw row
+      doc.rect(tableLeft, yPos, tableWidth, rowHeight).stroke();
+      doc.moveTo(tableLeft + col1Width, yPos).lineTo(tableLeft + col1Width, yPos + rowHeight).stroke();
+
+      // Add content if available
+      if (i < points.length) {
+        doc.fontSize(8)
+           .font('Helvetica-Bold')
+           .text(`${i + 1}.`, tableLeft + 5, yPos + 10, { width: col1Width - 10, align: 'center' });
+
+        doc.font('Helvetica')
+           .text(points[i], tableLeft + col1Width + 5, yPos + 5, { 
+             width: col2Width - 10, 
+             align: 'left',
+             lineGap: 2
+           });
+      }
+
+      yPos += rowHeight;
+
+      // Check if we need a new page
+      if (yPos > doc.page.height - 120) {
+        break;
+      }
     }
 
-    // Add signature area at the end
-    this.addSignatureArea(doc);
+    doc.y = yPos;
   }
 
   /**
-   * Add signature area to PDF
+   * Parse content into bullet points/observations
+   * @param {string} content - Meeting content
+   * @returns {string[]} - Array of points
+   */
+  parseContentIntoPoints(content) {
+    if (!content) return [];
+
+    // Split by periods, newlines, or bullet points
+    let points = content
+      .split(/[.\n]/)
+      .map(p => p.trim())
+      .filter(p => p.length > 10 && p.length < 200);
+
+    // If no good splits, return full content as one point
+    if (points.length === 0) {
+      points = [content.substring(0, 400)];
+    }
+
+    return points.slice(0, 15); // Max 15 points
+  }
+
+  /**
+   * Add Trimity footer with signatures
    * @param {PDFDocument} doc - PDF document
    */
-  addSignatureArea(doc) {
-    // Add some space before signatures
-    doc.moveDown(2);
+  addTrimityFooter(doc) {
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const footerY = pageHeight - 70;
+
+    // Signature lines
+    doc.fontSize(8)
+       .font('Helvetica')
+       .text('Trimity Consultant engineer name and sign', 50, footerY)
+       .text('Concern person sign', pageWidth - 180, footerY);
 
     doc.fontSize(9)
-       .fillColor('#64748b')
-       .font('Helvetica-Oblique')
-       .text('This is a system-generated document.', {
-         align: 'center'
-       });
+       .font('Helvetica-Bold')
+       .text('Vraj Patel', 50, footerY + 12)
+       .text('Client Name', pageWidth - 180, footerY + 12);
 
-    doc.moveDown(1);
-
-    const col1X = 80;
-    const col2X = doc.page.width - 200;
-
-    // Prepared by
-    doc.fontSize(10)
-       .fillColor('#1e293b')
-       .font('Helvetica');
-    
-    doc.text('_____________________', col1X, doc.y);
-    doc.text('Prepared By', col1X, doc.y + 5);
-
-    // Approved by
-    doc.text('_____________________', col2X, doc.y - 15);
-    doc.text('Approved By', col2X, doc.y + 5);
-  }
-
-  /**
-   * Add footer matching professional format
-   * @param {PDFDocument} doc - PDF document
-   */
-  addFooter(doc) {
-    const pageCount = doc.bufferedPageRange().count;
-    
-    for (let i = 0; i < pageCount; i++) {
-      doc.switchToPage(i);
-      
-      const footerY = doc.page.height - 40;
-      
-      // Footer separator line
-      doc.strokeColor('#2563eb')
-         .lineWidth(1)
-         .moveTo(50, footerY)
-         .lineTo(doc.page.width - 50, footerY)
-         .stroke();
-
-      // Footer text - left aligned
-      doc.fontSize(7)
-         .fillColor('#666666')
-         .font('Helvetica')
-         .text(
-           `Generated: ${new Date().toLocaleDateString('en-IN', { 
-             day: '2-digit',
-             month: '2-digit',
-             year: 'numeric'
-           })} ${new Date().toLocaleTimeString('en-IN', {
-             hour: '2-digit',
-             minute: '2-digit'
-           })}`,
-           50,
-           footerY + 8
-         );
-
-      // Page number - right aligned
-      doc.fontSize(7)
-         .text(
-           `Page ${i + 1} of ${pageCount}`,
-           doc.page.width - 150,
-           footerY + 8,
-           {
-             width: 100,
-             align: 'right'
-           }
-         );
+    // Decorative barcode-like footer
+    const barcodeY = pageHeight - 45;
+    for (let i = 0; i < 100; i++) {
+      const x = 50 + (i * 5);
+      const height = Math.random() > 0.5 ? 8 : 4;
+      doc.rect(x, barcodeY, 2, height).fill('#000000');
     }
   }
+
 
   /**
    * Generate filename for MOM PDF
