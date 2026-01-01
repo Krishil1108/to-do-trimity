@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const Task = require('../models/Task');
+const MOM = require('../models/MOM');
 const textProcessingService = require('../services/textProcessingService');
 const puppeteerPdfService = require('../services/puppeteerPdfService');
 
@@ -119,7 +120,28 @@ router.post('/generate-pdf', async (req, res) => {
 
     await puppeteerPdfService.generateMOMPDF(momData, outputPath);
 
-    // Step 4: Send PDF as download
+    // Step 4: Save MOM to database
+    try {
+      const momRecord = new MOM({
+        taskId,
+        title: taskTitle || title,
+        visitDate: date || new Date().toLocaleDateString('en-IN'),
+        location,
+        attendees: attendees.map(a => ({ name: typeof a === 'string' ? a : a.name })),
+        rawContent,
+        processedContent: processedResult.processedText || rawContent,
+        pdfFilename: filename,
+        companyName: companyName || 'Trimity Consultants'
+      });
+      
+      await momRecord.save();
+      console.log('✅ MOM saved to database:', momRecord._id);
+    } catch (dbError) {
+      console.error('⚠️  Failed to save MOM to database:', dbError);
+      // Continue even if DB save fails
+    }
+
+    // Step 5: Send PDF as download
     res.download(outputPath, filename, (err) => {
       if (err) {
         console.error('Error sending PDF:', err);
@@ -253,6 +275,218 @@ router.post('/generate-complete', async (req, res) => {
 });
 
 /**
+ * GET /api/mom/history/:taskId
+ * Get all MOMs for a specific task
+ */
+router.get('/history/:taskId', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    const moms = await MOM.find({ taskId })
+      .sort({ createdAt: -1 })
+      .select('-rawContent -processedContent');
+
+    const task = await Task.findById(taskId);
+
+    res.json({
+      success: true,
+      data: {
+        task: task ? { _id: task._id, title: task.title } : null,
+        moms,
+        count: moms.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching MOM history:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch MOM history'
+    });
+  }
+});
+
+/**
+ * GET /api/mom/tasks-with-moms
+ * Get all tasks that have MOMs
+ */
+router.get('/tasks-with-moms', async (req, res) => {
+  try {
+    const tasksWithMoms = await MOM.aggregate([
+      {
+        $group: {
+          _id: '$taskId',
+          momCount: { $sum: 1 },
+          lastMomDate: { $max: '$createdAt' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'tasks',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'taskDetails'
+        }
+      },
+      {
+        $unwind: '$taskDetails'
+      },
+      {
+        $project: {
+          taskId: '$_id',
+          taskTitle: '$taskDetails.title',
+          taskStatus: '$taskDetails.status',
+          momCount: 1,
+          lastMomDate: 1
+        }
+      },
+      {
+        $sort: { lastMomDate: -1 }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: tasksWithMoms,
+      count: tasksWithMoms.length
+    });
+  } catch (error) {
+    console.error('Error fetching tasks with MOMs:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch tasks with MOMs'
+    });
+  }
+});
+
+/**
+ * GET /api/mom/view/:momId
+ * Get specific MOM details
+ */
+router.get('/view/:momId', async (req, res) => {
+  try {
+    const { momId } = req.params;
+
+    const mom = await MOM.findById(momId).populate('taskId', 'title status');
+
+    if (!mom) {
+      return res.status(404).json({
+        success: false,
+        error: 'MOM not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: mom
+    });
+  } catch (error) {
+    console.error('Error fetching MOM details:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch MOM details'
+    });
+  }
+});
+
+/**
+ * POST /api/mom/regenerate-pdf/:momId
+ * Regenerate PDF for an existing MOM
+ */
+router.post('/regenerate-pdf/:momId', async (req, res) => {
+  try {
+    const { momId } = req.params;
+
+    const mom = await MOM.findById(momId).populate('taskId', 'title');
+
+    if (!mom) {
+      return res.status(404).json({
+        success: false,
+        error: 'MOM not found'
+      });
+    }
+
+    // Generate PDF
+    const filename = puppeteerPdfService.generateFilename(
+      mom.taskId?._id || 'general',
+      mom.taskId?.title || mom.title
+    );
+    const outputPath = path.join(tempDir, filename);
+
+    const momData = {
+      title: mom.title,
+      date: mom.visitDate,
+      location: mom.location,
+      attendees: mom.attendees,
+      content: mom.processedContent,
+      taskTitle: mom.taskId?.title || mom.title,
+      taskId: mom.taskId?._id,
+      companyName: mom.companyName
+    };
+
+    await puppeteerPdfService.generateMOMPDF(momData, outputPath);
+
+    // Send PDF
+    res.download(outputPath, filename, (err) => {
+      if (err && !res.headersSent) {
+        console.error('Error sending PDF:', err);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to download PDF'
+        });
+      }
+
+      // Clean up
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(outputPath)) {
+            fs.unlinkSync(outputPath);
+          }
+        } catch (cleanupError) {
+          console.error('Error deleting temporary PDF:', cleanupError);
+        }
+      }, 5000);
+    });
+
+  } catch (error) {
+    console.error('Error regenerating PDF:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to regenerate PDF'
+    });
+  }
+});
+
+/**
+ * DELETE /api/mom/:momId
+ * Delete a MOM record
+ */
+router.delete('/:momId', async (req, res) => {
+  try {
+    const { momId } = req.params;
+
+    const mom = await MOM.findByIdAndDelete(momId);
+
+    if (!mom) {
+      return res.status(404).json({
+        success: false,
+        error: 'MOM not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'MOM deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting MOM:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete MOM'
+    });
+  }
+});
+
+/**
  * GET /api/mom/test
  * Test endpoint to verify MOM service is working
  */
@@ -264,7 +498,8 @@ router.get('/test', (req, res) => {
       'Text processing (Gujarati/English)',
       'AI-powered text improvement',
       'PDF generation with letterhead',
-      'Automatic cleanup (no database storage)'
+      'MOM history tracking',
+      'Task-MOM association'
     ]
   });
 });
