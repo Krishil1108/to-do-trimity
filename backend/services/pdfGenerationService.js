@@ -293,18 +293,7 @@ class PDFGenerationService {
              width: 100,
              align: 'right'
            }
-              }
          );
-
-      // Page number
-      doc.text(
-        `Page ${i + 1} of ${pageCount}`,
-        50,
-        doc.page.height - 30,
-        {
-          align: 'right'
-        }
-      );
     }
   }
 
