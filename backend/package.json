@@ -24,6 +24,7 @@
     "natural": "^8.1.0",
     "openai": "^6.15.0",
     "pdfkit": "^0.17.2",
+    "puppeteer": "^24.34.0",
     "translate-google": "^1.5.0",
     "twilio": "^5.11.1",
     "web-push": "^3.6.7",

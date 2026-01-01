@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const Task = require('../models/Task');
 const textProcessingService = require('../services/textProcessingService');
-const pdfGenerationService = require('../services/pdfGenerationService');
+const puppeteerPdfService = require('../services/puppeteerPdfService');
 
 // Create temp directory for PDFs if it doesn't exist
 const tempDir = path.join(__dirname, '../temp');
@@ -95,7 +95,7 @@ router.post('/generate-pdf', async (req, res) => {
     console.log('📄 Generating PDF...');
     console.log('🔍 [DEBUG] Processed text:', processedResult.processedText?.substring(0, 100));
     
-    const filename = pdfGenerationService.generateFilename(
+    const filename = puppeteerPdfService.generateFilename(
       taskId || 'general',
       taskTitle || title
     );
@@ -117,7 +117,7 @@ router.post('/generate-pdf', async (req, res) => {
       companyName: companyName || 'Trido Task Management'
     };
 
-    await pdfGenerationService.generateMOMPDF(momData, outputPath);
+    await puppeteerPdfService.generateMOMPDF(momData, outputPath);
 
     // Step 4: Send PDF as download
     res.download(outputPath, filename, (err) => {
@@ -196,7 +196,7 @@ router.post('/generate-complete', async (req, res) => {
 
     // Generate PDF
     console.log('📄 Generating PDF...');
-    const filename = pdfGenerationService.generateFilename(
+    const filename = puppeteerPdfService.generateFilename(
       taskId || 'general',
       taskTitle || title
     );
@@ -218,7 +218,7 @@ router.post('/generate-complete', async (req, res) => {
       companyName: companyName || 'Trido Task Management'
     };
 
-    await pdfGenerationService.generateMOMPDF(momData, outputPath);
+    await puppeteerPdfService.generateMOMPDF(momData, outputPath);
 
     // Send PDF as download
     res.download(outputPath, filename, (err) => {
