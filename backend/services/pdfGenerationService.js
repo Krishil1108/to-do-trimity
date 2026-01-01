@@ -4,7 +4,7 @@ const path = require('path');
 
 class PDFGenerationService {
   /**
-   * Generate a professional letterhead PDF with MOM content
+   * Generate a professional letterhead PDF with MOM content matching Samruddh Vatika format
    * @param {object} momData - MOM data
    * @param {string} outputPath - Path to save the PDF
    * @returns {Promise<string>} - Path to generated PDF
@@ -16,7 +16,7 @@ class PDFGenerationService {
         const doc = new PDFDocument({
           size: 'A4',
           margins: {
-            top: 100,
+            top: 50,
             bottom: 50,
             left: 50,
             right: 50
@@ -57,41 +57,41 @@ class PDFGenerationService {
   }
 
   /**
-   * Add professional letterhead to PDF
+   * Add professional letterhead matching Samruddh Vatika format
    * @param {PDFDocument} doc - PDF document
    * @param {string} companyName - Company name
    */
   addLetterhead(doc, companyName = 'Trido Task Management') {
     const pageWidth = doc.page.width;
     
-    // Header background
-    doc.rect(0, 0, pageWidth, 80)
-       .fill('#2563eb'); // Professional blue color
+    // Top colored bar (blue professional header)
+    doc.rect(0, 0, pageWidth, 90)
+       .fill('#2563eb');
 
-    // Company name
-    doc.fontSize(24)
+    // Company name (centered and bold)
+    doc.fontSize(28)
        .fillColor('#ffffff')
        .font('Helvetica-Bold')
-       .text(companyName, 50, 25, {
-         width: pageWidth - 100,
+       .text(companyName, 0, 20, {
+         width: pageWidth,
          align: 'center'
        });
 
-    // Tagline or subtitle
-    doc.fontSize(10)
+    // Tagline
+    doc.fontSize(11)
        .fillColor('#e0e7ff')
        .font('Helvetica')
-       .text('Professional Task & Project Management', 50, 55, {
-         width: pageWidth - 100,
+       .text('Professional Task & Project Management', 0, 55, {
+         width: pageWidth,
          align: 'center'
        });
 
-    // Reset position
-    doc.moveDown(2);
+    // Reset to body position
+    doc.y = 100;
   }
 
   /**
-   * Add MOM content to PDF
+   * Add MOM content in Samruddh Vatika format
    * @param {PDFDocument} doc - PDF document
    * @param {object} momData - MOM data
    */
@@ -107,99 +107,110 @@ class PDFGenerationService {
       taskId
     } = momData;
 
-    // Title
-    doc.fontSize(18)
-       .fillColor('#1e293b')
+    let yPos = doc.y;
+
+    // Document Title (centered and underlined)
+    doc.fontSize(16)
+       .fillColor('#000000')
        .font('Helvetica-Bold')
-       .text(title, {
+       .text(title, 50, yPos, {
+         width: 495,
          align: 'center',
          underline: true
        });
 
-    doc.moveDown(1.5);
+    yPos += 40;
 
-    // Meeting details in a box
+    // Meeting Details Section
     doc.fontSize(10)
-       .fillColor('#475569')
+       .fillColor('#000000')
        .font('Helvetica');
 
-    // Date and Time
+    // Date
     if (date) {
-      doc.font('Helvetica-Bold').text('Date: ', { continued: true })
+      doc.font('Helvetica-Bold').text('Date: ', 50, yPos, { continued: true })
          .font('Helvetica').text(date);
+      yPos += 20;
     }
 
+    // Time
     if (time) {
-      doc.font('Helvetica-Bold').text('Time: ', { continued: true })
+      doc.font('Helvetica-Bold').text('Time: ', 50, yPos, { continued: true })
          .font('Helvetica').text(time);
+      yPos += 20;
     }
 
+    // Location/Venue
     if (location) {
-      doc.font('Helvetica-Bold').text('Location: ', { continued: true })
+      doc.font('Helvetica-Bold').text('Venue: ', 50, yPos, { continued: true })
          .font('Helvetica').text(location);
+      yPos += 20;
     }
 
-    // Related Task
+    // Related Task (if applicable)
     if (taskTitle) {
-      doc.font('Helvetica-Bold').text('Related Task: ', { continued: true })
+      doc.font('Helvetica-Bold').text('Related Task: ', 50, yPos, { continued: true })
          .font('Helvetica').text(taskTitle);
+      yPos += 20;
     }
 
     if (taskId) {
-      doc.font('Helvetica-Bold').text('Task ID: ', { continued: true })
+      doc.font('Helvetica-Bold').text('Task ID: ', 50, yPos, { continued: true })
          .font('Helvetica').text(taskId);
+      yPos += 20;
     }
 
-    doc.moveDown(1);
+    yPos += 10;
 
-    // Attendees
+    // Attendees Section
     if (attendees && attendees.length > 0) {
       doc.font('Helvetica-Bold')
-         .fontSize(12)
-         .fillColor('#1e293b')
-         .text('Attendees:');
+         .fontSize(11)
+         .text('Attendees:', 50, yPos);
       
-      doc.moveDown(0.5);
+      yPos += 18;
       doc.fontSize(10)
-         .fillColor('#475569')
          .font('Helvetica');
 
-      attendees.forEach(attendee => {
-        doc.text(`• ${attendee}`, { indent: 20 });
+      attendees.forEach((attendee, index) => {
+        const attendeeName = typeof attendee === 'string' ? attendee : attendee.name || 'Unknown';
+        doc.text(`${index + 1}. ${attendeeName}`, 60, yPos);
+        yPos += 15;
       });
 
-      doc.moveDown(1);
+      yPos += 10;
     }
 
-    // Horizontal line
-    doc.strokeColor('#e2e8f0')
-       .lineWidth(1)
-       .moveTo(50, doc.y)
-       .lineTo(doc.page.width - 50, doc.y)
+    // Horizontal separator line
+    doc.strokeColor('#cccccc')
+       .lineWidth(0.5)
+       .moveTo(50, yPos)
+       .lineTo(545, yPos)
        .stroke();
 
-    doc.moveDown(1);
+    yPos += 20;
 
-    // Main content
+    // Meeting Notes Header
     doc.font('Helvetica-Bold')
        .fontSize(12)
-       .fillColor('#1e293b')
-       .text('Meeting Notes:');
+       .fillColor('#000000')
+       .text('Meeting Notes:', 50, yPos);
 
-    doc.moveDown(0.5);
+    yPos += 25;
 
-    // Content with proper formatting
-    doc.fontSize(10)
-       .fillColor('#334155')
-       .font('Helvetica')
-       .text(content, {
-         align: 'justify',
-         lineGap: 4
-       });
+    // Meeting Notes Content
+    if (content) {
+      doc.fontSize(10)
+         .fillColor('#000000')
+         .font('Helvetica')
+         .text(content, 50, yPos, {
+           width: 495,
+           align: 'justify',
+           lineGap: 5
+         });
+    }
 
-    doc.moveDown(2);
-
-    // Signature area
+    // Add signature area at the end
     this.addSignatureArea(doc);
   }
 
@@ -226,18 +237,7 @@ class PDFGenerationService {
     // Prepared by
     doc.fontSize(10)
        .fillColor('#1e293b')
-       .font('Helvetica');
-    
-    doc.text('_____________________', col1X, doc.y);
-    doc.text('Prepared By', col1X, doc.y + 5);
-
-    // Approved by
-    doc.text('_____________________', col2X, doc.y - 15);
-    doc.text('Approved By', col2X, doc.y + 5);
-  }
-
-  /**
-   * Add footer to PDF
+       .font('Hematching professional format
    * @param {PDFDocument} doc - PDF document
    */
   addFooter(doc) {
@@ -246,30 +246,43 @@ class PDFGenerationService {
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);
       
-      // Footer line
-      doc.strokeColor('#e2e8f0')
-         .lineWidth(0.5)
-         .moveTo(50, doc.page.height - 40)
-         .lineTo(doc.page.width - 50, doc.page.height - 40)
+      const footerY = doc.page.height - 40;
+      
+      // Footer separator line
+      doc.strokeColor('#2563eb')
+         .lineWidth(1)
+         .moveTo(50, footerY)
+         .lineTo(doc.page.width - 50, footerY)
          .stroke();
 
-      // Footer text
-      doc.fontSize(8)
-         .fillColor('#94a3b8')
+      // Footer text - left aligned
+      doc.fontSize(7)
+         .fillColor('#666666')
          .font('Helvetica')
          .text(
-           `Generated on ${new Date().toLocaleDateString('en-US', { 
-             year: 'numeric', 
-             month: 'long', 
-             day: 'numeric',
+           `Generated: ${new Date().toLocaleDateString('en-IN', { 
+             day: '2-digit',
+             month: '2-digit',
+             year: 'numeric'
+           })} ${new Date().toLocaleTimeString('en-IN', {
              hour: '2-digit',
              minute: '2-digit'
            })}`,
            50,
-           doc.page.height - 30,
+           footerY + 8
+         );
+
+      // Page number - right aligned
+      doc.fontSize(7)
+         .text(
+           `Page ${i + 1} of ${pageCount}`,
+           doc.page.width - 150,
+           footerY + 8,
            {
-             align: 'left'
+             width: 100,
+             align: 'right'
            }
+              }
          );
 
       // Page number

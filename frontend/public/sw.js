@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v4.2.1-' + Date.now(); // ChatGPT Debug: Fix output display + comprehensive debug logging
+const CACHE_VERSION = 'v4.3.0-' + Date.now(); // Professional PDF Letterhead: Replicate exact format with blue header, structured layout
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
