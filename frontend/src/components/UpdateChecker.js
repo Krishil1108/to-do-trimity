@@ -40,11 +40,8 @@ const UpdateChecker = () => {
       const checkForUpdates = () => {
         navigator.serviceWorker.getRegistration().then((registration) => {
           if (registration) {
-            console.log('🔍 Checking for service worker updates...');
-            registration.update().then(() => {
-              console.log('✅ Update check completed');
-            }).catch(err => {
-              console.log('⚠️ Update check failed:', err);
+            registration.update().catch(err => {
+              console.error('⚠️ Update check failed:', err);
             });
           }
         });
@@ -59,7 +56,6 @@ const UpdateChecker = () => {
       // Check for updates when page becomes visible
       const handleVisibilityChange = () => {
         if (!document.hidden) {
-          console.log('📱 Page visible - force checking for updates');
           checkForUpdates();
         }
       };
@@ -68,7 +64,6 @@ const UpdateChecker = () => {
 
       // Force check on focus
       const handleFocus = () => {
-        console.log('👁️ Window focused - force checking for updates');
         checkForUpdates();
       };
 
@@ -76,7 +71,6 @@ const UpdateChecker = () => {
       
       // Check on page load
       const handleLoad = () => {
-        console.log('📄 Page loaded - checking for updates');
         checkForUpdates();
       };
       
