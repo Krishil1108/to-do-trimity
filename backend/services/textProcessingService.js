@@ -235,7 +235,10 @@ Improved version:`;
    */
   async processMOMText(text) {
     try {
+      console.log('🔍 [DEBUG] processMOMText called');
+      
       if (!text || text.trim() === '') {
+        console.log('❌ [DEBUG] Empty text in processMOMText');
         return {
           success: false,
           error: 'Empty text provided'
@@ -243,7 +246,11 @@ Improved version:`;
       }
 
       console.log('📝 Starting MOM text processing...');
+      console.log('🔍 [DEBUG] Input text:', text.substring(0, 100) + '...');
+      
       const processedText = await this.processText(text);
+      
+      console.log('✅ [DEBUG] Processed text:', processedText.substring(0, 100) + '...');
       
       return {
         success: true,

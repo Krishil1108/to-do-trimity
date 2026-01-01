@@ -12,10 +12,14 @@ const openai = new OpenAI({
  */
 async function correctGrammarWithChatGPT(text) {
   try {
+    console.log('🤖 [DEBUG] ChatGPT API call starting...');
+    
     if (!text || text.trim().length === 0) {
+      console.log('⚠️ [DEBUG] Empty text passed to ChatGPT');
       return text;
     }
 
+    console.log('🔍 [DEBUG] Calling OpenAI API with gpt-4o-mini...');
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -51,9 +55,12 @@ Output: "Yesterday's meeting was productive. All team members attended and discu
     });
 
     const correctedText = response.choices[0].message.content.trim();
+    console.log('✅ [DEBUG] ChatGPT API response received');
+    console.log('🔍 [DEBUG] Corrected text length:', correctedText.length);
     return correctedText;
   } catch (error) {
-    console.error('ChatGPT Grammar API Error:', error);
+    console.error('❌ [DEBUG] ChatGPT Grammar API Error:', error.message);
+    console.error('🔍 [DEBUG] Full error:', error);
     
     // Fallback to original text if API fails
     return text;

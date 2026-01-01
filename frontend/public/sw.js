@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v4.2.0-' + Date.now(); // ChatGPT MOM Reframing: Enhanced professional text processing with gpt-4o-mini
+const CACHE_VERSION = 'v4.2.1-' + Date.now(); // ChatGPT Debug: Fix output display + comprehensive debug logging
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

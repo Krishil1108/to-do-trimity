@@ -8868,9 +8868,11 @@ Priority: ${task.priority}`;
                         text: momContent
                       });
 
-                      if (response.data.success) {
-                        setProcessedMOMText(response.data.data.final);
+                      if (response.data.success && response.data.data) {
+                        setProcessedMOMText(response.data.data.processedText);
                         showSuccess('Text processed successfully! ✨');
+                      } else {
+                        showError('Failed to process text');
                       }
                     } catch (error) {
                       showError('Failed to process text: ' + (error.response?.data?.error || error.message));
