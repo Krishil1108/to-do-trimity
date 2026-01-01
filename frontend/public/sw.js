@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v4.1.0-' + Date.now(); // INTEGRATION FIX: 94% accuracy achieved - Fixed function interference, passive voice, run-on detection, ellipsis, reported speech
+const CACHE_VERSION = 'v4.2.0-' + Date.now(); // ChatGPT MOM Reframing: Enhanced professional text processing with gpt-4o-mini
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
