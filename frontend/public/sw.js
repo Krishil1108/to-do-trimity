@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v5.1.2-' + Date.now(); // MOM Save Button: Save to history without PDF generation
+const CACHE_VERSION = 'v5.1.3-' + Date.now(); // Clickable subtask titles: Navigate to parent by clicking subtask name
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

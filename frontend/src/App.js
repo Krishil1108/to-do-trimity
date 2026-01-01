@@ -2986,28 +2986,20 @@ Priority: ${task.priority}`;
                     <td className="px-4 py-3">
                       <div className="flex items-start gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className={`text-sm font-medium ${
-                            task.isSubtask ? 'text-blue-900 pl-2 border-l-2 border-blue-300' : 'text-gray-900'
-                          }`}>
-                            {task.title}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">{task.description || 'No description'}</div>
-                          {/* Show parent task for subtasks */}
-                          {task.isSubtask && task.parentTask && (
-                            <div className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                              </svg>
-                              Parent: 
-                              <button
-                                onClick={() => navigateToParentTask(task.parentTask)}
-                                className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors cursor-pointer"
-                                title="Click to navigate to parent task"
-                              >
-                                {tasks.find(t => t._id === task.parentTask)?.title || 'Unknown'}
-                              </button>
+                          {task.isSubtask && task.parentTask ? (
+                            <button
+                              onClick={() => navigateToParentTask(task.parentTask)}
+                              className={`text-sm font-medium text-blue-900 pl-2 border-l-2 border-blue-300 hover:text-blue-700 hover:underline transition-colors cursor-pointer text-left w-full`}
+                              title="Click to view parent task"
+                            >
+                              {task.title}
+                            </button>
+                          ) : (
+                            <div className="text-sm font-medium text-gray-900">
+                              {task.title}
                             </div>
                           )}
+                          <div className="text-xs text-gray-500 mt-1">{task.description || 'No description'}</div>
                         </div>
                       </div>
                     </td>
@@ -3234,26 +3226,18 @@ Priority: ${task.priority}`;
                 {task.priority}
               </span>
             </div>
-            <h4 className={`font-medium text-gray-800 text-sm mb-1 ${
-              task.isSubtask ? 'text-blue-900 pl-2 border-l-2 border-blue-300' : ''
-            }`}>{task.title}</h4>
-            <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{task.description || 'No description'}</p>
-            {/* Show parent task for subtasks */}
-            {task.isSubtask && task.parentTask && (
-              <div className="text-xs text-blue-600 mb-2 flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                </svg>
-                Parent: 
-                <button
-                  onClick={() => navigateToParentTask(task.parentTask)}
-                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors cursor-pointer"
-                  title="Click to navigate to parent task"
-                >
-                  {tasks.find(t => t._id === task.parentTask)?.title || 'Unknown'}
-                </button>
-              </div>
+            {task.isSubtask && task.parentTask ? (
+              <button
+                onClick={() => navigateToParentTask(task.parentTask)}
+                className="font-medium text-gray-800 text-sm mb-1 text-blue-900 pl-2 border-l-2 border-blue-300 hover:text-blue-700 hover:underline transition-colors cursor-pointer text-left w-full"
+                title="Click to view parent task"
+              >
+                {task.title}
+              </button>
+            ) : (
+              <h4 className="font-medium text-gray-800 text-sm mb-1">{task.title}</h4>
             )}
+            <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{task.description || 'No description'}</p>
           </div>
           {showActions && (
             <div className="flex items-center gap-1 ml-2 sm:ml-4 flex-shrink-0">
