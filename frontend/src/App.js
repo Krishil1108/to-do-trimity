@@ -926,10 +926,7 @@ const TaskManagementSystem = () => {
 
       console.log('💥 Testing burst notifications...');
       
-      // Show immediate local feedback first (no waiting)
-      notificationService.showActiveNotification().catch(console.error);
-      
-      // Start server-side burst notifications in parallel with timeout
+      // Start server-side burst notifications
       const serverPromise = axios.post(`${API_URL}/notifications/burst-test`, {
         userId: currentUser.username
       }, {
@@ -938,14 +935,9 @@ const TaskManagementSystem = () => {
         console.log('✅ Server burst test result:', response.data);
         return response.data;
       }).catch(error => {
-        console.warn('⚠️ Server burst failed, using local fallback:', error.message);
-        return { success: false, error: 'Server timeout - used local notifications' };
+        console.warn('⚠️ Server burst failed:', error.message);
+        return { success: false, error: 'Server timeout' };
       });
-      
-      // Show local burst immediately while server processes
-      setTimeout(() => notificationService.showActiveNotification(), 1000);
-      setTimeout(() => notificationService.showActiveNotification(), 3000);
-      setTimeout(() => notificationService.showActiveNotification(), 6000);
       
       const result = await serverPromise;
       console.log('🎯 Final burst result:', result);
@@ -2026,10 +2018,10 @@ Priority: ${task.priority}`;
       
       const response = await axios.put(`${API_URL}/tasks/${task._id}`, taskUpdateData);
       
-      // Notify task creator about status change
+      // Notify assigned user about status change
       await createNotification(
         task._id,
-        task.assignedBy,
+        task.assignedTo,
         `Task "${task.title}" status changed to ${newStatus} by ${currentUser.name}`,
         'task_updated',
         currentUser.username
