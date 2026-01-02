@@ -333,19 +333,9 @@ const TaskManagementSystem = () => {
       initializeFirebaseNotifications();
     }
   }, [isLoggedIn, currentUser]);
-            if (reRegistered) {
-              console.log('✅ Subscription re-registered successfully');
-            } else {
-              console.warn('⚠️ Failed to re-register subscription, may need to re-enable');
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error initializing push notifications:', error);
-      }
-    };
 
-    // Listen for messages from service worker (notification clicks)
+  // Listen for messages from service worker (notification clicks)
+  useEffect(() => {
     const handleServiceWorkerMessage = (event) => {
       if (event.data && event.data.type === 'NOTIFICATION_CLICKED') {
         console.log('🔔 Notification clicked, received in app:', event.data);
@@ -370,7 +360,6 @@ const TaskManagementSystem = () => {
     // Only initialize if browser supports service workers
     if ('serviceWorker' in navigator && currentUser) {
       navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-      initializePushNotifications();
     }
 
     return () => {

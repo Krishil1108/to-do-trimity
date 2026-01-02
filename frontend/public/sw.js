@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.0.1-' + Date.now(); // Firebase fully integrated with backend and frontend
+const CACHE_VERSION = 'v6.0.2-' + Date.now(); // Fixed Firebase integration syntax errors
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
