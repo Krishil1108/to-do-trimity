@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.0.8-' + Date.now(); // Fixed notification logic - notify creator on status updates, removed backend duplicates
+const CACHE_VERSION = 'v6.0.9-' + Date.now(); // Backend now uses Firebase FCM tokens instead of old subscriptions
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
