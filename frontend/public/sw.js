@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.0.3-' + Date.now(); // Fixed Firebase service account initialization
+const CACHE_VERSION = 'v6.0.4-' + Date.now(); // Removed duplicate notification initialization
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

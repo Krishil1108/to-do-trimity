@@ -572,28 +572,6 @@ const TaskManagementSystem = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Initialize push notifications
-  useEffect(() => {
-    const initializeNotifications = async () => {
-      if (isLoggedIn && currentUser) {
-        // Wake up server first for faster notification response
-        await wakeServer();
-        
-        const initialized = await notificationService.initialize();
-        if (initialized) {
-          const status = await notificationService.getSubscriptionStatus();
-          setPushNotificationsEnabled(status.subscribed);
-          setNotificationPermission(status.permission);
-        }
-        
-        // Start keep-alive pings
-        keepServerAlive();
-      }
-    };
-
-    initializeNotifications();
-  }, [isLoggedIn, currentUser]);
-
   const loadUsers = async () => {
     try {
       const params = currentUser?.username ? { requestingUser: currentUser.username } : {};
