@@ -9024,106 +9024,6 @@ Priority: ${task.priority}`;
                 </button>
 
                 <button
-                  onClick={async () => {
-                    const contentToUse = processedMOMText || momContent;
-                    if (!contentToUse.trim()) {
-                      showError('Please enter meeting notes or process the text first');
-                      return;
-                    }
-
-                    setProcessingMOM(true);
-                    try {
-                      // Use the new Word template endpoint
-                      const response = await axios.post(`${API_URL}/mom/generate-pdf-from-template`, {
-                        taskId: selectedTaskForMOM._id,
-                        title: momMetadata.title,
-                        date: momMetadata.date,
-                        time: momMetadata.time,
-                        location: momMetadata.location,
-                        attendees: momMetadata.attendees,
-                        rawContent: contentToUse,
-                        companyName: 'Trimity Consultants'
-                      }, {
-                        responseType: 'blob'
-                      });
-
-                      // Create download link
-                      const blob = new Blob([response.data], { type: 'application/pdf' });
-                      const url = window.URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = url;
-                      link.download = `MOM_${selectedTaskForMOM.title}_${Date.now()}.pdf`;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      window.URL.revokeObjectURL(url);
-
-                      showSuccess('✅ PDF with letterhead downloaded successfully! Also saved to MOM History.');
-                      
-                      // Close modal after successful download
-                      setTimeout(() => {
-                        setShowMOMModal(false);
-                        setSelectedTaskForMOM(null);
-                        setMomContent('');
-                        setProcessedMOMText('');
-                      }, 1000);
-                    } catch (error) {
-                      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
-                      if (errorMsg.includes('Template not found')) {
-                        showError('⚠️ Word template not found. Using default PDF generation...');
-                        // Fallback to regular PDF if template not found
-                        try {
-                          const fallbackResponse = await axios.post(`${API_URL}/mom/generate-pdf`, {
-                            taskId: selectedTaskForMOM._id,
-                            title: momMetadata.title,
-                            date: momMetadata.date,
-                            time: momMetadata.time,
-                            location: momMetadata.location,
-                            attendees: momMetadata.attendees,
-                            rawContent: contentToUse,
-                            companyName: 'Trimity Consultants'
-                          }, {
-                            responseType: 'blob'
-                          });
-                          
-                          const blob = new Blob([fallbackResponse.data], { type: 'application/pdf' });
-                          const url = window.URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = `MOM_${selectedTaskForMOM.title}_${Date.now()}.pdf`;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          window.URL.revokeObjectURL(url);
-                          
-                          showSuccess('📄 PDF downloaded using default template!');
-                        } catch (fallbackError) {
-                          showError('Failed to generate PDF: ' + fallbackError.message);
-                        }
-                      } else {
-                        showError('Failed to generate PDF: ' + errorMsg);
-                      }
-                    } finally {
-                      setProcessingMOM(false);
-                    }
-                  }}
-                  disabled={processingMOM || (!momContent.trim() && !processedMOMText)}
-                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {processingMOM ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-5 h-5" />
-                      Download PDF (Letterhead)
-                    </>
-                  )}
-                </button>
-
-                <button
                   onClick={() => {
                     setShowMOMModal(false);
                     setSelectedTaskForMOM(null);
@@ -9137,7 +9037,7 @@ Priority: ${task.priority}`;
               </div>
 
               <p className="text-xs text-gray-500 text-center">
-                💾 Note: PDFs are generated on-demand and not stored in the database
+                📝 Note: Word documents are generated on-demand with your letterhead template. Edit in Word and convert to PDF as needed.
               </p>
             </div>
           </div>
