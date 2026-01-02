@@ -45,15 +45,6 @@ const momSchema = new mongoose.Schema({
     required: true
   },
   
-  // PDF info
-  pdfPath: {
-    type: String
-  },
-  
-  pdfFilename: {
-    type: String
-  },
-  
   // Metadata
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
