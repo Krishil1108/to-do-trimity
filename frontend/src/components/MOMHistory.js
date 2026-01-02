@@ -53,12 +53,9 @@ const MOMHistory = () => {
     }
   };
 
-  const downloadMomPdf = async (momId, useTemplate = true) => {
+  const downloadMomWord = async (momId) => {
     try {
-      // Try Word template first, fallback to regular PDF if template not found
-      const endpoint = useTemplate 
-        ? `${API_URL}/mom/regenerate-from-template/${momId}`
-        : `${API_URL}/mom/regenerate-pdf/${momId}`;
+      const endpoint = `${API_URL}/mom/regenerate-docx-from-template/${momId}`;
       
       const response = await axios.post(
         endpoint,
@@ -69,21 +66,15 @@ const MOMHistory = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `MOM_${momId}.pdf`);
+      link.setAttribute('download', `MOM_${momId}.docx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       
-      alert('✅ PDF downloaded successfully with your letterhead!');
+      alert('✅ Word document downloaded successfully with your letterhead!');
     } catch (err) {
-      console.error('Error downloading PDF:', err);
-      if (useTemplate && err.response?.data?.error?.includes('Template not found')) {
-        // Fallback to regular PDF
-        alert('⚠️ Word template not found. Downloading with default template...');
-        downloadMomPdf(momId, false);
-      } else {
-        alert('Failed to download PDF: ' + (err.response?.data?.error || err.message));
-      }
+      console.error('Error downloading Word document:', err);
+      alert('Failed to download Word document: ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -225,10 +216,10 @@ const MOMHistory = () => {
                               View
                             </button>
                             <button
-                              onClick={() => downloadMomPdf(mom._id)}
+                              onClick={() => downloadMomWord(mom._id)}
                               className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
                             >
-                              PDF
+                              Word
                             </button>
                             <button
                               onClick={() => deleteMom(mom._id)}
@@ -302,10 +293,10 @@ const MOMHistory = () => {
 
                 <div className="flex gap-4 pt-4">
                   <button
-                    onClick={() => downloadMomPdf(selectedMom._id)}
+                    onClick={() => downloadMomWord(selectedMom._id)}
                     className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600"
                   >
-                    Download PDF
+                    Download Word
                   </button>
                   <button
                     onClick={() => setSelectedMom(null)}

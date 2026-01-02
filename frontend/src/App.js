@@ -8923,7 +8923,7 @@ Priority: ${task.priority}`;
                         companyName: 'Trimity Consultants'
                       });
 
-                      showSuccess('MOM saved to history! 💾 You can download PDF later from MOM History page.');
+                      showSuccess('MOM saved to history! 💾 You can download Word document later from MOM History page.');
                       
                       // Close modal after successful save
                       setTimeout(() => {
