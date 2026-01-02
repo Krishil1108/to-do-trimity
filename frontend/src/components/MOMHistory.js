@@ -9,6 +9,8 @@ const MOMHistory = () => {
   const [selectedMom, setSelectedMom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
     fetchTasksWithMoms();
@@ -71,10 +73,12 @@ const MOMHistory = () => {
       link.click();
       link.remove();
       
-      alert('✅ Word document downloaded successfully with your letterhead!');
+      setSuccessMessage('Word document downloaded successfully with your letterhead!');
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error('Error downloading Word document:', err);
-      alert('Failed to download Word document: ' + (err.response?.data?.error || err.message));
+      setErrorMessage('Failed to download Word document: ' + (err.response?.data?.error || err.message));
+      setTimeout(() => setErrorMessage(null), 3000);
     }
   };
 
@@ -83,14 +87,16 @@ const MOMHistory = () => {
 
     try {
       await axios.delete(`${API_URL}/mom/${momId}`);
-      alert('MOM deleted successfully');
+      setSuccessMessage('MOM deleted successfully');
+      setTimeout(() => setSuccessMessage(null), 3000);
       if (selectedTask) {
         fetchMomHistory(selectedTask._id);
       }
       fetchTasksWithMoms();
     } catch (err) {
       console.error('Error deleting MOM:', err);
-      alert('Failed to delete MOM');
+      setErrorMessage('Failed to delete MOM');
+      setTimeout(() => setErrorMessage(null), 3000);
     }
   };
 
@@ -120,6 +126,26 @@ const MOMHistory = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
+        {/* Success Message Box */}
+        {successMessage && (
+          <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span className="font-medium">{successMessage}</span>
+          </div>
+        )}
+
+        {/* Error Message Box */}
+        {errorMessage && (
+          <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-in">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <span className="font-medium">{errorMessage}</span>
+          </div>
+        )}
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">MOM History</h1>
           <p className="text-gray-600 mt-2">View and manage all Minutes of Meeting records</p>
