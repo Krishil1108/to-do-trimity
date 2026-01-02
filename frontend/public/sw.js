@@ -1,10 +1,44 @@
-// Service Worker for Task Management System
+// Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.0.4-' + Date.now(); // Removed duplicate notification initialization
+const CACHE_VERSION = 'v6.0.5-' + Date.now(); // Merged Firebase messaging into main service worker
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
 ];
+
+// Import Firebase scripts for messaging
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+
+// Initialize Firebase in the service worker
+firebase.initializeApp({
+  apiKey: "AIzaSyBmVWT4dd3m-H9Wf5ksBSmGA6AKiqk1Nkg",
+  authDomain: "trido-11.firebaseapp.com",
+  projectId: "trido-11",
+  storageBucket: "trido-11.firebasestorage.app",
+  messagingSenderId: "543027789224",
+  appId: "1:543027789224:web:17b690b2db897268e7319d",
+  measurementId: "G-K7ZTLYGQGC"
+});
+
+const messaging = firebase.messaging();
+
+// Handle background messages from Firebase
+messaging.onBackgroundMessage((payload) => {
+  console.log('🔔 Received background message:', payload);
+
+  const notificationTitle = payload.notification?.title || 'New Notification';
+  const notificationOptions = {
+    body: payload.notification?.body || '',
+    icon: '/logo192.png',
+    badge: '/logo192.png',
+    tag: payload.data?.taskId || 'default',
+    requireInteraction: true,
+    data: payload.data
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
 
 console.log('🚀 Service Worker starting with cache version:', CACHE_NAME);
 console.log('⏰ Timestamp:', Date.now());

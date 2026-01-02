@@ -32,8 +32,14 @@ class NotificationService {
    */
   async getFCMToken() {
     try {
+      // Make sure service worker is ready before getting token
+      if ('serviceWorker' in navigator) {
+        await navigator.serviceWorker.ready;
+      }
+      
       const token = await getToken(messaging, {
-        vapidKey: this.vapidKey
+        vapidKey: this.vapidKey,
+        serviceWorkerRegistration: await navigator.serviceWorker.getRegistration()
       });
 
       if (token) {
