@@ -318,13 +318,13 @@ async function sendPushNotification(userId, notificationData) {
     console.log(`✅ Found FCM token for user: ${userId}`);
     
     // Send notification via Firebase
-    const result = await firebaseNotificationService.sendToDevice(
+    const result = await firebaseNotificationService.sendNotification(
       user.fcmToken,
       {
         title: notificationData.title,
-        body: notificationData.body || ''
-      },
-      notificationData.data || {}
+        body: notificationData.body || '',
+        data: notificationData.data || {}
+      }
     );
     
     console.log(`📬 Firebase notification result:`, result);
