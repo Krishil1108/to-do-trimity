@@ -4,3 +4,6 @@ node_modules/
 *.log
 dist/
 build/
+
+# Firebase service account key (KEEP SECRET)
+backend/firebase-service-account.json

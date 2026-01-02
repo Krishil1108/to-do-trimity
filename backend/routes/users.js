@@ -116,4 +116,29 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Update FCM token
+router.post('/:id/fcm-token', async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    
+    if (!fcmToken) {
+      return res.status(400).json({ message: 'FCM token is required' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { fcmToken, pushNotificationsEnabled: true },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ success: true, message: 'FCM token updated successfully' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 module.exports = router;

@@ -256,6 +256,22 @@ const TaskManagementSystem = () => {
     setupGrammarTester();
   }, []);
 
+  // Initialize Firebase notifications when user logs in
+  useEffect(() => {
+    if (isLoggedIn && currentUser && currentUser._id) {
+      import('./services/notificationService').then(module => {
+        const notificationService = module.default;
+        notificationService.initialize(currentUser._id)
+          .then(result => {
+            if (result.success) {
+              console.log('🔔 Push notifications enabled');
+            }
+          })
+          .catch(err => console.error('Notification init error:', err));
+      });
+    }
+  }, [isLoggedIn, currentUser]);
+
   // Load data when logged in
   useEffect(() => {
     if (isLoggedIn && currentUser) {

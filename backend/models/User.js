@@ -42,14 +42,13 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  whatsappNumber: {
+  fcmToken: {
     type: String,
-    default: null,
-    trim: true
+    default: null
   },
-  whatsappNotifications: {
+  pushNotificationsEnabled: {
     type: Boolean,
-    default: false
+    default: true
   }
 }, {
   timestamps: true
