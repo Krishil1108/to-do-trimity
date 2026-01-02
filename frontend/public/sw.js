@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v5.1.3-' + Date.now(); // Clickable subtask titles: Navigate to parent by clicking subtask name
+const CACHE_VERSION = 'v5.2.0-' + Date.now(); // Word template MOM: Download as Word document with letterhead
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

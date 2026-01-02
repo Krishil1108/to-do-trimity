@@ -8966,7 +8966,8 @@ Priority: ${task.priority}`;
 
                     setProcessingMOM(true);
                     try {
-                      const response = await axios.post(`${API_URL}/mom/generate-pdf`, {
+                      // Download Word document directly
+                      const response = await axios.post(`${API_URL}/mom/generate-docx-from-template`, {
                         taskId: selectedTaskForMOM._id,
                         title: momMetadata.title,
                         date: momMetadata.date,
@@ -8974,7 +8975,74 @@ Priority: ${task.priority}`;
                         location: momMetadata.location,
                         attendees: momMetadata.attendees,
                         rawContent: contentToUse,
-                        companyName: 'Trido Task Management'
+                        companyName: 'Trimity Consultants'
+                      }, {
+                        responseType: 'blob'
+                      });
+
+                      // Create download link
+                      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `MOM_${selectedTaskForMOM.title}_${Date.now()}.docx`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(url);
+
+                      showSuccess('✅ Word document downloaded! Also saved to MOM History.');
+                      
+                      // Close modal after successful download
+                      setTimeout(() => {
+                        setShowMOMModal(false);
+                        setSelectedTaskForMOM(null);
+                        setMomContent('');
+                        setProcessedMOMText('');
+                      }, 1000);
+                    } catch (error) {
+                      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
+                      showError('Failed to generate Word: ' + errorMsg);
+                    } finally {
+                      setProcessingMOM(false);
+                    }
+                  }}
+                  disabled={processingMOM || (!momContent.trim() && !processedMOMText)}
+                  className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {processingMOM ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-5 h-5" />
+                      Download Word
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const contentToUse = processedMOMText || momContent;
+                    if (!contentToUse.trim()) {
+                      showError('Please enter meeting notes or process the text first');
+                      return;
+                    }
+
+                    setProcessingMOM(true);
+                    try {
+                      // Use the new Word template endpoint
+                      const response = await axios.post(`${API_URL}/mom/generate-pdf-from-template`, {
+                        taskId: selectedTaskForMOM._id,
+                        title: momMetadata.title,
+                        date: momMetadata.date,
+                        time: momMetadata.time,
+                        location: momMetadata.location,
+                        attendees: momMetadata.attendees,
+                        rawContent: contentToUse,
+                        companyName: 'Trimity Consultants'
                       }, {
                         responseType: 'blob'
                       });
@@ -8990,7 +9058,7 @@ Priority: ${task.priority}`;
                       document.body.removeChild(link);
                       window.URL.revokeObjectURL(url);
 
-                      showSuccess('PDF downloaded successfully! 📄 Also saved to MOM History.');
+                      showSuccess('✅ PDF with letterhead downloaded successfully! Also saved to MOM History.');
                       
                       // Close modal after successful download
                       setTimeout(() => {
@@ -9000,7 +9068,41 @@ Priority: ${task.priority}`;
                         setProcessedMOMText('');
                       }, 1000);
                     } catch (error) {
-                      showError('Failed to generate PDF: ' + (error.response?.data?.error || error.message));
+                      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
+                      if (errorMsg.includes('Template not found')) {
+                        showError('⚠️ Word template not found. Using default PDF generation...');
+                        // Fallback to regular PDF if template not found
+                        try {
+                          const fallbackResponse = await axios.post(`${API_URL}/mom/generate-pdf`, {
+                            taskId: selectedTaskForMOM._id,
+                            title: momMetadata.title,
+                            date: momMetadata.date,
+                            time: momMetadata.time,
+                            location: momMetadata.location,
+                            attendees: momMetadata.attendees,
+                            rawContent: contentToUse,
+                            companyName: 'Trimity Consultants'
+                          }, {
+                            responseType: 'blob'
+                          });
+                          
+                          const blob = new Blob([fallbackResponse.data], { type: 'application/pdf' });
+                          const url = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `MOM_${selectedTaskForMOM.title}_${Date.now()}.pdf`;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(url);
+                          
+                          showSuccess('📄 PDF downloaded using default template!');
+                        } catch (fallbackError) {
+                          showError('Failed to generate PDF: ' + fallbackError.message);
+                        }
+                      } else {
+                        showError('Failed to generate PDF: ' + errorMsg);
+                      }
                     } finally {
                       setProcessingMOM(false);
                     }
@@ -9016,7 +9118,7 @@ Priority: ${task.priority}`;
                   ) : (
                     <>
                       <Download className="w-5 h-5" />
-                      Download PDF
+                      Download PDF (Letterhead)
                     </>
                   )}
                 </button>

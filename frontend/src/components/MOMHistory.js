@@ -53,10 +53,15 @@ const MOMHistory = () => {
     }
   };
 
-  const downloadMomPdf = async (momId) => {
+  const downloadMomPdf = async (momId, useTemplate = true) => {
     try {
+      // Try Word template first, fallback to regular PDF if template not found
+      const endpoint = useTemplate 
+        ? `${API_URL}/mom/regenerate-from-template/${momId}`
+        : `${API_URL}/mom/regenerate-pdf/${momId}`;
+      
       const response = await axios.post(
-        `${API_URL}/mom/regenerate-pdf/${momId}`,
+        endpoint,
         {},
         { responseType: 'blob' }
       );
@@ -68,9 +73,17 @@ const MOMHistory = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      
+      alert('✅ PDF downloaded successfully with your letterhead!');
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      alert('Failed to download PDF');
+      if (useTemplate && err.response?.data?.error?.includes('Template not found')) {
+        // Fallback to regular PDF
+        alert('⚠️ Word template not found. Downloading with default template...');
+        downloadMomPdf(momId, false);
+      } else {
+        alert('Failed to download PDF: ' + (err.response?.data?.error || err.message));
+      }
     }
   };
 

@@ -1,0 +1,349 @@
+const fs = require('fs');
+const path = require('path');
+const Docxtemplater = require('docxtemplater');
+const PizZip = require('pizzip');
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
+
+class WordTemplatePDFService {
+  constructor() {
+    this.templatesDir = path.join(__dirname, '../templates');
+    this.tempDir = path.join(__dirname, '../temp');
+    
+    // Ensure directories exist
+    if (!fs.existsSync(this.templatesDir)) {
+      fs.mkdirSync(this.templatesDir, { recursive: true });
+    }
+    if (!fs.existsSync(this.tempDir)) {
+      fs.mkdirSync(this.tempDir, { recursive: true });
+    }
+  }
+
+  /**
+   * Generate MOM PDF from Word template
+   * @param {object} momData - MOM data with processed content
+   * @param {string} outputPdfPath - Path to save the final PDF
+   * @param {string} templateName - Name of the Word template to use (default: 'letterhead.docx')
+   * @returns {Promise<string>} - Path to generated PDF
+   */
+  async generateMOMPDF(momData, outputPdfPath, templateName = 'letterhead.docx') {
+    try {
+      console.log('📝 Starting Word template PDF generation...');
+      
+      // Step 1: Load the Word template
+      const templatePath = path.join(this.templatesDir, templateName);
+      
+      if (!fs.existsSync(templatePath)) {
+        throw new Error(`Template not found: ${templatePath}. Please create a Word template with placeholders.`);
+      }
+
+      console.log('✅ Template found:', templatePath);
+
+      // Step 2: Read the template file
+      const content = fs.readFileSync(templatePath, 'binary');
+      const zip = new PizZip(content);
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+      });
+
+      // Step 3: Prepare data for template
+      const templateData = this.prepareTemplateData(momData);
+      console.log('✅ Template data prepared');
+
+      // Step 4: Set the template data
+      doc.setData(templateData);
+
+      try {
+        // Step 5: Render the document (replace all placeholders)
+        doc.render();
+      } catch (error) {
+        console.error('❌ Template rendering error:', error);
+        throw new Error(`Template rendering failed: ${error.message}`);
+      }
+
+      // Step 6: Generate the Word document
+      const buf = doc.getZip().generate({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+      });
+
+      // Step 7: Save the Word document temporarily
+      const tempDocxPath = outputPdfPath.replace('.pdf', '.docx');
+      fs.writeFileSync(tempDocxPath, buf);
+      console.log('✅ Word document generated:', tempDocxPath);
+
+      // Step 8: Convert DOCX to PDF
+      await this.convertDocxToPdf(tempDocxPath, outputPdfPath);
+      console.log('✅ PDF generated successfully:', outputPdfPath);
+
+      // Step 9: Clean up temporary DOCX file
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(tempDocxPath)) {
+            fs.unlinkSync(tempDocxPath);
+            console.log('🗑️  Temporary DOCX deleted');
+          }
+        } catch (err) {
+          console.error('Error deleting temporary DOCX:', err);
+        }
+      }, 2000);
+
+      return outputPdfPath;
+
+    } catch (error) {
+      console.error('❌ Word template PDF generation error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Prepare data for Word template with proper formatting
+   * @param {object} momData - Raw MOM data
+   * @returns {object} - Formatted data for template
+   */
+  prepareTemplateData(momData) {
+    const {
+      title = 'Minutes of Meeting',
+      date = new Date().toLocaleDateString('en-IN'),
+      time = '',
+      location = '',
+      attendees = [],
+      content = '',
+      taskTitle,
+      taskId,
+      companyName = 'Trimity Consultants'
+    } = momData;
+
+    // Format attendees list
+    const attendeesList = attendees.map(a => {
+      const name = typeof a === 'string' ? a : (a.name || '');
+      return { name };
+    });
+
+    // Format content with proper line breaks
+    const formattedContent = this.formatContentForWord(content);
+
+    // Split content into sections if it contains headers
+    const contentSections = this.parseContentSections(content);
+
+    return {
+      // Header information
+      companyName,
+      documentTitle: 'MINUTES OF MEETING',
+      
+      // Meeting details
+      meetingTitle: taskTitle || title,
+      meetingDate: date,
+      meetingTime: time || 'N/A',
+      meetingLocation: location || 'N/A',
+      
+      // Attendees
+      attendees: attendeesList,
+      attendeesCount: attendeesList.length,
+      
+      // Content
+      content: formattedContent,
+      contentSections,
+      
+      // Metadata
+      generatedDate: new Date().toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      taskId: taskId || 'N/A',
+      
+      // Footer
+      preparedBy: companyName,
+      documentFooter: `This is a computer-generated document from ${companyName}`,
+    };
+  }
+
+  /**
+   * Format content for Word document with proper line breaks
+   * @param {string} content - Raw content
+   * @returns {string} - Formatted content
+   */
+  formatContentForWord(content) {
+    if (!content) return '';
+    
+    // Replace multiple newlines with double line breaks
+    let formatted = content.replace(/\n\n+/g, '\n\n');
+    
+    // Ensure proper spacing after periods
+    formatted = formatted.replace(/\.\s+/g, '. ');
+    
+    return formatted;
+  }
+
+  /**
+   * Parse content into sections (if it contains headers)
+   * @param {string} content - Raw content
+   * @returns {Array} - Array of content sections
+   */
+  parseContentSections(content) {
+    if (!content) return [];
+
+    const sections = [];
+    const lines = content.split('\n');
+    let currentSection = { title: 'Discussion Points', content: [] };
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      
+      // Check if line is a header (all caps, or ends with colon, or numbered)
+      if (trimmed.length > 0) {
+        const isHeader = (
+          trimmed === trimmed.toUpperCase() && trimmed.length < 50 ||
+          trimmed.endsWith(':') ||
+          /^\d+\.\s+[A-Z]/.test(trimmed)
+        );
+
+        if (isHeader) {
+          // Save previous section if it has content
+          if (currentSection.content.length > 0) {
+            sections.push({
+              title: currentSection.title,
+              text: currentSection.content.join('\n')
+            });
+          }
+          // Start new section
+          currentSection = {
+            title: trimmed.replace(/:$/, ''),
+            content: []
+          };
+        } else {
+          currentSection.content.push(trimmed);
+        }
+      }
+    });
+
+    // Add last section
+    if (currentSection.content.length > 0) {
+      sections.push({
+        title: currentSection.title,
+        text: currentSection.content.join('\n')
+      });
+    }
+
+    return sections.length > 0 ? sections : [{ title: 'Meeting Notes', text: content }];
+  }
+
+  /**
+   * Convert DOCX to PDF using available methods
+   * @param {string} docxPath - Path to DOCX file
+   * @param {string} pdfPath - Path to save PDF
+   * @returns {Promise<void>}
+   */
+  async convertDocxToPdf(docxPath, pdfPath) {
+    console.log('🔄 Converting DOCX to PDF...');
+
+    // Try multiple conversion methods in order of preference
+    const conversionMethods = [
+      () => this.convertWithLibreOffice(docxPath, pdfPath),
+      () => this.convertWithPuppeteer(docxPath, pdfPath),
+      () => this.copyAsDocx(docxPath, pdfPath), // Fallback: just rename to .docx if PDF conversion fails
+    ];
+
+    for (let i = 0; i < conversionMethods.length; i++) {
+      try {
+        await conversionMethods[i]();
+        console.log(`✅ Conversion successful using method ${i + 1}`);
+        return;
+      } catch (error) {
+        console.log(`⚠️  Conversion method ${i + 1} failed:`, error.message);
+        if (i === conversionMethods.length - 1) {
+          throw new Error('All PDF conversion methods failed. The document has been saved as DOCX format.');
+        }
+      }
+    }
+  }
+
+  /**
+   * Convert DOCX to PDF using LibreOffice (best quality, requires LibreOffice installed)
+   * @param {string} docxPath - Path to DOCX file
+   * @param {string} pdfPath - Path to save PDF
+   * @returns {Promise<void>}
+   */
+  async convertWithLibreOffice(docxPath, pdfPath) {
+    const outputDir = path.dirname(pdfPath);
+    const expectedPdfName = path.basename(docxPath, '.docx') + '.pdf';
+    const expectedPdfPath = path.join(outputDir, expectedPdfName);
+
+    // Try common LibreOffice installation paths
+    const libreOfficePaths = [
+      'soffice', // Linux/Mac in PATH
+      '"C:\\Program Files\\LibreOffice\\program\\soffice.exe"', // Windows default
+      '"C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe"', // Windows 32-bit
+    ];
+
+    let lastError;
+    for (const soffice of libreOfficePaths) {
+      try {
+        const command = `${soffice} --headless --convert-to pdf --outdir "${outputDir}" "${docxPath}"`;
+        await execPromise(command);
+        
+        // Check if PDF was created
+        if (fs.existsSync(expectedPdfPath)) {
+          // Rename to desired output path if different
+          if (expectedPdfPath !== pdfPath) {
+            fs.renameSync(expectedPdfPath, pdfPath);
+          }
+          console.log('✅ LibreOffice conversion successful');
+          return;
+        }
+      } catch (error) {
+        lastError = error;
+        continue;
+      }
+    }
+
+    throw new Error(lastError?.message || 'LibreOffice not found or conversion failed');
+  }
+
+  /**
+   * Convert DOCX to PDF using Puppeteer (requires HTML conversion first)
+   * @param {string} docxPath - Path to DOCX file
+   * @param {string} pdfPath - Path to save PDF
+   * @returns {Promise<void>}
+   */
+  async convertWithPuppeteer(docxPath, pdfPath) {
+    // Note: This would require mammoth.js to convert DOCX to HTML first
+    // Then use Puppeteer to convert HTML to PDF
+    // Implementation depends on existing puppeteer setup
+    throw new Error('Puppeteer conversion not implemented for DOCX');
+  }
+
+  /**
+   * Fallback: Copy DOCX with warning (when PDF conversion is not available)
+   * @param {string} docxPath - Path to DOCX file
+   * @param {string} pdfPath - Path to save file
+   * @returns {Promise<void>}
+   */
+  async copyAsDocx(docxPath, pdfPath) {
+    // Keep as DOCX and rename with .pdf extension so download works
+    // Add a note that it's actually a DOCX file
+    const docxFinalPath = pdfPath.replace('.pdf', '_DOCX_FORMAT.docx');
+    fs.copyFileSync(docxPath, docxFinalPath);
+    
+    throw new Error(`PDF conversion unavailable. Document saved as: ${docxFinalPath}`);
+  }
+
+  /**
+   * Generate filename for MOM document
+   * @param {string} taskId - Task ID
+   * @param {string} title - Meeting title
+   * @returns {string} - Filename
+   */
+  generateFilename(taskId, title) {
+    const sanitized = (title || 'Meeting')
+      .replace(/[^a-z0-9]/gi, '_')
+      .substring(0, 30);
+    const timestamp = Date.now();
+    return `MOM_${taskId}_${sanitized}_${timestamp}.pdf`;
+  }
+}
+
+module.exports = new WordTemplatePDFService();
