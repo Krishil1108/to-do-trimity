@@ -100,34 +100,8 @@ router.post('/', async (req, res) => {
     const task = new Task(taskData);
     const newTask = await task.save();
     
-    // Send Firebase push notification if task is assigned to a user
-    if (newTask.assignedTo) {
-      try {
-        const assignee = await User.findOne({ username: newTask.assignedTo });
-        if (assignee && assignee.fcmToken) {
-          await firebaseNotificationService.sendTaskAssignmentNotification(
-            assignee.fcmToken,
-            newTask
-          );
-          
-          // Also save in-app notification
-          const notification = new Notification({
-            userId: assignee._id,
-            type: 'task_assignment',
-            title: 'New Task Assigned',
-            message: `You have been assigned: ${newTask.title}`,
-            taskId: newTask._id,
-            read: false
-          });
-          await notification.save();
-          
-          console.log(`🔔 Firebase notification sent for new task assignment`);
-        }
-      } catch (notificationError) {
-        console.error('Firebase notification error:', notificationError);
-        // Don't fail task creation if notification fails
-      }
-    }
+    // Note: Push notifications are handled by frontend for better control
+    // Frontend sends notifications after task creation to avoid duplicates
     
     res.status(201).json(newTask);
   } catch (error) {
@@ -173,52 +147,8 @@ router.put('/:id', async (req, res) => {
     const statusChanged = currentTask.status !== updateData.status;
     
     // Send Firebase push notification for task completion
-    if (wasCompleted) {
-      console.log(`🎉 Task completed: ${task.title}`);
-      
-      try {
-        // Notify admin users about completion
-        const admins = await User.find({ role: 'admin' });
-        for (const admin of admins) {
-          if (admin.fcmToken) {
-            await firebaseNotificationService.sendToDevice(
-              admin.fcmToken,
-              {
-                title: '✅ Task Completed',
-                body: `${task.assignedTo} completed: ${task.title}`
-              },
-              {
-                taskId: task._id.toString(),
-                type: 'task_completed'
-              }
-            );
-          }
-        }
-        console.log(`🔔 Firebase notification sent for task completion`);
-      } catch (notificationError) {
-        console.error('Firebase notification error:', notificationError);
-      }
-    }
-    // Send Firebase push notification for status change (if not completed)
-    else if (statusChanged) {
-      try {
-        if (task.assignedTo) {
-          const assignee = await User.findOne({ username: task.assignedTo });
-          if (assignee && assignee.fcmToken) {
-            await firebaseNotificationService.sendTaskStatusChangeNotification(
-              assignee.fcmToken,
-              task,
-              currentTask.status,
-              task.status
-            );
-          }
-        }
-        console.log(`🔔 Firebase notification sent for status change`);
-      } catch (notificationError) {
-        console.error('Firebase notification error:', notificationError);
-      }
-    }
-
+    // Note: Notifications are handled by frontend for better control
+    // This avoids duplicate notifications and gives frontend full control
     
     res.json(task);
   } catch (error) {

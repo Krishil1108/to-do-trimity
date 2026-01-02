@@ -2018,14 +2018,16 @@ Priority: ${task.priority}`;
       
       const response = await axios.put(`${API_URL}/tasks/${task._id}`, taskUpdateData);
       
-      // Notify assigned user about status change
-      await createNotification(
-        task._id,
-        task.assignedTo,
-        `Task "${task.title}" status changed to ${newStatus} by ${currentUser.name}`,
-        'task_updated',
-        currentUser.username
-      );
+      // Notify task creator about status change (don't notify the person who made the change)
+      if (task.assignedBy !== currentUser.username) {
+        await createNotification(
+          task._id,
+          task.assignedBy,
+          `Task "${task.title}" status changed to ${newStatus} by ${currentUser.name}`,
+          'task_updated',
+          currentUser.username
+        );
+      }
       
       await loadTasks();
     } catch (error) {
