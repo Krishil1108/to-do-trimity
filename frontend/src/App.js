@@ -299,25 +299,40 @@ const TaskManagementSystem = () => {
     }
   }, [isLoggedIn, currentUser]);
 
-  // Initialize push notifications when app loads
+  // Initialize Firebase push notifications when user logs in
   useEffect(() => {
-    const initializePushNotifications = async () => {
+    const initializeFirebaseNotifications = async () => {
+      if (!isLoggedIn || !currentUser) return;
+      
       try {
-        // Initialize notification service
-        const initialized = await notificationService.initialize();
+        console.log('🔔 Initializing Firebase notifications...');
         
-        if (initialized) {
-          // Check current subscription status
-          const status = await notificationService.getSubscriptionStatus();
-          setPushNotificationsEnabled(status.subscribed);
-          setNotificationPermission(status.permission);
+        // Request notification permission
+        const token = await notificationService.requestPermission();
+        
+        if (token) {
+          console.log('✅ Firebase notifications initialized with token');
+          setPushNotificationsEnabled(true);
+          setNotificationPermission('granted');
           
-          if (status.subscribed) {
-            console.log('Push notifications are already enabled');
-            
-            // Re-register subscription with backend in case server restarted
-            console.log('Re-registering subscription with backend...');
-            const reRegistered = await notificationService.reRegisterSubscription();
+          // Save FCM token to backend
+          await axios.post(`${API_URL}/users/fcm-token`, {
+            userId: currentUser._id,
+            fcmToken: token
+          });
+        } else {
+          console.log('⚠️ Notification permission not granted');
+          setNotificationPermission('denied');
+        }
+      } catch (error) {
+        console.error('Error initializing Firebase notifications:', error);
+      }
+    };
+
+    if (isLoggedIn && currentUser) {
+      initializeFirebaseNotifications();
+    }
+  }, [isLoggedIn, currentUser]);
             if (reRegistered) {
               console.log('✅ Subscription re-registered successfully');
             } else {

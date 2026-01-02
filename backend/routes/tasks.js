@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
-const twilioWhatsAppService = require('../services/twilioWhatsAppService');
-
-// Admin notification number
-const ADMIN_PHONE = '+919429064592';
+const User = require('../models/User');
+const firebaseNotificationService = require('../services/firebaseNotificationService');
+const Notification = require('../models/Notification');
 
 // Helper function to populate external user details
 const populateExternalUserDetails = async (tasks) => {
@@ -101,25 +100,33 @@ router.post('/', async (req, res) => {
     const task = new Task(taskData);
     const newTask = await task.save();
     
-    // Send WhatsApp notification to admin for new task
-    try {
-      await twilioWhatsAppService.sendTaskNotification(
-        ADMIN_PHONE,
-        {
-          title: newTask.title,
-          description: newTask.description,
-          assignedTo: newTask.assignedTo,
-          assignedBy: newTask.assignedBy,
-          priority: newTask.priority,
-          dueDate: newTask.dueDate,
-          status: newTask.status
-        },
-        'assigned'
-      );
-      console.log(`📱 Admin WhatsApp notification sent for new task`);
-    } catch (whatsappError) {
-      console.error('WhatsApp notification error:', whatsappError);
-      // Don't fail task creation if WhatsApp fails
+    // Send Firebase push notification if task is assigned to a user
+    if (newTask.assignedTo) {
+      try {
+        const assignee = await User.findOne({ username: newTask.assignedTo });
+        if (assignee && assignee.fcmToken) {
+          await firebaseNotificationService.sendTaskAssignmentNotification(
+            assignee.fcmToken,
+            newTask
+          );
+          
+          // Also save in-app notification
+          const notification = new Notification({
+            userId: assignee._id,
+            type: 'task_assignment',
+            title: 'New Task Assigned',
+            message: `You have been assigned: ${newTask.title}`,
+            taskId: newTask._id,
+            read: false
+          });
+          await notification.save();
+          
+          console.log(`🔔 Firebase notification sent for new task assignment`);
+        }
+      } catch (notificationError) {
+        console.error('Firebase notification error:', notificationError);
+        // Don't fail task creation if notification fails
+      }
     }
     
     res.status(201).json(newTask);
@@ -165,49 +172,53 @@ router.put('/:id', async (req, res) => {
     const wasCompleted = currentTask.status !== 'Completed' && updateData.status === 'Completed';
     const statusChanged = currentTask.status !== updateData.status;
     
-    // Send WhatsApp notification to admin for task completion
+    // Send Firebase push notification for task completion
     if (wasCompleted) {
       console.log(`🎉 Task completed: ${task.title}`);
       
       try {
-        await twilioWhatsAppService.sendTaskNotification(
-          ADMIN_PHONE,
-          {
-            title: task.title,
-            description: task.description,
-            assignedTo: task.assignedTo,
-            priority: task.priority,
-            dueDate: task.dueDate
-          },
-          'completed'
-        );
-        console.log(`📱 Admin WhatsApp notification sent for task completion`);
-      } catch (whatsappError) {
-        console.error('WhatsApp notification error:', whatsappError);
+        // Notify admin users about completion
+        const admins = await User.find({ role: 'admin' });
+        for (const admin of admins) {
+          if (admin.fcmToken) {
+            await firebaseNotificationService.sendToDevice(
+              admin.fcmToken,
+              {
+                title: '✅ Task Completed',
+                body: `${task.assignedTo} completed: ${task.title}`
+              },
+              {
+                taskId: task._id.toString(),
+                type: 'task_completed'
+              }
+            );
+          }
+        }
+        console.log(`🔔 Firebase notification sent for task completion`);
+      } catch (notificationError) {
+        console.error('Firebase notification error:', notificationError);
       }
     }
-    // Send WhatsApp notification to admin for status change (if not completed)
+    // Send Firebase push notification for status change (if not completed)
     else if (statusChanged) {
       try {
-        const message = `🔄 *Task Status Changed*\n\n📋 *${task.title}*\n${task.description || ''}\n\n📊 Status: ${currentTask.status} → *${task.status}*\n👤 Assigned to: ${task.assignedTo || 'Unassigned'}\n🏷️ Priority: ${task.priority || 'Normal'}`;
-        
-        await twilioWhatsAppService.sendMessage(ADMIN_PHONE, message);
-        console.log(`📱 Admin WhatsApp notification sent for status change`);
-      } catch (whatsappError) {
-        console.error('WhatsApp notification error:', whatsappError);
+        if (task.assignedTo) {
+          const assignee = await User.findOne({ username: task.assignedTo });
+          if (assignee && assignee.fcmToken) {
+            await firebaseNotificationService.sendTaskStatusChangeNotification(
+              assignee.fcmToken,
+              task,
+              currentTask.status,
+              task.status
+            );
+          }
+        }
+        console.log(`🔔 Firebase notification sent for status change`);
+      } catch (notificationError) {
+        console.error('Firebase notification error:', notificationError);
       }
     }
-    // Send WhatsApp notification to admin for general task updates
-    else if (updateData) {
-      try {
-        const message = `✏️ *Task Updated*\n\n📋 *${task.title}*\n${task.description || ''}\n\n📊 Status: ${task.status}\n👤 Assigned to: ${task.assignedTo || 'Unassigned'}\n🏷️ Priority: ${task.priority || 'Normal'}\n⏰ Due: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}`;
-        
-        await twilioWhatsAppService.sendMessage(ADMIN_PHONE, message);
-        console.log(`📱 Admin WhatsApp notification sent for task update`);
-      } catch (whatsappError) {
-        console.error('WhatsApp notification error:', whatsappError);
-      }
-    }
+
     
     res.json(task);
   } catch (error) {

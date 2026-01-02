@@ -1,6 +1,6 @@
 // Service Worker for Task Management System
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.0.0-' + Date.now(); // Firebase push notifications implemented, Twilio removed
+const CACHE_VERSION = 'v6.0.1-' + Date.now(); // Firebase fully integrated with backend and frontend
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
