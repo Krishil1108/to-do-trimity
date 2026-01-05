@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.2.0-' + Date.now(); // Removed WhatsApp notifications feature
+const CACHE_VERSION = 'v6.3.0-' + Date.now(); // Fixed duplicate notifications - using only Firebase handler
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
@@ -23,9 +23,19 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages from Firebase
+// Handle background messages from Firebase (SINGLE SOURCE OF TRUTH for notifications)
 messaging.onBackgroundMessage((payload) => {
   console.log('🔔 Received background message:', payload);
+  
+  // Notify clients that a push notification was received
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'PUSH_NOTIFICATION_RECEIVED',
+        timestamp: Date.now()
+      });
+    });
+  });
 
   const notificationTitle = payload.notification?.title || 'New Notification';
   const notificationOptions = {
@@ -34,10 +44,11 @@ messaging.onBackgroundMessage((payload) => {
     badge: '/logo192.png',
     tag: payload.data?.taskId || 'default',
     requireInteraction: true,
+    vibrate: [300, 100, 300],
     data: payload.data
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 console.log('🚀 Service Worker starting with cache version:', CACHE_NAME);
@@ -178,169 +189,6 @@ self.addEventListener('activate', (event) => {
       });
     })
   );
-});
-
-// Push event listener for notifications
-self.addEventListener('push', (event) => {
-  console.log('🔔 Push event received in service worker:', event);
-  console.log('Push data available:', !!event.data);
-  
-  // Notify clients that a push notification was received
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'PUSH_NOTIFICATION_RECEIVED',
-          timestamp: Date.now()
-        });
-      });
-    })
-  );
-  
-  let notificationData = {
-    title: 'TriDo - Task Management',
-    body: 'You have a new notification',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
-    tag: 'task-notification_' + Date.now(), // Force unique tags
-    requireInteraction: true, // FORCE interaction like WhatsApp
-    silent: false, // NEVER silent  
-    vibrate: [500, 200, 500, 200, 500, 200, 500], // Strong vibration like WhatsApp
-    renotify: true, // Always renotify
-    sticky: true // Try to make persistent
-  };
-
-  // Parse push data
-  if (event.data) {
-    try {
-      const pushData = event.data.json();
-      console.log('Parsed push data:', pushData);
-      notificationData = { ...notificationData, ...pushData };
-    } catch (e) {
-      console.error('Failed to parse push data as JSON:', e);
-      try {
-        const textData = event.data.text();
-        console.log('Push data as text:', textData);
-        notificationData.body = textData;
-      } catch (textError) {
-        console.error('Failed to parse push data as text:', textError);
-      }
-    }
-  } else {
-    console.log('No push data received, using default notification');
-  }
-
-  console.log('Final notification data:', notificationData);
-
-  // Log the exact notification options being used
-  const notificationOptions = {
-    body: notificationData.body,
-    icon: notificationData.icon || '/favicon.ico',
-    badge: notificationData.badge || '/favicon.ico',
-    tag: notificationData.tag + '_' + Date.now(), // Unique tag to avoid replacement
-    requireInteraction: true, // Force user interaction like WhatsApp
-    silent: false, // Never silent
-    vibrate: [300, 100, 300, 100, 300, 100, 300], // Strong vibration pattern
-    renotify: true, // Re-alert even if notification exists
-    persistent: true, // Stay visible
-    actions: [
-      { action: 'view', title: '👁️ Open Task', icon: '/favicon.ico' },
-      { action: 'mark_read', title: '✅ Mark Read', icon: '/favicon.ico' },
-      { action: 'dismiss', title: '❌ Dismiss', icon: '/favicon.ico' }
-    ],
-    data: {
-      ...notificationData.data,
-      url: '/', // URL to open when clicked
-      timestamp: Date.now(),
-      urgent: true
-    },
-    timestamp: Date.now(),
-    // Make it more attention-grabbing
-    dir: 'auto',
-    lang: 'en'
-  };
-  
-  console.log('🔔 About to show notification with options:', notificationOptions);
-
-  const showNotificationPromise = self.registration.showNotification(
-    notificationData.title,
-    notificationOptions
-  ).then((result) => {
-    console.log('✅ AGGRESSIVE notification displayed successfully via service worker');
-    console.log('📱 Notification result:', result);
-    
-    // Immediate verification that notification is actually visible
-    setTimeout(() => {
-      self.registration.getNotifications().then(notifications => {
-        console.log('📋 VERIFICATION: Currently visible notifications:', notifications.length);
-        
-        // Auto-cleanup: Keep only the 5 most recent notifications
-        if (notifications.length > 5) {
-          console.log('🧹 Cleaning up old notifications (keeping 5 most recent)');
-          
-          // Sort by timestamp (most recent first)
-          const sortedNotifications = notifications.sort((a, b) => {
-            const timeA = a.data?.timestamp || a.timestamp || 0;
-            const timeB = b.data?.timestamp || b.timestamp || 0;
-            return timeB - timeA;
-          });
-          
-          // Close older notifications
-          for (let i = 5; i < sortedNotifications.length; i++) {
-            sortedNotifications[i].close();
-            console.log('🗑️ Closed old notification:', sortedNotifications[i].title);
-          }
-        }
-        
-        if (notifications.length === 0) {
-          console.error('🚨 CRITICAL ISSUE: NO NOTIFICATIONS ARE VISIBLE TO USER!');
-          console.error('🔧 BROWSER IS BLOCKING NOTIFICATIONS');
-          console.error('💡 User must check:');
-          console.error('   1. Browser Settings > Notifications > Allow');
-          console.error('   2. Disable Do Not Disturb mode');
-          console.error('   3. Check site permissions');
-          console.error('   4. Try different browser or incognito mode');
-          
-        } else {
-          console.log('🎉 SUCCESS: Notifications are VISIBLE to user!');
-          const recentNotifications = Math.min(notifications.length, 5);
-          for (let i = 0; i < recentNotifications; i++) {
-            const notification = notifications[i];
-            console.log(`📌 Visible notification ${i + 1}:`, {
-              title: notification.title,
-              body: notification.body,
-              tag: notification.tag,
-              timestamp: notification.timestamp
-            });
-          }
-        }
-      }).catch(err => console.error('❌ Failed to check notifications:', err));
-    }, 1000);
-    
-    return true;
-  }).catch((error) => {
-    console.error('❌ AGGRESSIVE notification failed:', error);
-    
-    // Fallback: try showing a very basic notification
-    console.log('🔄 Attempting fallback notification...');
-    return self.registration.showNotification(
-      'TriDo Notification',
-      {
-        body: 'You have a new notification',
-        icon: '/favicon.ico',
-        tag: 'fallback-notification',
-        requireInteraction: false
-      }
-    ).then(() => {
-      console.log('✅ Fallback notification displayed');
-      return true;
-    }).catch((fallbackError) => {
-      console.error('❌ Even fallback notification failed:', fallbackError);
-      return false;
-    });
-  });
-
-  event.waitUntil(showNotificationPromise);
 });
 
 // Enhanced notification click event with focus and action handling
