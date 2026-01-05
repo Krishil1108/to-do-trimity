@@ -985,35 +985,8 @@ const TaskManagementSystem = () => {
       const title = getNotificationTitle(type, taskData);
       const body = customMessage || getNotificationBody(type, taskData);
       
-      // Always show browser notification if permission is granted
-      if (Notification.permission === 'granted') {
-        console.log('📢 Showing browser notification:', { title, body });
-        
-        try {
-          const notification = new Notification(title, {
-            body: body,
-            icon: '/favicon.ico',
-            tag: `task-${taskData._id}-${type}-${Date.now()}`, // Unique tag to prevent replacement
-            requireInteraction: true,
-            vibrate: [200, 100, 200, 100, 200],
-            renotify: true
-          });
-          
-          notification.onclick = () => {
-            window.focus();
-            notification.close();
-          };
-        } catch (notifError) {
-          console.error('❌ Browser notification failed:', notifError);
-        }
-      } else if (Notification.permission === 'default') {
-        // Try to request permission if not yet decided
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            new Notification(title, { body: body, icon: '/favicon.ico' });
-          }
-        });
-      }
+      // Skip browser notification - Firebase handles notifications via service worker
+      console.log('📢 Skipping browser notification (Firebase handles it):', { title, body });
       
       // Also send push notification if enabled
       if (!pushNotificationsEnabled) {
