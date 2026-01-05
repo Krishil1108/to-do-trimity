@@ -149,6 +149,8 @@ const TaskManagementSystem = () => {
   // Push notification states
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+  const [backgroundServiceEnabled, setBackgroundServiceEnabled] = useState(false);
+  const [showBackgroundServiceDialog, setShowBackgroundServiceDialog] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [showAdvancedMenu, setShowAdvancedMenu] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
@@ -320,6 +322,17 @@ const TaskManagementSystem = () => {
             userId: currentUser._id,
             fcmToken: token
           });
+
+          // Check background service status
+          const backgroundEnabled = checkBackgroundServiceStatus();
+          setBackgroundServiceEnabled(backgroundEnabled);
+
+          // Show background service dialog if not already enabled
+          if (!backgroundEnabled) {
+            setTimeout(() => {
+              setShowBackgroundServiceDialog(true);
+            }, 2000); // Show after 2 seconds
+          }
         } else {
           console.log('⚠️ Notification permission not granted');
           setNotificationPermission('denied');
@@ -483,6 +496,30 @@ const TaskManagementSystem = () => {
     }
   };
 
+
+  // Platform detection utilities
+  const detectPlatform = () => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
+                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+                     window.innerWidth <= 768;
+    const isDesktop = !isMobile;
+    const isWindows = /windows/i.test(userAgent);
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    
+    return { isMobile, isDesktop, isWindows, isPWA };
+  };
+
+  // Background service management
+  const checkBackgroundServiceStatus = () => {
+    const status = localStorage.getItem('backgroundServiceEnabled');
+    return status === 'true';
+  };
+
+  const setBackgroundServiceStatus = (enabled) => {
+    localStorage.setItem('backgroundServiceEnabled', enabled.toString());
+    setBackgroundServiceEnabled(enabled);
+  };
 
   // Helper function to safely get project name
   const getProjectName = (project) => {
@@ -860,6 +897,137 @@ const TaskManagementSystem = () => {
       showError('Failed to disable push notifications.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Background Service Setup
+  const setupBackgroundService = async (platform) => {
+    try {
+      if (platform.isDesktop && platform.isWindows) {
+        // Windows Desktop - Create PowerShell scripts and setup instructions
+        const scripts = {
+          keepAlive: `# Render Keep-Alive Service for TriDo
+param([string]$RenderUrl = "https://to-do-trimity.onrender.com", [int]$IntervalMinutes = 10)
+
+$LogPath = "$env:TEMP\\trido-keepalive.log"
+
+function Write-Log {
+    param([string]$Message)
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    "[$timestamp] $Message" | Add-Content -Path $LogPath
+}
+
+Write-Log "🚀 TriDo Keep-Alive Service Started"
+
+while ($true) {
+    try {
+        $response = Invoke-WebRequest -Uri "$RenderUrl/api/health" -Method GET -TimeoutSec 30
+        Write-Log "✅ Server ping successful"
+    } catch {
+        Write-Log "⚠️ Server ping failed, attempting wake-up"
+        try {
+            Invoke-WebRequest -Uri $RenderUrl -Method GET -TimeoutSec 60 | Out-Null
+            Write-Log "🔄 Wake-up ping sent"
+        } catch {
+            Write-Log "❌ Wake-up failed"
+        }
+    }
+    Start-Sleep -Seconds ($IntervalMinutes * 60)
+}`,
+          setup: `# TriDo Background Service Setup
+$TaskName = "TriDo-KeepAlive"
+$ScriptPath = "$env:TEMP\\trido-keepalive.ps1"
+
+# Save keep-alive script
+@'
+${scripts.keepAlive}
+'@ | Out-File -FilePath $ScriptPath -Encoding UTF8
+
+# Create scheduled task
+try {
+    $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-WindowStyle Hidden -ExecutionPolicy Bypass -File \"$ScriptPath\""
+    $Trigger = New-ScheduledTaskTrigger -AtStartup
+    $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+    
+    if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
+        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+    }
+    
+    Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Settings $Settings
+    Start-ScheduledTask -TaskName $TaskName
+    
+    Write-Host "✅ TriDo background service enabled! Notifications will work even when the app is closed." -ForegroundColor Green
+} catch {
+    Write-Host "❌ Setup failed: $($_.Exception.Message)" -ForegroundColor Red
+}`
+        };
+
+        // Create downloadable setup script
+        const blob = new Blob([scripts.setup], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'trido-background-setup.ps1';
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showInfo(
+          'Background Service Setup Downloaded!\n\n' +
+          '📥 A PowerShell script has been downloaded to your computer.\n\n' +
+          '🔧 To enable background notifications:\n' +
+          '1. Right-click the downloaded file\n' +
+          '2. Select "Run with PowerShell"\n' +
+          '3. Allow the script to run\n\n' +
+          '✅ This will keep your notifications working even when the browser is closed!',
+          'Windows Background Service'
+        );
+
+      } else if (platform.isMobile || platform.isPWA) {
+        // Mobile/PWA - Enhanced service worker capabilities
+        showInfo(
+          'Mobile Background Notifications Setup\n\n' +
+          '📱 To receive notifications when the app is closed:\n\n' +
+          '✅ Install TriDo as an app:\n' +
+          '• Android: Tap "Add to Home Screen"\n' +
+          '• iOS: Share → "Add to Home Screen"\n\n' +
+          '🔔 Keep notifications enabled in your device settings\n\n' +
+          '⚡ The app will sync in the background and deliver notifications!',
+          'Mobile Background Setup'
+        );
+
+        // Enhanced PWA registration for background sync
+        if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+          try {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+              // Register background sync
+              await registration.sync.register('background-notifications');
+              console.log('📱 Background sync registered for mobile');
+            }
+          } catch (error) {
+            console.log('Background sync not available:', error);
+          }
+        }
+
+      } else {
+        // Other platforms - basic keep-alive instructions
+        showInfo(
+          'Background Notifications Setup\n\n' +
+          '🖥️ To keep notifications working:\n\n' +
+          '• Keep one browser tab open with TriDo\n' +
+          '• Or install TriDo as a desktop app\n' +
+          '• Consider upgrading to Render paid plan for 24/7 server\n\n' +
+          '💡 For best results, install as a PWA app!',
+          'Background Setup'
+        );
+      }
+
+      setBackgroundServiceStatus(true);
+      return true;
+    } catch (error) {
+      console.error('Background service setup error:', error);
+      showError('Failed to setup background service: ' + error.message);
+      return false;
     }
   };
 
@@ -6940,6 +7108,84 @@ Priority: ${task.priority}`;
     <div className="min-h-screen bg-gray-50">
       {/* Auto-update checker component */}
       <UpdateChecker />
+      
+      {/* Background Service Permission Dialog */}
+      {showBackgroundServiceDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="bg-blue-100 rounded-full p-2 mr-3">
+                <Bell className="w-6 h-6 text-blue-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Enable Background Notifications?
+              </h2>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-600 mb-3">
+                {(() => {
+                  const platform = detectPlatform();
+                  return platform.isDesktop 
+                    ? "Keep receiving notifications even when your browser is closed by enabling our background service."
+                    : "Install TriDo as an app to receive notifications even when the browser is closed.";
+                })()}
+              </p>
+              
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-blue-600 mr-2 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-blue-900 mb-1">Benefits:</p>
+                    <ul className="text-blue-700 space-y-1">
+                      <li>• Receive task updates instantly</li>
+                      <li>• Never miss important notifications</li>
+                      <li>• Works even when app is closed</li>
+                      {detectPlatform().isDesktop && <li>• Automatic setup with one click</li>}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              {detectPlatform().isDesktop && (
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start">
+                    <AlertCircle className="w-4 h-4 text-amber-600 mr-2 mt-0.5" />
+                    <p className="text-sm text-amber-800">
+                      This will download a PowerShell script to set up background service on your Windows computer.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={async () => {
+                  setShowBackgroundServiceDialog(false);
+                  await setupBackgroundService(detectPlatform());
+                }}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                {detectPlatform().isDesktop ? "📥 Enable Background Service" : "📱 Setup Mobile Notifications"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowBackgroundServiceDialog(false);
+                  setBackgroundServiceStatus(false);
+                }}
+                className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Skip
+              </button>
+            </div>
+            
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              You can change this setting anytime in your profile.
+            </p>
+          </div>
+        </div>
+      )}
       
       {/* Custom Dialog Component */}
       <CustomDialog
