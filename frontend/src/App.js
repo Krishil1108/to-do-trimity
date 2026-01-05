@@ -1291,14 +1291,22 @@ const TaskManagementSystem = () => {
         const response = await axios.put(`${API_URL}/tasks/${editingTask._id}`, taskData);
         savedTask = response.data;
         
-        // Notify about update
-        await createNotification(
-          savedTask._id,
-          formData.assignedTo,
-          `Task "${formData.title}" was updated by ${currentUser.name}`,
-          'task_updated',
-          currentUser.username
-        );
+        // Only notify about general updates if it's not a status-only change
+        // Status changes are handled separately in handleStatusChange
+        const isStatusOnlyChange = editingTask.status !== formData.status && 
+          Object.keys(formData).every(key => 
+            key === 'status' || formData[key] === editingTask[key]
+          );
+        
+        if (!isStatusOnlyChange) {
+          await createNotification(
+            savedTask._id,
+            formData.assignedTo,
+            `Task "${formData.title}" was updated by ${currentUser.name}`,
+            'task_updated',
+            currentUser.username
+          );
+        }
       } else {
         const response = await axios.post(`${API_URL}/tasks`, taskData);
         savedTask = response.data;
