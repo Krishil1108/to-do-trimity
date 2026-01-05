@@ -955,7 +955,7 @@ const TaskManagementSystem = () => {
     }
   };
 
-  const sendTaskNotification = async (userId, taskData, type = 'task_assigned') => {
+  const sendTaskNotification = async (userId, taskData, type = 'task_assigned', customMessage = null) => {
     try {
       console.log('🔔 sendTaskNotification called with:', {
         userId,
@@ -983,7 +983,7 @@ const TaskManagementSystem = () => {
       window.recentNotificationCalls.set(notificationKey, now);
       
       const title = getNotificationTitle(type, taskData);
-      const body = getNotificationBody(type, taskData);
+      const body = customMessage || getNotificationBody(type, taskData);
       
       // Always show browser notification if permission is granted
       if (Notification.permission === 'granted') {
@@ -1109,7 +1109,7 @@ const TaskManagementSystem = () => {
   const getNotificationTitle = (type, taskData) => {
     switch (type) {
       case 'task_assigned':
-        return '📋 New Task Assigned';
+        return `📋 New Task Assigned: ${taskData.title}`;
       case 'task_completed':
         return '✅ Task Completed';
       case 'task_overdue':
@@ -1293,7 +1293,7 @@ const TaskManagementSystem = () => {
           _id: taskId,
           title: task.title || formData.title,
           description: task.description || formData.description
-        }, type);
+        }, type, message);
       } else {
         console.warn('⚠️ No task found, skipping push notification');
       }
@@ -1423,7 +1423,7 @@ const TaskManagementSystem = () => {
         await createNotification(
           savedTask._id,
           formData.assignedTo,
-          `New task "${formData.title}" assigned to you by ${currentUser.name}`,
+          `You have been assigned new task by ${currentUser.name}`,
           'task_assigned',
           currentUser.username
         );
