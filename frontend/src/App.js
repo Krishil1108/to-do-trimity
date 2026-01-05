@@ -1023,7 +1023,7 @@ const TaskManagementSystem = () => {
       
       const notificationData = {
         title: getNotificationTitle(type, taskData),
-        body: getNotificationBody(type, taskData),
+        body: customMessage || getNotificationBody(type, taskData),
         data: {
           type,
           taskId: taskData._id,
