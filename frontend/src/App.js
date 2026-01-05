@@ -956,127 +956,9 @@ const TaskManagementSystem = () => {
   };
 
   const sendTaskNotification = async (userId, taskData, type = 'task_assigned', customMessage = null) => {
-    try {
-      console.log('🔔 sendTaskNotification called with:', {
-        userId,
-        taskData,
-        type,
-        pushNotificationsEnabled
-      });
-      
-      // Prevent rapid duplicate calls (1-second window)
-      const notificationKey = `${userId}_${taskData._id || taskData.id}_${type}`;
-      const now = Date.now();
-      const lastSent = window.recentNotificationCalls?.get(notificationKey);
-      
-      if (lastSent && (now - lastSent) < 1000) {
-        console.log(`⏭️ Skipping duplicate notification call for ${userId} (${type}) - sent ${now - lastSent}ms ago`);
-        return { success: true, message: 'Duplicate call skipped' };
-      }
-      
-      // Initialize tracking if not exists
-      if (!window.recentNotificationCalls) {
-        window.recentNotificationCalls = new Map();
-      }
-      
-      // Record this call
-      window.recentNotificationCalls.set(notificationKey, now);
-      
-      const title = getNotificationTitle(type, taskData);
-      const body = customMessage || getNotificationBody(type, taskData);
-      
-      // Skip browser notification - Firebase handles notifications via service worker
-      console.log('📢 Skipping browser notification (Firebase handles it):', { title, body });
-      
-      // Also send push notification if enabled
-      if (!pushNotificationsEnabled) {
-        console.log('ℹ️ Push notifications not enabled (browser notification shown)');
-        return { success: true, message: 'Browser notification shown' };
-      }
-      
-      const notificationData = {
-        title: getNotificationTitle(type, taskData),
-        body: customMessage || getNotificationBody(type, taskData),
-        data: {
-          type,
-          taskId: taskData._id,
-          taskTitle: taskData.title
-        }
-      };
-
-      console.log('📤 Sending notification data:', notificationData);
-
-      // Send single push notification (no duplicates) 
-      // Priority: _id first (matches subscription), then username as fallback
-      let targetUserId = userId;
-      let fallbackUserId = null;
-      let results = [];
-      
-      // Check if we have user._id - use it as primary (matches subscription)
-      const targetUser = users.find(u => u.username === userId);
-      if (targetUser && targetUser._id) {
-        targetUserId = targetUser._id;
-        fallbackUserId = userId; // username as fallback
-      }
-      
-      console.log(`📨 Sending single push to: ${targetUserId}`);
-      
-      try {
-        // Try primary target first
-        const response = await axios.post(`${API_URL}/notifications/send-push`, {
-          userId: targetUserId,
-          ...notificationData
-        }, { timeout: 5000 });
-        
-        console.log(`✅ Push notification sent successfully to ${targetUserId}:`, response.data);
-        results = [{ status: 'fulfilled', value: response }];
-        
-      } catch (primaryError) {
-        console.warn(`⚠️ Primary push failed for ${targetUserId}:`, primaryError.response?.data || primaryError.message);
-        
-        // Try fallback if available
-        if (fallbackUserId) {
-          console.log(`📨 Trying fallback target: ${fallbackUserId}`);
-          try {
-            const fallbackResponse = await axios.post(`${API_URL}/notifications/send-push`, {
-              userId: fallbackUserId,
-              ...notificationData
-            }, { timeout: 5000 });
-            
-            console.log(`✅ Fallback push succeeded for ${fallbackUserId}:`, fallbackResponse.data);
-            results = [{ status: 'fulfilled', value: fallbackResponse }];
-            
-          } catch (fallbackError) {
-            console.error(`❌ Both push attempts failed:`, { primary: primaryError.message, fallback: fallbackError.message });
-            results = [{ status: 'rejected', reason: primaryError }];
-          }
-        } else {
-          console.error(`❌ Push notification failed and no fallback available`);
-          results = [{ status: 'rejected', reason: primaryError }];
-        }
-      }
-      console.log('📊 Push notification results summary:', results.map(r => ({
-        status: r.status,
-        success: r.status === 'fulfilled' ? r.value?.data?.success : false,
-        data: r.status === 'fulfilled' ? r.value?.data : null,
-        error: r.status === 'rejected' ? r.reason?.response?.data || r.reason?.message : null
-      })));
-      
-      // Check if any succeeded
-      const hasSuccess = results.some(result => 
-        result.status === 'fulfilled' && result.value?.data?.success === true
-      );
-      
-      if (!hasSuccess) {
-        console.log('ℹ️ Push notification attempt result:', results[0]?.value?.data || results[0]?.reason?.response?.data);
-      } else {
-        console.log('🎉 Push notification succeeded');
-      }
-      
-    } catch (error) {
-      console.error('💥 Error in sendTaskNotification:', error);
-      console.error('Error details:', error.response?.data || error.message);
-    }
+    // Firebase service worker automatically handles all notifications
+    console.log('🔔 Firebase handles notification for:', userId, taskData.title);
+    return { success: true, message: 'Firebase handles notifications' };
   };
 
   const getNotificationTitle = (type, taskData) => {
@@ -1262,11 +1144,8 @@ const TaskManagementSystem = () => {
       
       if (task) {
         console.log('🚀 Calling sendTaskNotification...');
-        await sendTaskNotification(userId, {
-          _id: taskId,
-          title: task.title || formData.title,
-          description: task.description || formData.description
-        }, type, message);
+        // Skip calling sendTaskNotification - Firebase service worker handles notifications
+        console.log('📧 Notification will be sent by Firebase service worker automatically');
       } else {
         console.warn('⚠️ No task found, skipping push notification');
       }
