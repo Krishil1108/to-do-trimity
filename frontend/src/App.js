@@ -1144,7 +1144,7 @@ const TaskManagementSystem = () => {
       
       console.log('✅ In-app notification created successfully');
       
-      // Send push notification if enabled
+      // Send FCM push notification
       const task = tasks.find(t => t._id === taskId) || formData;
       console.log('🔍 Found task for push notification:', task ? {
         id: task._id || 'formData',
@@ -1152,9 +1152,32 @@ const TaskManagementSystem = () => {
       } : 'No task found');
       
       if (task) {
-        console.log('🚀 Calling sendTaskNotification...');
-        // Skip calling sendTaskNotification - Firebase service worker handles notifications
-        console.log('📧 Notification will be sent by Firebase service worker automatically');
+        console.log('🚀 Sending FCM notification...');
+        
+        // Get user info for notification format
+        const fromUserObj = users.find(u => u.username === assignedBy);
+        const fromUserName = fromUserObj ? fromUserObj.name : assignedBy;
+        
+        // Use the new notification format
+        const notificationTitle = getNotificationTitle(type, task);
+        const notificationBody = getNotificationBody(type, task, fromUserName, statusChange);
+        
+        // Send push notification via backend
+        try {
+          const pushResponse = await axios.post(`${API_URL}/notifications/send-push`, {
+            userId,
+            title: notificationTitle,
+            body: notificationBody,
+            data: {
+              type,
+              taskId: taskId,
+              statusChange: statusChange || ''
+            }
+          });
+          console.log('✅ FCM notification sent successfully:', pushResponse.data);
+        } catch (pushError) {
+          console.error('❌ Error sending FCM notification:', pushError);
+        }
       } else {
         console.warn('⚠️ No task found, skipping push notification');
       }
