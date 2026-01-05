@@ -150,7 +150,6 @@ const TaskManagementSystem = () => {
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
   const [backgroundServiceEnabled, setBackgroundServiceEnabled] = useState(false);
-  const [showBackgroundServiceDialog, setShowBackgroundServiceDialog] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [showAdvancedMenu, setShowAdvancedMenu] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
@@ -326,13 +325,6 @@ const TaskManagementSystem = () => {
           // Check background service status
           const backgroundEnabled = checkBackgroundServiceStatus();
           setBackgroundServiceEnabled(backgroundEnabled);
-
-          // Show background service dialog if not already enabled
-          if (!backgroundEnabled) {
-            setTimeout(() => {
-              setShowBackgroundServiceDialog(true);
-            }, 2000); // Show after 2 seconds
-          }
         } else {
           console.log('⚠️ Notification permission not granted');
           setNotificationPermission('denied');
@@ -7249,84 +7241,7 @@ Priority: ${task.priority}`;
       {/* Auto-update checker component */}
       <UpdateChecker />
       
-      {/* Background Service Permission Dialog */}
-      {showBackgroundServiceDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center mb-4">
-              <div className="bg-blue-100 rounded-full p-2 mr-3">
-                <Bell className="w-6 h-6 text-blue-600" />
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Enable Background Notifications?
-              </h2>
-            </div>
-            
-            <div className="mb-6">
-              <p className="text-gray-600 mb-3">
-                {(() => {
-                  const platform = detectPlatform();
-                  return platform.isDesktop 
-                    ? "Keep receiving notifications even when your browser is closed by enabling our background service."
-                    : "Install TriDo as an app to receive notifications even when the browser is closed.";
-                })()}
-              </p>
-              
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-blue-600 mr-2 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium text-blue-900 mb-1">Benefits:</p>
-                    <ul className="text-blue-700 space-y-1">
-                      <li>• Receive task updates instantly</li>
-                      <li>• Never miss important notifications</li>
-                      <li>• Works even when app is closed</li>
-                      {detectPlatform().isDesktop && <li>• Automatic setup with one click</li>}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              {detectPlatform().isDesktop && (
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-start">
-                    <AlertCircle className="w-4 h-4 text-amber-600 mr-2 mt-0.5" />
-                    <p className="text-sm text-amber-800">
-                      This will download a PowerShell script to set up background service on your Windows computer.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={async () => {
-                  setShowBackgroundServiceDialog(false);
-                  await setupBackgroundService(detectPlatform());
-                }}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                {detectPlatform().isDesktop ? "📥 Enable Background Service" : "📱 Setup Mobile Notifications"}
-              </button>
-              <button
-                onClick={() => {
-                  setShowBackgroundServiceDialog(false);
-                  setBackgroundServiceStatus(false);
-                }}
-                className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Skip
-              </button>
-            </div>
-            
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              You can change this setting anytime in your profile.
-            </p>
-          </div>
-        </div>
-      )}
-      
+
       {/* Custom Dialog Component */}
       <CustomDialog
         isOpen={dialog.isOpen}

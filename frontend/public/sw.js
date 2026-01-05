@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging and Background Keep-Alive
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v7.5.0-' + Date.now(); // Added automatic browser-based background service
+const CACHE_VERSION = 'v7.7.0-' + Date.now(); // Removed redundant background service dialog - cleaner UX
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
