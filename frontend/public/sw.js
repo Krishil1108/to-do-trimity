@@ -1,6 +1,6 @@
-// Service Worker for Task Management System with Firebase Messaging
+// Service Worker for Task Management System with Firebase Messaging and Background Keep-Alive
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v7.4.0-' + Date.now(); // Fixed background service JavaScript error and enhanced functionality
+const CACHE_VERSION = 'v7.5.0-' + Date.now(); // Added automatic browser-based background service
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
@@ -57,7 +57,7 @@ console.log('⏰ Timestamp:', Date.now());
 // IMMEDIATELY skip waiting - don't wait for old SW to close
 self.skipWaiting();
 
-// Force clear all old caches on startup
+// Force clear all old caches on startup and handle background keep-alive
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'FORCE_UPDATE') {
     console.log('🔄 Force cache update requested');
@@ -76,7 +76,129 @@ self.addEventListener('message', (event) => {
         return self.clients.claim();
       })
     );
+  } else if (event.data && event.data.type === 'ENABLE_KEEP_ALIVE') {
+    console.log('🚀 Enabling background keep-alive service');
+    
+    // Store keep-alive configuration
+    self.keepAliveConfig = {
+      serverUrl: event.data.serverUrl,
+      interval: event.data.interval || 8 * 60 * 1000, // 8 minutes default
+      enabled: true
+    };
+    
+    // Start background keep-alive
+    startBackgroundKeepAlive();
+    
+    event.ports[0]?.postMessage({ success: true });
+  } else if (event.data && event.data.type === 'DISABLE_KEEP_ALIVE') {
+    console.log('🛑 Disabling background keep-alive service');
+    
+    if (self.keepAliveConfig) {
+      self.keepAliveConfig.enabled = false;
+    }
+    
+    if (self.keepAliveIntervalId) {
+      clearInterval(self.keepAliveIntervalId);
+      self.keepAliveIntervalId = null;
+    }
+    
+    event.ports[0]?.postMessage({ success: true });
   }
+});
+
+// Background Keep-Alive Service Implementation
+function startBackgroundKeepAlive() {
+  if (!self.keepAliveConfig || !self.keepAliveConfig.enabled) {
+    return;
+  }
+  
+  // Clear existing interval if any
+  if (self.keepAliveIntervalId) {
+    clearInterval(self.keepAliveIntervalId);
+  }
+  
+  const performKeepAlive = async () => {
+    if (!self.keepAliveConfig || !self.keepAliveConfig.enabled) {
+      return;
+    }
+    
+    try {
+      console.log('🔄 Service Worker Keep-Alive: Pinging server...');
+      
+      const response = await fetch(`${self.keepAliveConfig.serverUrl}/api/health`, {
+        method: 'GET',
+        cache: 'no-cache'
+      });
+      
+      if (response.ok) {
+        console.log('✅ SW Keep-Alive: Server ping successful');
+      } else {
+        throw new Error(`Health check failed: ${response.status}`);
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ SW Keep-Alive: Health check failed, trying wake-up ping:', error.message);
+      
+      try {
+        const wakeResponse = await fetch(self.keepAliveConfig.serverUrl, {
+          method: 'GET',
+          cache: 'no-cache'
+        });
+        console.log('🔄 SW Keep-Alive: Wake-up ping sent');
+      } catch (wakeError) {
+        console.error('❌ SW Keep-Alive: All ping attempts failed:', wakeError.message);
+      }
+    }
+  };
+  
+  // Immediate ping
+  performKeepAlive();
+  
+  // Set up interval
+  self.keepAliveIntervalId = setInterval(performKeepAlive, self.keepAliveConfig.interval);
+  
+  console.log(`⏰ SW Keep-Alive: Started with ${self.keepAliveConfig.interval / 60000} minute interval`);
+}
+
+// Handle background sync for mobile devices
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-keep-alive') {
+    console.log('📱 Background sync: keep-alive triggered');
+    event.waitUntil(
+      (async () => {
+        if (self.keepAliveConfig && self.keepAliveConfig.enabled) {
+          try {
+            const response = await fetch(`${self.keepAliveConfig.serverUrl}/api/health`);
+            console.log('📱 Background sync keep-alive successful');
+          } catch (error) {
+            console.warn('📱 Background sync keep-alive failed:', error);
+          }
+        }
+      })()
+    );
+  }
+});
+
+// Auto-start keep-alive if configuration exists
+self.addEventListener('activate', (event) => {
+  console.log('✅ Service Worker activated:', CACHE_VERSION);
+  
+  // Try to restore keep-alive configuration from storage
+  event.waitUntil(
+    (async () => {
+      // Check if keep-alive should be restored
+      try {
+        const clients = await self.clients.matchAll({ includeUncontrolled: true });
+        for (const client of clients) {
+          client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_VERSION });
+        }
+      } catch (error) {
+        console.warn('Failed to communicate with clients:', error);
+      }
+    })()
+  );
+  
+  return self.clients.claim();
 });
 
 // Install Service Worker

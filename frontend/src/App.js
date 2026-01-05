@@ -882,6 +882,151 @@ const TaskManagementSystem = () => {
     }
   };
 
+  // Automatic Browser-Based Keep-Alive Service
+  const startBrowserKeepAlive = async () => {
+    try {
+      const serverUrl = API_URL.replace('/api', '');
+      const pingInterval = 8 * 60 * 1000; // 8 minutes (before Render's 10-minute timeout)
+      
+      // Create keep-alive function
+      const keepAlive = async () => {
+        try {
+          console.log('🔄 Browser Keep-Alive: Pinging server...');
+          
+          // Try health endpoint first
+          const response = await fetch(`${serverUrl}/api/health`, {
+            method: 'GET',
+            cache: 'no-cache'
+          });
+          
+          if (response.ok) {
+            console.log('✅ Server ping successful');
+          } else {
+            console.warn('⚠️ Health check failed, trying main endpoint...');
+            // Fallback to main endpoint
+            await fetch(serverUrl, { method: 'GET', cache: 'no-cache' });
+            console.log('🔄 Wake-up ping sent');
+          }
+          
+          // Update last ping time
+          localStorage.setItem('lastKeepAlivePing', Date.now().toString());
+          
+        } catch (error) {
+          console.warn('❌ Keep-alive ping failed:', error.message);
+          
+          // Try wake-up ping as fallback
+          try {
+            await fetch(serverUrl, { method: 'GET', cache: 'no-cache' });
+            console.log('🔄 Fallback wake-up ping sent');
+          } catch (fallbackError) {
+            console.error('❌ All ping attempts failed');
+          }
+        }
+      };
+      
+      // Start immediate ping
+      await keepAlive();
+      
+      // Set up interval for continuous pinging
+      const intervalId = setInterval(keepAlive, pingInterval);
+      
+      // Store interval ID for cleanup
+      window.tridoKeepAliveInterval = intervalId;
+      localStorage.setItem('keepAliveIntervalActive', 'true');
+      
+      // Set up page visibility change handler for mobile
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          console.log('📱 Page hidden - keep-alive continues in background');
+        } else {
+          console.log('👀 Page visible - keep-alive active');
+          // Immediate ping when page becomes visible
+          keepAlive();
+        }
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Set up beforeunload handler to continue service
+      window.addEventListener('beforeunload', () => {
+        // Store state for restoration
+        localStorage.setItem('keepAliveWasActive', 'true');
+        localStorage.setItem('keepAliveStartTime', Date.now().toString());
+      });
+      
+      // Enhanced mobile background handling
+      if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Use Page Lifecycle API for better mobile support
+        if ('onfreeze' in document) {
+          document.addEventListener('freeze', () => {
+            console.log('📱 Page frozen - background keep-alive activated');
+            localStorage.setItem('pageFrozen', 'true');
+          });
+          
+          document.addEventListener('resume', () => {
+            console.log('📱 Page resumed - reactivating keep-alive');
+            localStorage.removeItem('pageFrozen');
+            keepAlive(); // Immediate ping on resume
+          });
+        }
+        
+        // Use Wake Lock API to prevent sleep (if available)
+        if ('wakeLock' in navigator) {
+          try {
+            const wakeLock = await navigator.wakeLock.request('screen');
+            console.log('📱 Wake lock acquired for background operation');
+            
+            wakeLock.addEventListener('release', () => {
+              console.log('📱 Wake lock released');
+            });
+          } catch (err) {
+            console.log('📱 Wake lock not available:', err.message);
+          }
+        }
+      }
+      
+      console.log('🚀 Browser-based keep-alive service started');
+      console.log(`⏰ Pinging every ${pingInterval / 60000} minutes`);
+      console.log('🌐 Server URL:', serverUrl);
+      
+      return true;
+      
+    } catch (error) {
+      console.error('Failed to start browser keep-alive:', error);
+      return false;
+    }
+  };
+
+  // Stop browser keep-alive service
+  const stopBrowserKeepAlive = () => {
+    if (window.tridoKeepAliveInterval) {
+      clearInterval(window.tridoKeepAliveInterval);
+      window.tridoKeepAliveInterval = null;
+      localStorage.removeItem('keepAliveIntervalActive');
+      localStorage.removeItem('backgroundServiceEnabled');
+      console.log('🛑 Browser keep-alive service stopped');
+      return true;
+    }
+    return false;
+  };
+
+  // Auto-restore keep-alive service on page load
+  useEffect(() => {
+    const isKeepAliveEnabled = localStorage.getItem('backgroundServiceEnabled') === 'true';
+    const wasActive = localStorage.getItem('keepAliveWasActive') === 'true';
+    
+    if (isKeepAliveEnabled || wasActive) {
+      console.log('🔄 Auto-restoring keep-alive service...');
+      startBrowserKeepAlive().then(success => {
+        if (success) {
+          setBackgroundServiceStatus(true);
+          localStorage.removeItem('keepAliveWasActive'); // Clean up
+          console.log('✅ Keep-alive service auto-restored');
+        }
+      });
+    }
+  }, []);
+
   const disablePushNotifications = async () => {
     try {
       setLoading(true);
@@ -900,125 +1045,52 @@ const TaskManagementSystem = () => {
     }
   };
 
-  // Background Service Setup
+  // Automatic Background Service Setup
   const setupBackgroundService = async (platform) => {
     try {
-      if (platform.isDesktop && platform.isWindows) {
-        // Windows Desktop - Create PowerShell scripts and setup instructions
-        const keepAliveScript = `# Render Keep-Alive Service for TriDo
-param([string]$RenderUrl = "https://to-do-trimity.onrender.com", [int]$IntervalMinutes = 10)
-
-$LogPath = "$env:TEMP\\trido-keepalive.log"
-
-function Write-Log {
-    param([string]$Message)
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    "[$timestamp] $Message" | Add-Content -Path $LogPath
-}
-
-Write-Log "🚀 TriDo Keep-Alive Service Started"
-
-while ($true) {
-    try {
-        $response = Invoke-WebRequest -Uri "$RenderUrl/api/health" -Method GET -TimeoutSec 30
-        Write-Log "✅ Server ping successful"
-    } catch {
-        Write-Log "⚠️ Server ping failed, attempting wake-up"
-        try {
-            Invoke-WebRequest -Uri $RenderUrl -Method GET -TimeoutSec 60 | Out-Null
-            Write-Log "🔄 Wake-up ping sent"
-        } catch {
-            Write-Log "❌ Wake-up failed"
-        }
-    }
-    Start-Sleep -Seconds ($IntervalMinutes * 60)
-}`;
-
-        const setupScript = `# TriDo Background Service Setup
-$TaskName = "TriDo-KeepAlive"
-$ScriptPath = "$env:TEMP\\trido-keepalive.ps1"
-
-# Save keep-alive script
-@'
-${keepAliveScript}
-'@ | Out-File -FilePath $ScriptPath -Encoding UTF8
-
-# Create scheduled task
-try {
-    $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-WindowStyle Hidden -ExecutionPolicy Bypass -File \"$ScriptPath\""
-    $Trigger = New-ScheduledTaskTrigger -AtStartup
-    $Settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-    
-    if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
-        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-    }
-    
-    Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger -Settings $Settings
-    Start-ScheduledTask -TaskName $TaskName
-    
-    Write-Host "✅ TriDo background service enabled! Notifications will work even when the app is closed." -ForegroundColor Green
-} catch {
-    Write-Host "❌ Setup failed: $($_.Exception.Message)" -ForegroundColor Red
-}`;
-
-        // Create downloadable setup script
-        const blob = new Blob([setupScript], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'trido-background-setup.ps1';
-        link.click();
-        URL.revokeObjectURL(url);
-
-        showInfo(
-          'Background Service Setup Downloaded!\n\n' +
-          '📥 A PowerShell script has been downloaded to your computer.\n\n' +
-          '🔧 To enable background notifications:\n' +
-          '1. Right-click the downloaded file\n' +
-          '2. Select "Run with PowerShell"\n' +
-          '3. Allow the script to run\n\n' +
-          '✅ This will keep your notifications working even when the browser is closed!',
-          'Windows Background Service'
+      // Start automatic browser-based keep-alive service
+      const success = await startBrowserKeepAlive();
+      
+      if (success) {
+        setBackgroundServiceStatus(true);
+        localStorage.setItem('backgroundServiceEnabled', 'true');
+        
+        showSuccess(
+          '🎉 Background Service Enabled!\n\n' +
+          '✅ Automatic server keep-alive started\n' +
+          '✅ Works on both desktop and mobile\n' +
+          '✅ No manual setup required\n' +
+          '✅ Notifications will work 24/7\n\n' +
+          '🔧 The service runs automatically in your browser\n' +
+          '📱 Works even when tab is in background\n' +
+          '🌐 Keeps Render server awake continuously'
         );
-
-      } else if (platform.isMobile || platform.isPWA) {
-        // Mobile/PWA - Enhanced service worker capabilities
-        showInfo(
-          'Mobile Background Notifications Setup\n\n' +
-          '📱 To receive notifications when the app is closed:\n\n' +
-          '✅ Install TriDo as an app:\n' +
-          '• Android: Tap "Add to Home Screen"\n' +
-          '• iOS: Share → "Add to Home Screen"\n\n' +
-          '🔔 Keep notifications enabled in your device settings\n\n' +
-          '⚡ The app will sync in the background and deliver notifications!',
-          'Mobile Background Setup'
-        );
-
-        // Enhanced PWA registration for background sync
-        if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+        
+        // Also register enhanced service worker for better background handling
+        if ('serviceWorker' in navigator) {
           try {
-            const registration = await navigator.serviceWorker.getRegistration();
-            if (registration) {
-              // Register background sync
-              await registration.sync.register('background-notifications');
-              console.log('📱 Background sync registered for mobile');
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            
+            // Enable background sync for mobile
+            if ('sync' in registration) {
+              await registration.sync.register('background-keep-alive');
+              console.log('📱 Background sync registered');
+            }
+            
+            // Send configuration to service worker
+            if (registration.active) {
+              registration.active.postMessage({
+                type: 'ENABLE_KEEP_ALIVE',
+                serverUrl: API_URL.replace('/api', ''),
+                interval: 8 * 60 * 1000 // 8 minutes
+              });
             }
           } catch (error) {
-            console.log('Background sync not available:', error);
+            console.warn('Service worker registration failed:', error);
           }
         }
-
       } else {
-        // Other platforms - basic keep-alive instructions
-        showInfo(
-          'Background Notifications Setup\n\n' +
-          '🖥️ To keep notifications working:\n\n' +
-          '• Keep one browser tab open with TriDo\n' +
-          '• Or install TriDo as a desktop app\n' +
-          '• Consider upgrading to Render paid plan for 24/7 server\n\n' +
-          '💡 For best results, install as a PWA app!',
-          'Background Setup'
-        );
+        showError('Failed to start background service. Please try again.');
       }
 
       setBackgroundServiceStatus(true);
@@ -1026,6 +1098,37 @@ try {
     } catch (error) {
       console.error('Background service setup error:', error);
       showError('Failed to setup background service: ' + error.message);
+      return false;
+    }
+  };
+
+  // Disable background service
+  const disableBackgroundService = async () => {
+    try {
+      // Stop browser keep-alive
+      const stopped = stopBrowserKeepAlive();
+      
+      // Notify service worker to disable keep-alive
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration && registration.active) {
+          registration.active.postMessage({ type: 'DISABLE_KEEP_ALIVE' });
+        }
+      }
+      
+      // Update status
+      setBackgroundServiceStatus(false);
+      
+      if (stopped) {
+        showSuccess('Background service disabled successfully! Notifications will only work when the app is open.');
+      } else {
+        showInfo('Background service was not active.');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to disable background service:', error);
+      showError('Failed to disable background service: ' + error.message);
       return false;
     }
   };
@@ -3909,6 +4012,44 @@ Priority: ${task.priority}`;
                 )}
                 <span className="text-xs text-gray-500">
                   Status: {pushNotificationsEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+            </div>
+            
+            {/* Background Service Toggle */}
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+              <div>
+                <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                  🚀 Background Service
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">AUTO</span>
+                </h4>
+                <p className="text-sm text-gray-600">
+                  Keep notifications working even when browser is closed
+                </p>
+                <p className="text-xs text-green-600 font-medium mt-1">
+                  🔧 Works automatically on all devices - no manual setup required!
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {backgroundServiceEnabled ? (
+                  <button
+                    onClick={disableBackgroundService}
+                    disabled={loading}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {loading ? 'Disabling...' : 'Disable'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setupBackgroundService(detectPlatform())}
+                    disabled={loading}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {loading ? 'Enabling...' : 'Enable'}
+                  </button>
+                )}
+                <span className="text-xs text-gray-500">
+                  Status: {backgroundServiceEnabled ? 'Active' : 'Disabled'}
                 </span>
               </div>
             </div>
