@@ -964,30 +964,37 @@ const TaskManagementSystem = () => {
   const getNotificationTitle = (type, taskData) => {
     switch (type) {
       case 'task_assigned':
-        return `📋 New Task Assigned: ${taskData.title}`;
+        return `📋 ${taskData.title}`;
       case 'task_completed':
-        return '✅ Task Completed';
+        return `✅ ${taskData.title}`;
       case 'task_overdue':
-        return '⚠️ Task Overdue';
+        return `⚠️ ${taskData.title}`;
       case 'task_reminder':
-        return '🔔 Task Reminder';
+        return `🔔 ${taskData.title}`;
+      case 'task_updated':
+        return `📝 ${taskData.title}`;
       default:
-        return 'Task Update';
+        return taskData.title || 'Task Update';
     }
   };
 
-  const getNotificationBody = (type, taskData) => {
+  const getNotificationBody = (type, taskData, fromUser = null, statusChange = null) => {
     switch (type) {
       case 'task_assigned':
-        return `You have been assigned: ${taskData.title}`;
+        return fromUser ? `New task assigned by ${fromUser}` : `You have been assigned this task`;
       case 'task_completed':
-        return `Task completed: ${taskData.title}`;
+        return fromUser ? `Task completed by ${fromUser}` : `Task has been completed`;
       case 'task_overdue':
-        return `Task is overdue: ${taskData.title}`;
+        return fromUser ? `Task marked overdue by ${fromUser}` : `Task is now overdue`;
       case 'task_reminder':
-        return `Reminder: ${taskData.title} is due soon`;
+        return `Reminder: Due date approaching`;
+      case 'task_updated':
+        if (statusChange && fromUser) {
+          return `Status changed ${statusChange} by ${fromUser}`;
+        }
+        return fromUser ? `Task updated by ${fromUser}` : `Task has been updated`;
       default:
-        return `Update for task: ${taskData.title}`;
+        return fromUser ? `Update by ${fromUser}` : `Task has been updated`;
     }
   };
 
@@ -1114,14 +1121,15 @@ const TaskManagementSystem = () => {
   });
   };
 
-  const createNotification = async (taskId, userId, message, type, assignedBy) => {
+  const createNotification = async (taskId, userId, message, type, assignedBy, statusChange = null) => {
     try {
       console.log('📢 createNotification called with:', {
         taskId,
         userId,
         message,
         type,
-        assignedBy
+        assignedBy,
+        statusChange
       });
       
       // Create in-app notification
@@ -1130,7 +1138,8 @@ const TaskManagementSystem = () => {
         taskId,
         message,
         type,
-        assignedBy
+        assignedBy,
+        statusChange
       });
       
       console.log('✅ In-app notification created successfully');
@@ -1874,12 +1883,14 @@ Priority: ${task.priority}`;
       
       // Notify task creator about status change (don't notify the person who made the change)
       if (task.assignedBy !== currentUser.username) {
+        const statusChange = `${task.status} to ${newStatus}`;
         await createNotification(
           task._id,
           task.assignedBy,
           `Task "${task.title}" status changed to ${newStatus} by ${currentUser.name}`,
           'task_updated',
-          currentUser.username
+          currentUser.username,
+          statusChange
         );
       }
       
