@@ -1551,6 +1551,25 @@ Priority: ${task.priority}`;
     });
   };
 
+  const sendToWhatsApp = (task) => {
+    // Use same format as copy function
+    const taskInfo = `Project: ${task.project}
+Task Name: ${task.title}
+Description: ${task.description || 'No description'}
+Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
+Priority: ${task.priority}`;
+    
+    const phoneNumber = task.isAssociate && task.associateDetails?.phone 
+      ? task.associateDetails.phone.replace(/\D/g, '')
+      : '';
+    
+    const whatsappUrl = phoneNumber 
+      ? `https://wa.me/${phoneNumber}?text=${encodeURIComponent(taskInfo)}`
+      : `https://wa.me/?text=${encodeURIComponent(taskInfo)}`;
+    
+    window.open(whatsappUrl, '_blank');
+  };
+
 
 
 
