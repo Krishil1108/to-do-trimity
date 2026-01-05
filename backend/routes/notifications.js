@@ -293,10 +293,13 @@ async function sendPushNotification(userId, notificationData) {
   try {
     console.log(`📤 Attempting to send Firebase push notification to userId: ${userId}`);
     
-    // Find user by either _id or username
-    let user = await User.findById(userId);
+    // Find user by username first (most common case), then by _id
+    let user = await User.findOne({ username: userId });
     if (!user) {
-      user = await User.findOne({ username: userId });
+      // Only try findById if userId looks like an ObjectId (24 hex characters)
+      if (userId && userId.length === 24 && /^[0-9a-fA-F]{24}$/.test(userId)) {
+        user = await User.findById(userId);
+      }
     }
     
     if (!user) {
