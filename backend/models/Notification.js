@@ -26,6 +26,10 @@ const notificationSchema = new mongoose.Schema({
   assignedBy: {
     type: String,
     default: ''
+  },
+  statusChange: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: true

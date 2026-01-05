@@ -115,12 +115,14 @@ class FirebaseNotificationService {
   }
 
   /**
-   * Send task assignment notification
+   * Send task assignment notification with the new format: task name then assignment details
    */
   async sendTaskNotification(fcmTokens, taskData) {
     const notification = {
-      title: `New Task: ${taskData.title}`,
-      body: `Assigned by ${taskData.assignedBy}. Due: ${taskData.dueDate || 'Not set'}`,
+      title: `${taskData.title}`,
+      body: taskData.assignedBy 
+        ? `New task assigned by ${taskData.assignedBy}`
+        : 'You have been assigned a new task',
       data: {
         type: 'task_assigned',
         taskId: taskData.taskId?.toString() || '',
@@ -156,16 +158,19 @@ class FirebaseNotificationService {
   }
 
   /**
-   * Send task status update notification
+   * Send task status update notification with the new format: task name then status change
    */
   async sendStatusUpdateNotification(fcmTokens, statusData) {
     const notification = {
-      title: `Task Status Updated`,
-      body: `${statusData.taskTitle} is now ${statusData.newStatus}`,
+      title: `${statusData.taskTitle}`,
+      body: statusData.statusChange && statusData.updatedBy 
+        ? `Status changed ${statusData.statusChange} by ${statusData.updatedBy}`
+        : `Task updated by ${statusData.updatedBy || 'System'}`,
       data: {
-        type: 'status_update',
+        type: 'task_updated',
         taskId: statusData.taskId?.toString() || '',
-        status: statusData.newStatus
+        status: statusData.newStatus,
+        statusChange: statusData.statusChange || ''
       }
     };
 
