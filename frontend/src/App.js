@@ -905,8 +905,7 @@ const TaskManagementSystem = () => {
     try {
       if (platform.isDesktop && platform.isWindows) {
         // Windows Desktop - Create PowerShell scripts and setup instructions
-        const scripts = {
-          keepAlive: `# Render Keep-Alive Service for TriDo
+        const keepAliveScript = `# Render Keep-Alive Service for TriDo
 param([string]$RenderUrl = "https://to-do-trimity.onrender.com", [int]$IntervalMinutes = 10)
 
 $LogPath = "$env:TEMP\\trido-keepalive.log"
@@ -933,14 +932,15 @@ while ($true) {
         }
     }
     Start-Sleep -Seconds ($IntervalMinutes * 60)
-}`,
-          setup: `# TriDo Background Service Setup
+}`;
+
+        const setupScript = `# TriDo Background Service Setup
 $TaskName = "TriDo-KeepAlive"
 $ScriptPath = "$env:TEMP\\trido-keepalive.ps1"
 
 # Save keep-alive script
 @'
-${scripts.keepAlive}
+${keepAliveScript}
 '@ | Out-File -FilePath $ScriptPath -Encoding UTF8
 
 # Create scheduled task
@@ -959,11 +959,10 @@ try {
     Write-Host "✅ TriDo background service enabled! Notifications will work even when the app is closed." -ForegroundColor Green
 } catch {
     Write-Host "❌ Setup failed: $($_.Exception.Message)" -ForegroundColor Red
-}`
-        };
+}`;
 
         // Create downloadable setup script
-        const blob = new Blob([scripts.setup], { type: 'text/plain' });
+        const blob = new Blob([setupScript], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
