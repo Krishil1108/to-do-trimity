@@ -121,12 +121,17 @@ class NotificationService {
         await this.saveFCMToken(userId, token);
       }
 
-      // Listen for foreground messages (but don't show notifications - let service worker handle all notifications)
+      // Listen for foreground messages
       this.onMessageListener().then((payload) => {
-        console.log('Foreground message received (notification handled by service worker):', payload);
+        console.log('Foreground notification:', payload);
         
-        // Don't show notification here - let Firebase service worker handle all notifications
-        // This prevents duplicate notifications when app is in foreground
+        // Show notification
+        new Notification(payload.notification.title, {
+          body: payload.notification.body,
+          icon: '/logo192.png',
+          badge: '/logo192.png',
+          tag: payload.data?.taskId || 'default'
+        });
       });
 
       return true;

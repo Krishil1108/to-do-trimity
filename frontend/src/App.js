@@ -149,7 +149,6 @@ const TaskManagementSystem = () => {
   // Push notification states
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
-  const [backgroundServiceEnabled, setBackgroundServiceEnabled] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [showAdvancedMenu, setShowAdvancedMenu] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
@@ -321,10 +320,6 @@ const TaskManagementSystem = () => {
             userId: currentUser._id,
             fcmToken: token
           });
-
-          // Check background service status
-          const backgroundEnabled = checkBackgroundServiceStatus();
-          setBackgroundServiceEnabled(backgroundEnabled);
         } else {
           console.log('⚠️ Notification permission not granted');
           setNotificationPermission('denied');
@@ -488,30 +483,6 @@ const TaskManagementSystem = () => {
     }
   };
 
-
-  // Platform detection utilities
-  const detectPlatform = () => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
-                     window.innerWidth <= 768;
-    const isDesktop = !isMobile;
-    const isWindows = /windows/i.test(userAgent);
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    
-    return { isMobile, isDesktop, isWindows, isPWA };
-  };
-
-  // Background service management
-  const checkBackgroundServiceStatus = () => {
-    const status = localStorage.getItem('backgroundServiceEnabled');
-    return status === 'true';
-  };
-
-  const setBackgroundServiceStatus = (enabled) => {
-    localStorage.setItem('backgroundServiceEnabled', enabled.toString());
-    setBackgroundServiceEnabled(enabled);
-  };
 
   // Helper function to safely get project name
   const getProjectName = (project) => {
@@ -874,151 +845,6 @@ const TaskManagementSystem = () => {
     }
   };
 
-  // Automatic Browser-Based Keep-Alive Service
-  const startBrowserKeepAlive = async () => {
-    try {
-      const serverUrl = API_URL.replace('/api', '');
-      const pingInterval = 8 * 60 * 1000; // 8 minutes (before Render's 10-minute timeout)
-      
-      // Create keep-alive function
-      const keepAlive = async () => {
-        try {
-          console.log('🔄 Browser Keep-Alive: Pinging server...');
-          
-          // Try health endpoint first
-          const response = await fetch(`${serverUrl}/api/health`, {
-            method: 'GET',
-            cache: 'no-cache'
-          });
-          
-          if (response.ok) {
-            console.log('✅ Server ping successful');
-          } else {
-            console.warn('⚠️ Health check failed, trying main endpoint...');
-            // Fallback to main endpoint
-            await fetch(serverUrl, { method: 'GET', cache: 'no-cache' });
-            console.log('🔄 Wake-up ping sent');
-          }
-          
-          // Update last ping time
-          localStorage.setItem('lastKeepAlivePing', Date.now().toString());
-          
-        } catch (error) {
-          console.warn('❌ Keep-alive ping failed:', error.message);
-          
-          // Try wake-up ping as fallback
-          try {
-            await fetch(serverUrl, { method: 'GET', cache: 'no-cache' });
-            console.log('🔄 Fallback wake-up ping sent');
-          } catch (fallbackError) {
-            console.error('❌ All ping attempts failed');
-          }
-        }
-      };
-      
-      // Start immediate ping
-      await keepAlive();
-      
-      // Set up interval for continuous pinging
-      const intervalId = setInterval(keepAlive, pingInterval);
-      
-      // Store interval ID for cleanup
-      window.tridoKeepAliveInterval = intervalId;
-      localStorage.setItem('keepAliveIntervalActive', 'true');
-      
-      // Set up page visibility change handler for mobile
-      const handleVisibilityChange = () => {
-        if (document.hidden) {
-          console.log('📱 Page hidden - keep-alive continues in background');
-        } else {
-          console.log('👀 Page visible - keep-alive active');
-          // Immediate ping when page becomes visible
-          keepAlive();
-        }
-      };
-      
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Set up beforeunload handler to continue service
-      window.addEventListener('beforeunload', () => {
-        // Store state for restoration
-        localStorage.setItem('keepAliveWasActive', 'true');
-        localStorage.setItem('keepAliveStartTime', Date.now().toString());
-      });
-      
-      // Enhanced mobile background handling
-      if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        // Use Page Lifecycle API for better mobile support
-        if ('onfreeze' in document) {
-          document.addEventListener('freeze', () => {
-            console.log('📱 Page frozen - background keep-alive activated');
-            localStorage.setItem('pageFrozen', 'true');
-          });
-          
-          document.addEventListener('resume', () => {
-            console.log('📱 Page resumed - reactivating keep-alive');
-            localStorage.removeItem('pageFrozen');
-            keepAlive(); // Immediate ping on resume
-          });
-        }
-        
-        // Use Wake Lock API to prevent sleep (if available)
-        if ('wakeLock' in navigator) {
-          try {
-            const wakeLock = await navigator.wakeLock.request('screen');
-            console.log('📱 Wake lock acquired for background operation');
-            
-            wakeLock.addEventListener('release', () => {
-              console.log('📱 Wake lock released');
-            });
-          } catch (err) {
-            console.log('📱 Wake lock not available:', err.message);
-          }
-        }
-      }
-      
-      console.log('🚀 Browser-based keep-alive service started');
-      console.log(`⏰ Pinging every ${pingInterval / 60000} minutes`);
-      console.log('🌐 Server URL:', serverUrl);
-      
-      return true;
-      
-    } catch (error) {
-      console.error('Failed to start browser keep-alive:', error);
-      return false;
-    }
-  };
-
-  // Stop browser keep-alive service
-  const stopBrowserKeepAlive = () => {
-    if (window.tridoKeepAliveInterval) {
-      clearInterval(window.tridoKeepAliveInterval);
-      window.tridoKeepAliveInterval = null;
-      localStorage.removeItem('keepAliveIntervalActive');
-      localStorage.removeItem('backgroundServiceEnabled');
-      console.log('🛑 Browser keep-alive service stopped');
-      return true;
-    }
-    return false;
-  };
-
-  // Auto-restore keep-alive service on page load
-  useEffect(() => {
-    const isKeepAliveEnabled = localStorage.getItem('backgroundServiceEnabled') === 'true';
-    const wasActive = localStorage.getItem('keepAliveWasActive') === 'true';
-    
-    if (isKeepAliveEnabled || wasActive) {
-      console.log('🔄 Auto-restoring keep-alive service...');
-      startBrowserKeepAlive().then(success => {
-        if (success) {
-          setBackgroundServiceStatus(true);
-          localStorage.removeItem('keepAliveWasActive'); // Clean up
-          console.log('✅ Keep-alive service auto-restored');
-        }
-      });
-    }
-  }, []);
-
   const disablePushNotifications = async () => {
     try {
       setLoading(true);
@@ -1034,94 +860,6 @@ const TaskManagementSystem = () => {
       showError('Failed to disable push notifications.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Automatic Background Service Setup
-  const setupBackgroundService = async (platform) => {
-    try {
-      // Start automatic browser-based keep-alive service
-      const success = await startBrowserKeepAlive();
-      
-      if (success) {
-        setBackgroundServiceStatus(true);
-        localStorage.setItem('backgroundServiceEnabled', 'true');
-        
-        showSuccess(
-          '🎉 Background Service Enabled!\n\n' +
-          '✅ Automatic server keep-alive started\n' +
-          '✅ Works on both desktop and mobile\n' +
-          '✅ No manual setup required\n' +
-          '✅ Notifications will work 24/7\n\n' +
-          '🔧 The service runs automatically in your browser\n' +
-          '📱 Works even when tab is in background\n' +
-          '🌐 Keeps Render server awake continuously'
-        );
-        
-        // Also register enhanced service worker for better background handling
-        if ('serviceWorker' in navigator) {
-          try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
-            
-            // Enable background sync for mobile
-            if ('sync' in registration) {
-              await registration.sync.register('background-keep-alive');
-              console.log('📱 Background sync registered');
-            }
-            
-            // Send configuration to service worker
-            if (registration.active) {
-              registration.active.postMessage({
-                type: 'ENABLE_KEEP_ALIVE',
-                serverUrl: API_URL.replace('/api', ''),
-                interval: 8 * 60 * 1000 // 8 minutes
-              });
-            }
-          } catch (error) {
-            console.warn('Service worker registration failed:', error);
-          }
-        }
-      } else {
-        showError('Failed to start background service. Please try again.');
-      }
-
-      setBackgroundServiceStatus(true);
-      return true;
-    } catch (error) {
-      console.error('Background service setup error:', error);
-      showError('Failed to setup background service: ' + error.message);
-      return false;
-    }
-  };
-
-  // Disable background service
-  const disableBackgroundService = async () => {
-    try {
-      // Stop browser keep-alive
-      const stopped = stopBrowserKeepAlive();
-      
-      // Notify service worker to disable keep-alive
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration && registration.active) {
-          registration.active.postMessage({ type: 'DISABLE_KEEP_ALIVE' });
-        }
-      }
-      
-      // Update status
-      setBackgroundServiceStatus(false);
-      
-      if (stopped) {
-        showSuccess('Background service disabled successfully! Notifications will only work when the app is open.');
-      } else {
-        showInfo('Background service was not active.');
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Failed to disable background service:', error);
-      showError('Failed to disable background service: ' + error.message);
-      return false;
     }
   };
 
@@ -1217,46 +955,184 @@ const TaskManagementSystem = () => {
     }
   };
 
-  const sendTaskNotification = async (userId, taskData, type = 'task_assigned', customMessage = null) => {
-    // Firebase service worker automatically handles all notifications
-    console.log('🔔 Firebase handles notification for:', userId, taskData.title);
-    return { success: true, message: 'Firebase handles notifications' };
+  const sendTaskNotification = async (userId, taskData, type = 'task_assigned') => {
+    try {
+      console.log('🔔 sendTaskNotification called with:', {
+        userId,
+        taskData,
+        type,
+        pushNotificationsEnabled
+      });
+      
+      // Prevent rapid duplicate calls (increased to 5-second window for better duplicate prevention)
+      const notificationKey = `${userId}_${taskData._id || taskData.id}_${type}`;
+      const now = Date.now();
+      const lastSent = window.recentNotificationCalls?.get(notificationKey);
+      
+      if (lastSent && (now - lastSent) < 5000) {
+        console.log(`⏭️ Skipping duplicate notification call for ${userId} (${type}) - sent ${now - lastSent}ms ago`);
+        return { success: true, message: 'Duplicate call skipped' };
+      }
+      
+      // Initialize tracking if not exists
+      if (!window.recentNotificationCalls) {
+        window.recentNotificationCalls = new Map();
+      }
+      
+      // Record this call
+      window.recentNotificationCalls.set(notificationKey, now);
+      
+      const title = getNotificationTitle(type, taskData);
+      const body = getNotificationBody(type, taskData);
+      
+      // Always show browser notification if permission is granted
+      if (Notification.permission === 'granted') {
+        console.log('📢 Showing browser notification:', { title, body });
+        
+        try {
+          const notification = new Notification(title, {
+            body: body,
+            icon: '/favicon.ico',
+            tag: `task-${taskData._id}-${type}-${Date.now()}`, // Unique tag to prevent replacement
+            requireInteraction: true,
+            vibrate: [200, 100, 200, 100, 200],
+            renotify: true
+          });
+          
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+          };
+        } catch (notifError) {
+          console.error('❌ Browser notification failed:', notifError);
+        }
+      } else if (Notification.permission === 'default') {
+        // Try to request permission if not yet decided
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification(title, { body: body, icon: '/favicon.ico' });
+          }
+        });
+      }
+      
+      // Also send push notification if enabled
+      if (!pushNotificationsEnabled) {
+        console.log('ℹ️ Push notifications not enabled (browser notification shown)');
+        return { success: true, message: 'Browser notification shown' };
+      }
+      
+      const notificationData = {
+        title: getNotificationTitle(type, taskData),
+        body: getNotificationBody(type, taskData),
+        data: {
+          type,
+          taskId: taskData._id,
+          taskTitle: taskData.title
+        }
+      };
+
+      console.log('📤 Sending notification data:', notificationData);
+
+      // Send single push notification (no duplicates) 
+      // Priority: _id first (matches subscription), then username as fallback
+      let targetUserId = userId;
+      let fallbackUserId = null;
+      let results = [];
+      
+      // Check if we have user._id - use it as primary (matches subscription)
+      const targetUser = users.find(u => u.username === userId);
+      if (targetUser && targetUser._id) {
+        targetUserId = targetUser._id;
+        fallbackUserId = userId; // username as fallback
+      }
+      
+      console.log(`📨 Sending single push to: ${targetUserId}`);
+      
+      try {
+        // Try primary target first
+        const response = await axios.post(`${API_URL}/notifications/send-push`, {
+          userId: targetUserId,
+          ...notificationData
+        }, { timeout: 5000 });
+        
+        console.log(`✅ Push notification sent successfully to ${targetUserId}:`, response.data);
+        results = [{ status: 'fulfilled', value: response }];
+        
+      } catch (primaryError) {
+        console.warn(`⚠️ Primary push failed for ${targetUserId}:`, primaryError.response?.data || primaryError.message);
+        
+        // Try fallback if available
+        if (fallbackUserId) {
+          console.log(`📨 Trying fallback target: ${fallbackUserId}`);
+          try {
+            const fallbackResponse = await axios.post(`${API_URL}/notifications/send-push`, {
+              userId: fallbackUserId,
+              ...notificationData
+            }, { timeout: 5000 });
+            
+            console.log(`✅ Fallback push succeeded for ${fallbackUserId}:`, fallbackResponse.data);
+            results = [{ status: 'fulfilled', value: fallbackResponse }];
+            
+          } catch (fallbackError) {
+            console.error(`❌ Both push attempts failed:`, { primary: primaryError.message, fallback: fallbackError.message });
+            results = [{ status: 'rejected', reason: primaryError }];
+          }
+        } else {
+          console.error(`❌ Push notification failed and no fallback available`);
+          results = [{ status: 'rejected', reason: primaryError }];
+        }
+      }
+      console.log('📊 Push notification results summary:', results.map(r => ({
+        status: r.status,
+        success: r.status === 'fulfilled' ? r.value?.data?.success : false,
+        data: r.status === 'fulfilled' ? r.value?.data : null,
+        error: r.status === 'rejected' ? r.reason?.response?.data || r.reason?.message : null
+      })));
+      
+      // Check if any succeeded
+      const hasSuccess = results.some(result => 
+        result.status === 'fulfilled' && result.value?.data?.success === true
+      );
+      
+      if (!hasSuccess) {
+        console.log('ℹ️ Push notification attempt result:', results[0]?.value?.data || results[0]?.reason?.response?.data);
+      } else {
+        console.log('🎉 Push notification succeeded');
+      }
+      
+    } catch (error) {
+      console.error('💥 Error in sendTaskNotification:', error);
+      console.error('Error details:', error.response?.data || error.message);
+    }
   };
 
   const getNotificationTitle = (type, taskData) => {
     switch (type) {
       case 'task_assigned':
-        return `📋 ${taskData.title}`;
+        return '📋 New Task Assigned';
       case 'task_completed':
-        return `✅ ${taskData.title}`;
+        return '✅ Task Completed';
       case 'task_overdue':
-        return `⚠️ ${taskData.title}`;
+        return '⚠️ Task Overdue';
       case 'task_reminder':
-        return `🔔 ${taskData.title}`;
-      case 'task_updated':
-        return `📝 ${taskData.title}`;
+        return '🔔 Task Reminder';
       default:
-        return taskData.title || 'Task Update';
+        return 'Task Update';
     }
   };
 
-  const getNotificationBody = (type, taskData, fromUser = null, statusChange = null) => {
+  const getNotificationBody = (type, taskData) => {
     switch (type) {
       case 'task_assigned':
-        return fromUser ? `New task assigned by ${fromUser}` : `You have been assigned this task`;
+        return `You have been assigned: ${taskData.title}`;
       case 'task_completed':
-        return fromUser ? `Task completed by ${fromUser}` : `Task has been completed`;
+        return `Task completed: ${taskData.title}`;
       case 'task_overdue':
-        return fromUser ? `Task marked overdue by ${fromUser}` : `Task is now overdue`;
+        return `Task is overdue: ${taskData.title}`;
       case 'task_reminder':
-        return `Reminder: Due date approaching`;
-      case 'task_updated':
-        if (statusChange && fromUser) {
-          return `Status changed ${statusChange} by ${fromUser}`;
-        }
-        return fromUser ? `Task updated by ${fromUser}` : `Task has been updated`;
+        return `Reminder: ${taskData.title} is due soon`;
       default:
-        return fromUser ? `Update by ${fromUser}` : `Task has been updated`;
+        return `Update for task: ${taskData.title}`;
     }
   };
 
@@ -1383,16 +1259,33 @@ const TaskManagementSystem = () => {
   });
   };
 
-  const createNotification = async (taskId, userId, message, type, assignedBy, statusChange = null) => {
+  const createNotification = async (taskId, userId, message, type, assignedBy) => {
     try {
       console.log('📢 createNotification called with:', {
         taskId,
         userId,
         message,
         type,
-        assignedBy,
-        statusChange
+        assignedBy
       });
+      
+      // Additional check to prevent duplicate notification creation
+      const notificationKey = `${taskId}_${userId}_${type}_${new Date().toISOString().slice(0, 16)}`; // minute precision
+      if (window.recentNotificationCreations?.has(notificationKey)) {
+        console.log('⏭️ Skipping duplicate notification creation');
+        return;
+      }
+      
+      // Track this notification creation
+      if (!window.recentNotificationCreations) {
+        window.recentNotificationCreations = new Set();
+      }
+      window.recentNotificationCreations.add(notificationKey);
+      
+      // Clean up old entries after 2 minutes
+      setTimeout(() => {
+        window.recentNotificationCreations?.delete(notificationKey);
+      }, 120000);
       
       // Create in-app notification
       await axios.post(`${API_URL}/notifications`, {
@@ -1400,13 +1293,12 @@ const TaskManagementSystem = () => {
         taskId,
         message,
         type,
-        assignedBy,
-        statusChange
+        assignedBy
       });
       
       console.log('✅ In-app notification created successfully');
       
-      // Send FCM push notification
+      // Send push notification if enabled
       const task = tasks.find(t => t._id === taskId) || formData;
       console.log('🔍 Found task for push notification:', task ? {
         id: task._id || 'formData',
@@ -1414,32 +1306,12 @@ const TaskManagementSystem = () => {
       } : 'No task found');
       
       if (task) {
-        console.log('🚀 Sending FCM notification...');
-        
-        // Get user info for notification format
-        const fromUserObj = users.find(u => u.username === assignedBy);
-        const fromUserName = fromUserObj ? fromUserObj.name : assignedBy;
-        
-        // Use the new notification format
-        const notificationTitle = getNotificationTitle(type, task);
-        const notificationBody = getNotificationBody(type, task, fromUserName, statusChange);
-        
-        // Send push notification via backend
-        try {
-          const pushResponse = await axios.post(`${API_URL}/notifications/send-push`, {
-            userId,
-            title: notificationTitle,
-            body: notificationBody,
-            data: {
-              type,
-              taskId: taskId,
-              statusChange: statusChange || ''
-            }
-          });
-          console.log('✅ FCM notification sent successfully:', pushResponse.data);
-        } catch (pushError) {
-          console.error('❌ Error sending FCM notification:', pushError);
-        }
+        console.log('🚀 Calling sendTaskNotification...');
+        await sendTaskNotification(userId, {
+          _id: taskId,
+          title: task.title || formData.title,
+          description: task.description || formData.description
+        }, type);
       } else {
         console.warn('⚠️ No task found, skipping push notification');
       }
@@ -1553,22 +1425,14 @@ const TaskManagementSystem = () => {
         const response = await axios.put(`${API_URL}/tasks/${editingTask._id}`, taskData);
         savedTask = response.data;
         
-        // Only notify about general updates if it's not a status-only change
-        // Status changes are handled separately in handleStatusChange
-        const isStatusOnlyChange = editingTask.status !== formData.status && 
-          Object.keys(formData).every(key => 
-            key === 'status' || formData[key] === editingTask[key]
-          );
-        
-        if (!isStatusOnlyChange) {
-          await createNotification(
-            savedTask._id,
-            formData.assignedTo,
-            `Task "${formData.title}" was updated by ${currentUser.name}`,
-            'task_updated',
-            currentUser.username
-          );
-        }
+        // Notify about update
+        await createNotification(
+          savedTask._id,
+          formData.assignedTo,
+          `Task "${formData.title}" was updated by ${currentUser.name}`,
+          'task_updated',
+          currentUser.username
+        );
       } else {
         const response = await axios.post(`${API_URL}/tasks`, taskData);
         savedTask = response.data;
@@ -1577,7 +1441,7 @@ const TaskManagementSystem = () => {
         await createNotification(
           savedTask._id,
           formData.assignedTo,
-          `You have been assigned new task by ${currentUser.name}`,
+          `New task "${formData.title}" assigned to you by ${currentUser.name}`,
           'task_assigned',
           currentUser.username
         );
@@ -1723,8 +1587,6 @@ Priority: ${task.priority}`;
     
     window.open(whatsappUrl, '_blank');
   };
-
-
 
 
   const copyBulkTasksToClipboard = () => {
@@ -2126,6 +1988,8 @@ Priority: ${task.priority}`;
   };
 
   const handleStatusChange = async (task, newStatus) => {
+    console.log(`🔄 Status change initiated: ${task.title} from ${task.status} to ${newStatus} by ${currentUser.username}`);
+    
     // If changing to Completed, show completion modal
     if (newStatus === 'Completed') {
       setSelectedTask(task);
@@ -2170,21 +2034,24 @@ Priority: ${task.priority}`;
         taskUpdateData.reminder = task.reminder;
       }
       
-      console.log('Sending task update:', taskUpdateData);
+      console.log('📤 Sending task update:', taskUpdateData);
       
       const response = await axios.put(`${API_URL}/tasks/${task._id}`, taskUpdateData);
       
+      console.log('✅ Task update successful, checking notification conditions');
+      
       // Notify task creator about status change (don't notify the person who made the change)
       if (task.assignedBy !== currentUser.username) {
-        const statusChange = `${task.status} to ${newStatus}`;
+        console.log(`📬 Sending notification to task creator: ${task.assignedBy}`);
         await createNotification(
           task._id,
           task.assignedBy,
           `Task "${task.title}" status changed to ${newStatus} by ${currentUser.name}`,
           'task_updated',
-          currentUser.username,
-          statusChange
+          currentUser.username
         );
+      } else {
+        console.log(`⏭️ Not sending notification - user is updating their own task`);
       }
       
       await loadTasks();
@@ -3233,7 +3100,13 @@ Priority: ${task.priority}`;
                                 >
                                   <FileText className="w-4 h-4" />
                                 </button>
-
+                                <button
+                                  onClick={() => sendToWhatsApp(task)}
+                                  className="p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors"
+                                  title="Send via WhatsApp"
+                                >
+                                  <MessageCircle className="w-4 h-4" />
+                                </button>
                               </>
                             )}
                             
@@ -3395,7 +3268,13 @@ Priority: ${task.priority}`;
                   >
                     <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-
+                  <button
+                    onClick={() => sendToWhatsApp(task)}
+                    className="p-1.5 sm:p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    title="Send via WhatsApp"
+                  >
+                    <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
 
                 </>
               )}
@@ -4007,44 +3886,6 @@ Priority: ${task.priority}`;
                 </span>
               </div>
             </div>
-            
-            {/* Background Service Toggle */}
-            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
-              <div>
-                <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                  🚀 Background Service
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">AUTO</span>
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Keep notifications working even when browser is closed
-                </p>
-                <p className="text-xs text-green-600 font-medium mt-1">
-                  🔧 Works automatically on all devices - no manual setup required!
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {backgroundServiceEnabled ? (
-                  <button
-                    onClick={disableBackgroundService}
-                    disabled={loading}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
-                  >
-                    {loading ? 'Disabling...' : 'Disable'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setupBackgroundService(detectPlatform())}
-                    disabled={loading}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
-                  >
-                    {loading ? 'Enabling...' : 'Enable'}
-                  </button>
-                )}
-                <span className="text-xs text-gray-500">
-                  Status: {backgroundServiceEnabled ? 'Active' : 'Disabled'}
-                </span>
-              </div>
-            </div>
 
             {/* Test Notifications */}
             {pushNotificationsEnabled && (
@@ -4085,7 +3926,95 @@ Priority: ${task.priority}`;
           </div>
         </div>
 
+        {/* WhatsApp Notification Settings */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-green-600" />
+            WhatsApp Notifications
+          </h3>
+          
+          <div className="space-y-4">
+            {/* WhatsApp Number */}
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                WhatsApp Number
+              </label>
+              <input
+                type="tel"
+                placeholder="+1234567890 (with country code)"
+                value={currentUser?.whatsappNumber || ''}
+                onChange={async (e) => {
+                  const newNumber = e.target.value;
+                  try {
+                    await axios.put(`${API_URL}/users/${currentUser._id}`, {
+                      ...currentUser,
+                      whatsappNumber: newNumber
+                    });
+                    setCurrentUser({ ...currentUser, whatsappNumber: newNumber });
+                  } catch (error) {
+                    console.error('Error updating WhatsApp number:', error);
+                    showError('Failed to update WhatsApp number');
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your WhatsApp number in international format (e.g., +14155552671)
+              </p>
+            </div>
 
+            {/* Enable/Disable WhatsApp Notifications */}
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+              <div>
+                <h4 className="font-medium text-gray-900">WhatsApp Notifications</h4>
+                <p className="text-sm text-gray-600">
+                  Receive task updates and assignments via WhatsApp
+                </p>
+                <p className="text-xs text-green-600 font-medium mt-1">
+                  ✓ Works even when you're offline
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  const newValue = !currentUser?.whatsappNotifications;
+                  try {
+                    if (newValue && !currentUser?.whatsappNumber) {
+                      showError('Please enter your WhatsApp number first');
+                      return;
+                    }
+                    await axios.put(`${API_URL}/users/${currentUser._id}`, {
+                      ...currentUser,
+                      whatsappNotifications: newValue
+                    });
+                    setCurrentUser({ ...currentUser, whatsappNotifications: newValue });
+                    showSuccess(newValue ? 'WhatsApp notifications enabled' : 'WhatsApp notifications disabled');
+                  } catch (error) {
+                    console.error('Error updating WhatsApp notifications:', error);
+                    showError('Failed to update WhatsApp notifications');
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  currentUser?.whatsappNotifications
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {currentUser?.whatsappNotifications ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+
+            {/* WhatsApp Info */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900 mb-2">📋 What you'll receive via WhatsApp:</h4>
+              <ul className="space-y-1 text-sm text-blue-800">
+                <li>• New task assignments with full details</li>
+                <li>• Task completion notifications</li>
+                <li>• Task status updates</li>
+                <li>• Formatted messages for easy reading</li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
         {/* Notification Types */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -7241,7 +7170,6 @@ Priority: ${task.priority}`;
       {/* Auto-update checker component */}
       <UpdateChecker />
       
-
       {/* Custom Dialog Component */}
       <CustomDialog
         isOpen={dialog.isOpen}

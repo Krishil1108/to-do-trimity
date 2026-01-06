@@ -103,8 +103,29 @@ router.delete('/user/:userId/clear-all', async (req, res) => {
 // Create notification
 router.post('/', async (req, res) => {
   try {
+    const { userId, taskId, message, type, assignedBy } = req.body;
+    
+    // Check for duplicate notification in the last 5 seconds
+    const fiveSecondsAgo = new Date(Date.now() - 5000);
+    const existingNotification = await Notification.findOne({
+      userId,
+      taskId,
+      type,
+      createdAt: { $gte: fiveSecondsAgo }
+    });
+    
+    if (existingNotification) {
+      console.log('⏭️ Skipping duplicate notification creation for:', { userId, taskId, type });
+      return res.status(200).json({ 
+        message: 'Duplicate notification prevented',
+        notification: existingNotification 
+      });
+    }
+    
     const notification = new Notification(req.body);
     const newNotification = await notification.save();
+    
+    console.log('✅ New notification created:', { userId, taskId, type, message });
     
     // Note: Push notifications are handled by the frontend via /send-push endpoint
     // This avoids duplicate notifications and gives frontend more control
@@ -226,6 +247,30 @@ router.post('/send-push', async (req, res) => {
       });
     }
 
+    // Check for duplicate notifications (5-second window)
+    const notificationKey = `${userId}_${title}_${body}`;
+    const now = Date.now();
+    const lastSent = recentNotifications.get(notificationKey);
+    
+    if (lastSent && (now - lastSent) < 5000) {
+      console.log(`⏭️ Skipping duplicate push notification for ${userId} - sent ${now - lastSent}ms ago`);
+      return res.json({ 
+        success: true, 
+        message: 'Duplicate notification prevented',
+        skipped: true 
+      });
+    }
+    
+    // Record this notification
+    recentNotifications.set(notificationKey, now);
+    
+    // Clean up old entries (older than 10 seconds)
+    for (const [key, timestamp] of recentNotifications.entries()) {
+      if (now - timestamp > 10000) {
+        recentNotifications.delete(key);
+      }
+    }
+
     const result = await sendPushNotification(userId, {
       title,
       body: body || '',
@@ -293,13 +338,10 @@ async function sendPushNotification(userId, notificationData) {
   try {
     console.log(`📤 Attempting to send Firebase push notification to userId: ${userId}`);
     
-    // Find user by username first (most common case), then by _id
-    let user = await User.findOne({ username: userId });
+    // Find user by either _id or username
+    let user = await User.findById(userId);
     if (!user) {
-      // Only try findById if userId looks like an ObjectId (24 hex characters)
-      if (userId && userId.length === 24 && /^[0-9a-fA-F]{24}$/.test(userId)) {
-        user = await User.findById(userId);
-      }
+      user = await User.findOne({ username: userId });
     }
     
     if (!user) {

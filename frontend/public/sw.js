@@ -1,6 +1,6 @@
-// Service Worker for Task Management System with Firebase Messaging and Background Keep-Alive
+// Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v7.7.0-' + Date.now(); // Removed redundant background service dialog - cleaner UX
+const CACHE_VERSION = 'v6.2.0-' + Date.now(); // Enhanced notification system with triple-layer duplicate prevention
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
@@ -23,19 +23,9 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages from Firebase (SINGLE SOURCE OF TRUTH for notifications)
+// Handle background messages from Firebase
 messaging.onBackgroundMessage((payload) => {
   console.log('🔔 Received background message:', payload);
-  
-  // Notify clients that a push notification was received
-  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'PUSH_NOTIFICATION_RECEIVED',
-        timestamp: Date.now()
-      });
-    });
-  });
 
   const notificationTitle = payload.notification?.title || 'New Notification';
   const notificationOptions = {
@@ -44,11 +34,10 @@ messaging.onBackgroundMessage((payload) => {
     badge: '/logo192.png',
     tag: payload.data?.taskId || 'default',
     requireInteraction: true,
-    vibrate: [300, 100, 300],
     data: payload.data
   };
 
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 console.log('🚀 Service Worker starting with cache version:', CACHE_NAME);
@@ -57,7 +46,7 @@ console.log('⏰ Timestamp:', Date.now());
 // IMMEDIATELY skip waiting - don't wait for old SW to close
 self.skipWaiting();
 
-// Force clear all old caches on startup and handle background keep-alive
+// Force clear all old caches on startup
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'FORCE_UPDATE') {
     console.log('🔄 Force cache update requested');
@@ -76,129 +65,7 @@ self.addEventListener('message', (event) => {
         return self.clients.claim();
       })
     );
-  } else if (event.data && event.data.type === 'ENABLE_KEEP_ALIVE') {
-    console.log('🚀 Enabling background keep-alive service');
-    
-    // Store keep-alive configuration
-    self.keepAliveConfig = {
-      serverUrl: event.data.serverUrl,
-      interval: event.data.interval || 8 * 60 * 1000, // 8 minutes default
-      enabled: true
-    };
-    
-    // Start background keep-alive
-    startBackgroundKeepAlive();
-    
-    event.ports[0]?.postMessage({ success: true });
-  } else if (event.data && event.data.type === 'DISABLE_KEEP_ALIVE') {
-    console.log('🛑 Disabling background keep-alive service');
-    
-    if (self.keepAliveConfig) {
-      self.keepAliveConfig.enabled = false;
-    }
-    
-    if (self.keepAliveIntervalId) {
-      clearInterval(self.keepAliveIntervalId);
-      self.keepAliveIntervalId = null;
-    }
-    
-    event.ports[0]?.postMessage({ success: true });
   }
-});
-
-// Background Keep-Alive Service Implementation
-function startBackgroundKeepAlive() {
-  if (!self.keepAliveConfig || !self.keepAliveConfig.enabled) {
-    return;
-  }
-  
-  // Clear existing interval if any
-  if (self.keepAliveIntervalId) {
-    clearInterval(self.keepAliveIntervalId);
-  }
-  
-  const performKeepAlive = async () => {
-    if (!self.keepAliveConfig || !self.keepAliveConfig.enabled) {
-      return;
-    }
-    
-    try {
-      console.log('🔄 Service Worker Keep-Alive: Pinging server...');
-      
-      const response = await fetch(`${self.keepAliveConfig.serverUrl}/api/health`, {
-        method: 'GET',
-        cache: 'no-cache'
-      });
-      
-      if (response.ok) {
-        console.log('✅ SW Keep-Alive: Server ping successful');
-      } else {
-        throw new Error(`Health check failed: ${response.status}`);
-      }
-      
-    } catch (error) {
-      console.warn('⚠️ SW Keep-Alive: Health check failed, trying wake-up ping:', error.message);
-      
-      try {
-        const wakeResponse = await fetch(self.keepAliveConfig.serverUrl, {
-          method: 'GET',
-          cache: 'no-cache'
-        });
-        console.log('🔄 SW Keep-Alive: Wake-up ping sent');
-      } catch (wakeError) {
-        console.error('❌ SW Keep-Alive: All ping attempts failed:', wakeError.message);
-      }
-    }
-  };
-  
-  // Immediate ping
-  performKeepAlive();
-  
-  // Set up interval
-  self.keepAliveIntervalId = setInterval(performKeepAlive, self.keepAliveConfig.interval);
-  
-  console.log(`⏰ SW Keep-Alive: Started with ${self.keepAliveConfig.interval / 60000} minute interval`);
-}
-
-// Handle background sync for mobile devices
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-keep-alive') {
-    console.log('📱 Background sync: keep-alive triggered');
-    event.waitUntil(
-      (async () => {
-        if (self.keepAliveConfig && self.keepAliveConfig.enabled) {
-          try {
-            const response = await fetch(`${self.keepAliveConfig.serverUrl}/api/health`);
-            console.log('📱 Background sync keep-alive successful');
-          } catch (error) {
-            console.warn('📱 Background sync keep-alive failed:', error);
-          }
-        }
-      })()
-    );
-  }
-});
-
-// Auto-start keep-alive if configuration exists
-self.addEventListener('activate', (event) => {
-  console.log('✅ Service Worker activated:', CACHE_VERSION);
-  
-  // Try to restore keep-alive configuration from storage
-  event.waitUntil(
-    (async () => {
-      // Check if keep-alive should be restored
-      try {
-        const clients = await self.clients.matchAll({ includeUncontrolled: true });
-        for (const client of clients) {
-          client.postMessage({ type: 'SW_ACTIVATED', version: CACHE_VERSION });
-        }
-      } catch (error) {
-        console.warn('Failed to communicate with clients:', error);
-      }
-    })()
-  );
-  
-  return self.clients.claim();
 });
 
 // Install Service Worker
@@ -311,6 +178,169 @@ self.addEventListener('activate', (event) => {
       });
     })
   );
+});
+
+// Push event listener for notifications
+self.addEventListener('push', (event) => {
+  console.log('🔔 Push event received in service worker:', event);
+  console.log('Push data available:', !!event.data);
+  
+  // Notify clients that a push notification was received
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'PUSH_NOTIFICATION_RECEIVED',
+          timestamp: Date.now()
+        });
+      });
+    })
+  );
+  
+  let notificationData = {
+    title: 'TriDo - Task Management',
+    body: 'You have a new notification',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    tag: 'task-notification_' + Date.now(), // Force unique tags
+    requireInteraction: true, // FORCE interaction like WhatsApp
+    silent: false, // NEVER silent  
+    vibrate: [500, 200, 500, 200, 500, 200, 500], // Strong vibration like WhatsApp
+    renotify: true, // Always renotify
+    sticky: true // Try to make persistent
+  };
+
+  // Parse push data
+  if (event.data) {
+    try {
+      const pushData = event.data.json();
+      console.log('Parsed push data:', pushData);
+      notificationData = { ...notificationData, ...pushData };
+    } catch (e) {
+      console.error('Failed to parse push data as JSON:', e);
+      try {
+        const textData = event.data.text();
+        console.log('Push data as text:', textData);
+        notificationData.body = textData;
+      } catch (textError) {
+        console.error('Failed to parse push data as text:', textError);
+      }
+    }
+  } else {
+    console.log('No push data received, using default notification');
+  }
+
+  console.log('Final notification data:', notificationData);
+
+  // Log the exact notification options being used
+  const notificationOptions = {
+    body: notificationData.body,
+    icon: notificationData.icon || '/favicon.ico',
+    badge: notificationData.badge || '/favicon.ico',
+    tag: notificationData.tag + '_' + Date.now(), // Unique tag to avoid replacement
+    requireInteraction: true, // Force user interaction like WhatsApp
+    silent: false, // Never silent
+    vibrate: [300, 100, 300, 100, 300, 100, 300], // Strong vibration pattern
+    renotify: true, // Re-alert even if notification exists
+    persistent: true, // Stay visible
+    actions: [
+      { action: 'view', title: '👁️ Open Task', icon: '/favicon.ico' },
+      { action: 'mark_read', title: '✅ Mark Read', icon: '/favicon.ico' },
+      { action: 'dismiss', title: '❌ Dismiss', icon: '/favicon.ico' }
+    ],
+    data: {
+      ...notificationData.data,
+      url: '/', // URL to open when clicked
+      timestamp: Date.now(),
+      urgent: true
+    },
+    timestamp: Date.now(),
+    // Make it more attention-grabbing
+    dir: 'auto',
+    lang: 'en'
+  };
+  
+  console.log('🔔 About to show notification with options:', notificationOptions);
+
+  const showNotificationPromise = self.registration.showNotification(
+    notificationData.title,
+    notificationOptions
+  ).then((result) => {
+    console.log('✅ AGGRESSIVE notification displayed successfully via service worker');
+    console.log('📱 Notification result:', result);
+    
+    // Immediate verification that notification is actually visible
+    setTimeout(() => {
+      self.registration.getNotifications().then(notifications => {
+        console.log('📋 VERIFICATION: Currently visible notifications:', notifications.length);
+        
+        // Auto-cleanup: Keep only the 5 most recent notifications
+        if (notifications.length > 5) {
+          console.log('🧹 Cleaning up old notifications (keeping 5 most recent)');
+          
+          // Sort by timestamp (most recent first)
+          const sortedNotifications = notifications.sort((a, b) => {
+            const timeA = a.data?.timestamp || a.timestamp || 0;
+            const timeB = b.data?.timestamp || b.timestamp || 0;
+            return timeB - timeA;
+          });
+          
+          // Close older notifications
+          for (let i = 5; i < sortedNotifications.length; i++) {
+            sortedNotifications[i].close();
+            console.log('🗑️ Closed old notification:', sortedNotifications[i].title);
+          }
+        }
+        
+        if (notifications.length === 0) {
+          console.error('🚨 CRITICAL ISSUE: NO NOTIFICATIONS ARE VISIBLE TO USER!');
+          console.error('🔧 BROWSER IS BLOCKING NOTIFICATIONS');
+          console.error('💡 User must check:');
+          console.error('   1. Browser Settings > Notifications > Allow');
+          console.error('   2. Disable Do Not Disturb mode');
+          console.error('   3. Check site permissions');
+          console.error('   4. Try different browser or incognito mode');
+          
+        } else {
+          console.log('🎉 SUCCESS: Notifications are VISIBLE to user!');
+          const recentNotifications = Math.min(notifications.length, 5);
+          for (let i = 0; i < recentNotifications; i++) {
+            const notification = notifications[i];
+            console.log(`📌 Visible notification ${i + 1}:`, {
+              title: notification.title,
+              body: notification.body,
+              tag: notification.tag,
+              timestamp: notification.timestamp
+            });
+          }
+        }
+      }).catch(err => console.error('❌ Failed to check notifications:', err));
+    }, 1000);
+    
+    return true;
+  }).catch((error) => {
+    console.error('❌ AGGRESSIVE notification failed:', error);
+    
+    // Fallback: try showing a very basic notification
+    console.log('🔄 Attempting fallback notification...');
+    return self.registration.showNotification(
+      'TriDo Notification',
+      {
+        body: 'You have a new notification',
+        icon: '/favicon.ico',
+        tag: 'fallback-notification',
+        requireInteraction: false
+      }
+    ).then(() => {
+      console.log('✅ Fallback notification displayed');
+      return true;
+    }).catch((fallbackError) => {
+      console.error('❌ Even fallback notification failed:', fallbackError);
+      return false;
+    });
+  });
+
+  event.waitUntil(showNotificationPromise);
 });
 
 // Enhanced notification click event with focus and action handling
