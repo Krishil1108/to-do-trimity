@@ -1111,13 +1111,12 @@ const TaskManagementSystem = () => {
       case 'task_assigned':
         return '📋 New Task Assigned';
       case 'task_completed':
-        return '✅ Task Completed';
       case 'task_overdue':
-        return '⚠️ Task Overdue';
+      case 'task_updated':
       case 'task_reminder':
-        return '🔔 Task Reminder';
+        return taskData.title || 'Task Update';
       default:
-        return 'Task Update';
+        return taskData.title || 'Task Update';
     }
   };
 
@@ -1126,13 +1125,15 @@ const TaskManagementSystem = () => {
       case 'task_assigned':
         return `You have been assigned: ${taskData.title}`;
       case 'task_completed':
-        return `Task completed: ${taskData.title}`;
+        return `Task completed by ${currentUser?.name || 'User'}`;
       case 'task_overdue':
-        return `Task is overdue: ${taskData.title}`;
+        return `Task marked as overdue by ${currentUser?.name || 'User'}`;
+      case 'task_updated':
+        return `Status changed by ${currentUser?.name || 'User'}`;
       case 'task_reminder':
-        return `Reminder: ${taskData.title} is due soon`;
+        return `Reminder: Due soon`;
       default:
-        return `Update for task: ${taskData.title}`;
+        return `Updated by ${currentUser?.name || 'User'}`;
     }
   };
 
@@ -1429,7 +1430,7 @@ const TaskManagementSystem = () => {
         await createNotification(
           savedTask._id,
           formData.assignedTo,
-          `Task "${formData.title}" was updated by ${currentUser.name}`,
+          `Updated by ${currentUser.name}`,
           'task_updated',
           currentUser.username
         );
@@ -1441,7 +1442,7 @@ const TaskManagementSystem = () => {
         await createNotification(
           savedTask._id,
           formData.assignedTo,
-          `New task "${formData.title}" assigned to you by ${currentUser.name}`,
+          `Assigned to you by ${currentUser.name}`,
           'task_assigned',
           currentUser.username
         );
@@ -1933,7 +1934,7 @@ Priority: ${task.priority}`;
       await createNotification(
         selectedTask._id,
         selectedTask.assignedBy,
-        `Task "${selectedTask.title}" completed by ${currentUser.name}. Reason: ${completionReason}`,
+        `Completed by ${currentUser.name}. Reason: ${completionReason}`,
         'task_completed',
         currentUser.username
       );
@@ -1970,7 +1971,7 @@ Priority: ${task.priority}`;
       await createNotification(
         selectedTask._id,
         selectedTask.assignedBy,
-        `Task "${selectedTask.title}" marked as overdue by ${currentUser.name}. Reason: ${overdueReason}`,
+        `Marked as overdue by ${currentUser.name}. Reason: ${overdueReason}`,
         'task_overdue',
         currentUser.username
       );
@@ -2046,7 +2047,7 @@ Priority: ${task.priority}`;
         await createNotification(
           task._id,
           task.assignedBy,
-          `Task "${task.title}" status changed to ${newStatus} by ${currentUser.name}`,
+          `Status changed to ${newStatus} by ${currentUser.name}`,
           'task_updated',
           currentUser.username
         );
