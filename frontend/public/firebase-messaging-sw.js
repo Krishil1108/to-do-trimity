@@ -1,5 +1,5 @@
 // Firebase Cloud Messaging Service Worker
-// Updated: January 6, 2026 - Enhanced notification system with duplicate prevention
+// Updated: January 6, 2026 - Improved notification format with cleaner display
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
