@@ -1121,6 +1121,11 @@ const TaskManagementSystem = () => {
   };
 
   const getNotificationBody = (type, taskData) => {
+    // If custom message is provided (for detailed status changes), use it
+    if (taskData.customMessage) {
+      return taskData.customMessage;
+    }
+    
     switch (type) {
       case 'task_assigned':
         return `You have been assigned: ${taskData.title}`;
@@ -1308,10 +1313,12 @@ const TaskManagementSystem = () => {
       
       if (task) {
         console.log('🚀 Calling sendTaskNotification...');
+        // Pass the custom message for detailed notifications
         await sendTaskNotification(userId, {
           _id: taskId,
           title: task.title || formData.title,
-          description: task.description || formData.description
+          description: task.description || formData.description,
+          customMessage: message // Pass custom message for detailed status info
         }, type);
       } else {
         console.warn('⚠️ No task found, skipping push notification');
