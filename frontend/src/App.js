@@ -2048,8 +2048,8 @@ Priority: ${task.priority}`;
       
       console.log('✅ Task update successful, checking notification conditions');
       
-      // Notify task creator about status change (don't notify the person who made the change)
-      if (task.assignedBy !== currentUser.username) {
+      // Notify task creator (assignedBy) only when assignedTo changes status
+      if (task.assignedTo === currentUser.username && task.assignedBy !== currentUser.username) {
         console.log(`📬 Sending notification to task creator: ${task.assignedBy}`);
         await createNotification(
           task._id,
@@ -2059,7 +2059,7 @@ Priority: ${task.priority}`;
           currentUser.username
         );
       } else {
-        console.log(`⏭️ Not sending notification - user is updating their own task`);
+        console.log(`⏭️ Not sending notification - either assignedBy is changing their own task or assignedTo doesn't match current user`);
       }
       
       await loadTasks();
