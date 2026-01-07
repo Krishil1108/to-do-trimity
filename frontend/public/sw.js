@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.5.3-' + Date.now(); // Fixed duplicate notifications - removed redundant firebase-messaging-sw.js file
+const CACHE_VERSION = 'v6.5.4-' + Date.now(); // Fixed duplicate notifications - removed foreground notification display in notificationService
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

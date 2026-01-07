@@ -123,15 +123,9 @@ class NotificationService {
 
       // Listen for foreground messages
       this.onMessageListener().then((payload) => {
-        console.log('Foreground notification:', payload);
-        
-        // Show notification
-        new Notification(payload.notification.title, {
-          body: payload.notification.body,
-          icon: '/logo192.png',
-          badge: '/logo192.png',
-          tag: payload.data?.taskId || 'default'
-        });
+        console.log('Foreground notification received:', payload);
+        // Don't show notification here - the service worker already handles it
+        // Just log for debugging purposes
       });
 
       return true;
