@@ -1910,14 +1910,25 @@ Priority: ${task.priority}`;
       
       await axios.put(`${API_URL}/tasks/${selectedTask._id}`, updatedTask);
       
-      // Notify task creator
-      await createNotification(
-        selectedTask._id,
-        selectedTask.assignedBy,
-        `Completed by ${currentUser.name}. Reason: ${completionReason}`,
-        'task_completed',
-        currentUser.username
-      );
+      // Notify the OTHER person (bidirectional)
+      let notifyUser = null;
+      if (currentUser.username === selectedTask.assignedTo && selectedTask.assignedBy !== currentUser.username) {
+        // Assignee completed task → notify creator
+        notifyUser = selectedTask.assignedBy;
+      } else if (currentUser.username === selectedTask.assignedBy && selectedTask.assignedTo !== currentUser.username) {
+        // Creator completed task → notify assignee
+        notifyUser = selectedTask.assignedTo;
+      }
+      
+      if (notifyUser) {
+        await createNotification(
+          selectedTask._id,
+          notifyUser,
+          `Completed by ${currentUser.name}. Reason: ${completionReason}`,
+          'task_completed',
+          currentUser.username
+        );
+      }
       
       await loadTasks();
       setShowCompleteModal(false);
@@ -1947,14 +1958,25 @@ Priority: ${task.priority}`;
       
       await axios.put(`${API_URL}/tasks/${selectedTask._id}`, updatedTask);
       
-      // Notify task creator
-      await createNotification(
-        selectedTask._id,
-        selectedTask.assignedBy,
-        `Marked as overdue by ${currentUser.name}. Reason: ${overdueReason}`,
-        'task_overdue',
-        currentUser.username
-      );
+      // Notify the OTHER person (bidirectional)
+      let notifyUser = null;
+      if (currentUser.username === selectedTask.assignedTo && selectedTask.assignedBy !== currentUser.username) {
+        // Assignee marked overdue → notify creator
+        notifyUser = selectedTask.assignedBy;
+      } else if (currentUser.username === selectedTask.assignedBy && selectedTask.assignedTo !== currentUser.username) {
+        // Creator marked overdue → notify assignee
+        notifyUser = selectedTask.assignedTo;
+      }
+      
+      if (notifyUser) {
+        await createNotification(
+          selectedTask._id,
+          notifyUser,
+          `Marked as overdue by ${currentUser.name}. Reason: ${overdueReason}`,
+          'task_overdue',
+          currentUser.username
+        );
+      }
       
       await loadTasks();
       setShowOverdueModal(false);
@@ -2020,6 +2042,14 @@ Priority: ${task.priority}`;
       const response = await axios.put(`${API_URL}/tasks/${task._id}`, taskUpdateData);
       
       console.log('✅ Task update successful, checking notification conditions');
+      console.log('🔍 Notification check details:', {
+        currentUserUsername: currentUser.username,
+        currentUserName: currentUser.name,
+        taskAssignedTo: task.assignedTo,
+        taskAssignedBy: task.assignedBy,
+        isAssignee: currentUser.username === task.assignedTo,
+        isCreator: currentUser.username === task.assignedBy
+      });
       
       // SMART NOTIFICATION: Notify the OTHER person (not the one making the change)
       let notifyUser = null;
@@ -2033,10 +2063,11 @@ Priority: ${task.priority}`;
         notifyUser = task.assignedTo;
         console.log(`📬 Creator changed status, notifying assignee: ${notifyUser}`);
       } else {
-        console.log(`⏭️ Not sending notification - user is both creator and assignee`);
+        console.log(`⏭️ Not sending notification - user is both creator and assignee or condition not met`);
       }
       
       if (notifyUser) {
+        console.log(`🚀 Calling createNotification for user: ${notifyUser}`);
         await createNotification(
           task._id,
           notifyUser,
@@ -2044,6 +2075,9 @@ Priority: ${task.priority}`;
           'task_updated',
           currentUser.username
         );
+        console.log(`✅ createNotification completed for: ${notifyUser}`);
+      } else {
+        console.warn('⚠️ notifyUser is null - no notification will be sent');
       }
       
       await loadTasks();
