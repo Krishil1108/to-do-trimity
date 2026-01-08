@@ -50,17 +50,19 @@ class FirebaseNotificationService {
     }
 
     try {
+      // Send data-only message (no 'notification' object)
+      // This prevents Firebase from auto-showing notifications in foreground
       const message = {
-        notification: {
+        data: {
           title: notification.title || 'Task Update',
-          body: notification.body || 'You have a new notification'
+          body: notification.body || 'You have a new notification',
+          ...(notification.data || {})
         },
-        data: notification.data || {},
         token: fcmToken
       };
 
       const response = await this.admin.messaging().send(message);
-      console.log('✅ Push notification sent:', response);
+      console.log('✅ Data-only push notification sent:', response);
       return { success: true, messageId: response };
     } catch (error) {
       console.error('❌ Error sending push notification:', error);

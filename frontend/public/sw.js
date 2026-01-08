@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.5.4-' + Date.now(); // Fixed duplicate notifications - removed foreground notification display in notificationService
+const CACHE_VERSION = 'v6.6.3-' + Date.now(); // FIX: Bidirectional notifications + data-only messages
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
@@ -23,13 +23,14 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages from Firebase
+// Handle background messages from Firebase (data-only messages)
 messaging.onBackgroundMessage((payload) => {
-  console.log('🔔 Received background message:', payload);
+  console.log('🔔 Service Worker received message:', payload);
 
-  const notificationTitle = payload.notification?.title || 'New Notification';
+  // Extract from data payload (we send data-only messages now)
+  const notificationTitle = payload.data?.title || 'New Notification';
   const notificationOptions = {
-    body: payload.notification?.body || '',
+    body: payload.data?.body || '',
     icon: '/logo192.png',
     badge: '/logo192.png',
     tag: payload.data?.taskId || 'default',
@@ -37,7 +38,8 @@ messaging.onBackgroundMessage((payload) => {
     data: payload.data
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  console.log('📣 Showing notification:', notificationTitle);
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 console.log('🚀 Service Worker starting with cache version:', CACHE_NAME);

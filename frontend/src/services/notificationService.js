@@ -121,13 +121,30 @@ class NotificationService {
         await this.saveFCMToken(userId, token);
       }
 
-      // Listen for foreground messages
-      this.onMessageListener().then((payload) => {
-        console.log('Foreground notification received:', payload);
-        // Don't show notification here - the service worker already handles it
-        // Just log for debugging purposes
+      // Listen for foreground messages and display them
+      onMessage(messaging, (payload) => {
+        console.log('📬 Foreground message received:', payload);
+        
+        // Extract from data payload (we send data-only messages)
+        const title = payload.data?.title || 'New Notification';
+        const body = payload.data?.body || '';
+        
+        if (Notification.permission === 'granted') {
+          const options = {
+            body: body,
+            icon: '/logo192.png',
+            badge: '/logo192.png',
+            tag: payload.data?.taskId || 'task-notification',
+            requireInteraction: true,
+            data: payload.data
+          };
+          
+          console.log('🔔 Showing foreground notification:', title);
+          new Notification(title, options);
+        }
       });
 
+      console.log('✅ Notification service initialized');
       return true;
     } catch (error) {
       console.error('Error initializing notification service:', error);
