@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.6.5-' + Date.now(); // FIX: Reduced duplicate window to 1s, include status in dedup key
+const CACHE_VERSION = 'v6.7.0-' + Date.now(); // INSTANT: Removed all deduplication for instant notifications
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
@@ -25,7 +25,7 @@ const messaging = firebase.messaging();
 
 // Handle background messages from Firebase (data-only messages)
 messaging.onBackgroundMessage((payload) => {
-  console.log('🔔 Service Worker received message:', payload);
+  console.log('🔔 Service Worker received message (INSTANT):', payload);
 
   // Extract from data payload (we send data-only messages now)
   const notificationTitle = payload.data?.title || 'New Notification';
@@ -33,12 +33,14 @@ messaging.onBackgroundMessage((payload) => {
     body: payload.data?.body || '',
     icon: '/logo192.png',
     badge: '/logo192.png',
-    tag: payload.data?.taskId || 'default',
-    requireInteraction: true,
+    tag: `task-${Date.now()}`, // Unique tag for each notification to prevent grouping
+    requireInteraction: false, // Don't require interaction for faster display
+    silent: false, // Ensure notification makes sound
+    vibrate: [200, 100, 200], // Vibration pattern for mobile
     data: payload.data
   };
 
-  console.log('📣 Showing notification:', notificationTitle);
+  console.log('📣 Showing notification instantly:', notificationTitle);
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 

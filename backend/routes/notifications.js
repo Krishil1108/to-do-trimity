@@ -105,24 +105,7 @@ router.post('/', async (req, res) => {
   try {
     const { userId, taskId, message, type, assignedBy } = req.body;
     
-    // Check for duplicate notification in the last 2 seconds
-    const twoSecondsAgo = new Date(Date.now() - 2000);
-    const existingNotification = await Notification.findOne({
-      userId,
-      taskId,
-      type,
-      message,
-      createdAt: { $gte: twoSecondsAgo }
-    });
-    
-    if (existingNotification) {
-      console.log('⏭️ Skipping duplicate notification creation for:', { userId, taskId, type, message });
-      return res.status(200).json({ 
-        message: 'Duplicate notification prevented',
-        notification: existingNotification 
-      });
-    }
-    
+    // No duplicate check - send all notifications instantly
     const notification = new Notification(req.body);
     const newNotification = await notification.save();
     
@@ -248,31 +231,8 @@ router.post('/send-push', async (req, res) => {
       });
     }
 
-    // Check for duplicate notifications (1-second window)
-    // Include status in key to allow rapid status changes but prevent double-clicks
-    const statusInfo = data?.status || data?.type || '';
-    const notificationKey = `${userId}_${title}_${body}_${statusInfo}`;
-    const now = Date.now();
-    const lastSent = recentNotifications.get(notificationKey);
-    
-    if (lastSent && (now - lastSent) < 1000) {
-      console.log(`⏭️ Skipping duplicate push notification for ${userId} - sent ${now - lastSent}ms ago`);
-      return res.json({ 
-        success: true, 
-        message: 'Duplicate notification prevented',
-        skipped: true 
-      });
-    }
-    
-    // Record this notification
-    recentNotifications.set(notificationKey, now);
-    
-    // Clean up old entries (older than 5 seconds)
-    for (const [key, timestamp] of recentNotifications.entries()) {
-      if (now - timestamp > 5000) {
-        recentNotifications.delete(key);
-      }
-    }
+    // No duplicate check - send all notifications instantly
+    console.log(`🚀 Sending instant push notification to ${userId}`);
 
     const result = await sendPushNotification(userId, {
       title,

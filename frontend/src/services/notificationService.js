@@ -121,9 +121,9 @@ class NotificationService {
         await this.saveFCMToken(userId, token);
       }
 
-      // Listen for foreground messages and display them
+      // Listen for foreground messages and display them INSTANTLY
       onMessage(messaging, (payload) => {
-        console.log('📬 Foreground message received:', payload);
+        console.log('📬 Foreground message received (INSTANT):', payload);
         
         // Extract from data payload (we send data-only messages)
         const title = payload.data?.title || 'New Notification';
@@ -134,12 +134,14 @@ class NotificationService {
             body: body,
             icon: '/logo192.png',
             badge: '/logo192.png',
-            tag: payload.data?.taskId || 'task-notification',
-            requireInteraction: true,
+            tag: `task-${Date.now()}`, // Unique tag for instant display without grouping
+            requireInteraction: false, // Don't require interaction for faster display
+            silent: false, // Ensure notification makes sound
+            vibrate: [200, 100, 200], // Vibration pattern for mobile
             data: payload.data
           };
           
-          console.log('🔔 Showing foreground notification:', title);
+          console.log('🔔 Showing foreground notification instantly:', title);
           new Notification(title, options);
         }
       });

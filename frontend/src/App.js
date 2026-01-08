@@ -964,23 +964,7 @@ const TaskManagementSystem = () => {
         pushNotificationsEnabled
       });
       
-      // Prevent rapid duplicate calls (increased to 5-second window for better duplicate prevention)
-      const notificationKey = `${userId}_${taskData._id || taskData.id}_${type}`;
-      const now = Date.now();
-      const lastSent = window.recentNotificationCalls?.get(notificationKey);
-      
-      if (lastSent && (now - lastSent) < 5000) {
-        console.log(`⏭️ Skipping duplicate notification call for ${userId} (${type}) - sent ${now - lastSent}ms ago`);
-        return { success: true, message: 'Duplicate call skipped' };
-      }
-      
-      // Initialize tracking if not exists
-      if (!window.recentNotificationCalls) {
-        window.recentNotificationCalls = new Map();
-      }
-      
-      // Record this call
-      window.recentNotificationCalls.set(notificationKey, now);
+      // No duplicate check - send all notifications instantly
       
       const title = getNotificationTitle(type, taskData);
       const body = getNotificationBody(type, taskData);
@@ -1249,23 +1233,7 @@ const TaskManagementSystem = () => {
         assignedBy
       });
       
-      // Additional check to prevent duplicate notification creation
-      const notificationKey = `${taskId}_${userId}_${type}_${new Date().toISOString().slice(0, 16)}`; // minute precision
-      if (window.recentNotificationCreations?.has(notificationKey)) {
-        console.log('⏭️ Skipping duplicate notification creation');
-        return;
-      }
-      
-      // Track this notification creation
-      if (!window.recentNotificationCreations) {
-        window.recentNotificationCreations = new Set();
-      }
-      window.recentNotificationCreations.add(notificationKey);
-      
-      // Clean up old entries after 2 minutes
-      setTimeout(() => {
-        window.recentNotificationCreations?.delete(notificationKey);
-      }, 120000);
+      // No duplicate check - send all notifications instantly
       
       // Create in-app notification
       await axios.post(`${API_URL}/notifications`, {
