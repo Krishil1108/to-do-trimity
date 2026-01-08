@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.6.4-' + Date.now(); // FIX: Bidirectional for ALL status changes including Completed/Overdue
+const CACHE_VERSION = 'v6.6.5-' + Date.now(); // FIX: Reduced duplicate window to 1s, include status in dedup key
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

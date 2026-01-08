@@ -1000,7 +1000,8 @@ const TaskManagementSystem = () => {
         data: {
           type,
           taskId: taskData._id,
-          taskTitle: taskData.title
+          taskTitle: taskData.title,
+          status: taskData.status || taskData.currentStatus // Include status for better duplicate detection
         }
       };
 
@@ -1291,7 +1292,8 @@ const TaskManagementSystem = () => {
           _id: taskId,
           title: task.title || formData.title,
           description: task.description || formData.description,
-          customMessage: message // Pass custom message for detailed status info
+          customMessage: message, // Pass custom message for detailed status info
+          currentStatus: message.match(/Status changed to (\w+)/)?.[1] // Extract status from message
         }, type);
       } else {
         console.warn('⚠️ No task found, skipping push notification');

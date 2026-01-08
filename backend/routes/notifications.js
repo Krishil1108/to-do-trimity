@@ -28,7 +28,7 @@ try {
 // In-memory storage for subscriptions (in production, use a database)
 const subscriptions = new Map();
 
-// Track recent notifications to prevent rapid duplicates (5-second window)
+// Track recent notifications to prevent rapid duplicates (1-second window)
 const recentNotifications = new Map();
 
 // Get notifications for a user
@@ -105,17 +105,18 @@ router.post('/', async (req, res) => {
   try {
     const { userId, taskId, message, type, assignedBy } = req.body;
     
-    // Check for duplicate notification in the last 5 seconds
-    const fiveSecondsAgo = new Date(Date.now() - 5000);
+    // Check for duplicate notification in the last 2 seconds
+    const twoSecondsAgo = new Date(Date.now() - 2000);
     const existingNotification = await Notification.findOne({
       userId,
       taskId,
       type,
-      createdAt: { $gte: fiveSecondsAgo }
+      message,
+      createdAt: { $gte: twoSecondsAgo }
     });
     
     if (existingNotification) {
-      console.log('⏭️ Skipping duplicate notification creation for:', { userId, taskId, type });
+      console.log('⏭️ Skipping duplicate notification creation for:', { userId, taskId, type, message });
       return res.status(200).json({ 
         message: 'Duplicate notification prevented',
         notification: existingNotification 
@@ -247,12 +248,14 @@ router.post('/send-push', async (req, res) => {
       });
     }
 
-    // Check for duplicate notifications (5-second window)
-    const notificationKey = `${userId}_${title}_${body}`;
+    // Check for duplicate notifications (1-second window)
+    // Include status in key to allow rapid status changes but prevent double-clicks
+    const statusInfo = data?.status || data?.type || '';
+    const notificationKey = `${userId}_${title}_${body}_${statusInfo}`;
     const now = Date.now();
     const lastSent = recentNotifications.get(notificationKey);
     
-    if (lastSent && (now - lastSent) < 5000) {
+    if (lastSent && (now - lastSent) < 1000) {
       console.log(`⏭️ Skipping duplicate push notification for ${userId} - sent ${now - lastSent}ms ago`);
       return res.json({ 
         success: true, 
@@ -264,9 +267,9 @@ router.post('/send-push', async (req, res) => {
     // Record this notification
     recentNotifications.set(notificationKey, now);
     
-    // Clean up old entries (older than 10 seconds)
+    // Clean up old entries (older than 5 seconds)
     for (const [key, timestamp] of recentNotifications.entries()) {
-      if (now - timestamp > 10000) {
+      if (now - timestamp > 5000) {
         recentNotifications.delete(key);
       }
     }
