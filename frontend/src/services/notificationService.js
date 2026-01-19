@@ -69,32 +69,51 @@ class NotificationService {
   }
 
   /**
-   * Save FCM token to backend
+   * Save FCM token to backend with retry logic
    */
-  async saveFCMToken(userId, token) {
-    try {
-      const response = await fetch('/api/users/fcm-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          fcmToken: token
-        })
-      });
+  async saveFCMToken(userId, token, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`📤 Saving FCM token to backend (attempt ${attempt}/${retries}) for user: ${userId}`);
+        
+        const response = await fetch('/api/users/fcm-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            fcmToken: token
+          })
+        });
 
-      if (response.ok) {
-        console.log('✅ FCM token saved to backend');
-        return true;
-      } else {
-        console.error('❌ Failed to save FCM token');
-        return false;
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ FCM token saved to backend successfully:', data);
+          return { success: true, data };
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`❌ Failed to save FCM token (HTTP ${response.status}):`, errorData);
+          
+          // If not the last attempt, wait before retrying
+          if (attempt < retries) {
+            console.log(`⏳ Retrying in ${attempt} second(s)...`);
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error saving FCM token (attempt ${attempt}/${retries}):`, error);
+        
+        // If not the last attempt, wait before retrying
+        if (attempt < retries) {
+          console.log(`⏳ Retrying in ${attempt} second(s)...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
       }
-    } catch (error) {
-      console.error('Error saving FCM token:', error);
-      return false;
     }
+    
+    console.error('❌ Failed to save FCM token after all retry attempts');
+    return { success: false, error: 'Failed after all retries' };
   }
 
   /**
@@ -102,23 +121,41 @@ class NotificationService {
    */
   async initialize(userId) {
     try {
+      console.log(`🔔 Initializing notification service for user: ${userId}`);
+      
       // Check if browser supports notifications
       if (!('Notification' in window)) {
         console.log('❌ This browser does not support notifications');
-        return false;
+        return { success: false, error: 'Browser does not support notifications' };
       }
 
       // Check if service worker is supported
       if (!('serviceWorker' in navigator)) {
         console.log('❌ Service Worker not supported');
-        return false;
+        return { success: false, error: 'Service Worker not supported' };
       }
 
+      // Check current permission status
+      console.log(`📋 Current notification permission: ${Notification.permission}`);
+      
       // Request permission and get token
       const token = await this.requestPermission();
       
-      if (token && userId) {
-        await this.saveFCMToken(userId, token);
+      if (!token) {
+        console.warn('⚠️ Could not get FCM token - user may have denied permission');
+        return { success: false, error: 'Could not get FCM token' };
+      }
+      
+      console.log(`🎫 FCM Token obtained: ${token.substring(0, 20)}...`);
+      
+      // Save token to backend with retry logic
+      if (userId) {
+        const saveResult = await this.saveFCMToken(userId, token);
+        if (!saveResult.success) {
+          console.error('⚠️ Failed to save FCM token to backend, but notifications may still work locally');
+        }
+      } else {
+        console.warn('⚠️ No userId provided, skipping token save to backend');
       }
 
       // Listen for foreground messages and display them INSTANTLY
@@ -146,11 +183,11 @@ class NotificationService {
         }
       });
 
-      console.log('✅ Notification service initialized');
-      return true;
+      console.log('✅ Notification service initialized successfully');
+      return { success: true, token };
     } catch (error) {
-      console.error('Error initializing notification service:', error);
-      return false;
+      console.error('❌ Error initializing notification service:', error);
+      return { success: false, error: error.message };
     }
   }
 
@@ -159,6 +196,40 @@ class NotificationService {
    */
   getCurrentToken() {
     return this.currentToken;
+  }
+
+  /**
+   * Verify if user has FCM token registered in backend
+   */
+  async verifyUserToken(userId) {
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('📋 User FCM token status:', {
+          userId,
+          hasToken: !!userData.fcmToken,
+          tokenPreview: userData.fcmToken ? userData.fcmToken.substring(0, 20) + '...' : 'none'
+        });
+        return {
+          success: true,
+          hasToken: !!userData.fcmToken,
+          token: userData.fcmToken
+        };
+      } else {
+        console.error('❌ Failed to verify user token');
+        return { success: false, hasToken: false };
+      }
+    } catch (error) {
+      console.error('Error verifying user token:', error);
+      return { success: false, hasToken: false, error: error.message };
+    }
   }
 }
 

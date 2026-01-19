@@ -259,16 +259,33 @@ const TaskManagementSystem = () => {
   // Initialize Firebase notifications when user logs in
   useEffect(() => {
     if (isLoggedIn && currentUser && currentUser._id) {
+      console.log(`🔔 Attempting to initialize notifications for user: ${currentUser.username} (${currentUser._id})`);
+      
       import('./services/notificationService').then(module => {
         const notificationService = module.default;
         notificationService.initialize(currentUser._id)
           .then(result => {
             if (result.success) {
-              console.log('🔔 Push notifications enabled');
+              console.log('✅ Push notifications enabled successfully for user:', currentUser.username);
+              console.log('📊 Notification initialization result:', result);
+            } else {
+              console.warn('⚠️ Push notification initialization failed:', result.error);
+              console.log('💡 User may need to grant notification permission or check browser settings');
             }
           })
-          .catch(err => console.error('Notification init error:', err));
+          .catch(err => {
+            console.error('❌ Notification initialization error:', err);
+            console.log('💡 Notifications may not work for this user. Check browser console for details.');
+          });
       });
+    } else {
+      if (!isLoggedIn) {
+        console.log('ℹ️ User not logged in, skipping notification initialization');
+      } else if (!currentUser) {
+        console.log('⚠️ currentUser is null, cannot initialize notifications');
+      } else if (!currentUser._id) {
+        console.log('⚠️ currentUser._id is missing, cannot initialize notifications');
+      }
     }
   }, [isLoggedIn, currentUser]);
 
@@ -812,33 +829,43 @@ const TaskManagementSystem = () => {
       return;
     }
 
+    if (!currentUser || !currentUser._id) {
+      showError('User information not found. Please log out and log back in.');
+      return;
+    }
+
     try {
       setLoading(true);
       
-      // Initialize notification service first
-      const initialized = await notificationService.initialize();
-      if (!initialized) {
-        showError('Failed to initialize notification service. Please try again.');
-        return;
-      }
-
-      const hasPermission = await notificationService.requestPermission();
+      console.log(`🔔 Manually enabling notifications for user: ${currentUser.username} (${currentUser._id})`);
       
-      if (hasPermission) {
-        const subscription = await notificationService.subscribeToPush();
-        if (subscription) {
-          setPushNotificationsEnabled(true);
-          setNotificationPermission('granted');
-          showSuccess('Push notifications enabled successfully! You will now receive notifications for task updates.');
-        } else {
-          showError('Failed to enable push notifications. Please check the console and try again.');
-        }
+      // Initialize notification service with the user's ID
+      const result = await notificationService.initialize(currentUser._id);
+      
+      if (result.success) {
+        setPushNotificationsEnabled(true);
+        setNotificationPermission('granted');
+        showSuccess(`Push notifications enabled successfully for ${currentUser.username}! You will now receive notifications for task updates.`);
+        console.log('✅ Push notifications enabled successfully:', result);
       } else {
         setNotificationPermission(Notification.permission);
-        showWarning('Notification permission denied. Please enable notifications in your browser settings and try again.', 'Permission Denied');
+        
+        if (Notification.permission === 'denied') {
+          showWarning(
+            'Notification permission was denied. To enable notifications:\n\n' +
+            '1. Click the lock/info icon in your browser\'s address bar\n' +
+            '2. Find "Notifications" in the permissions list\n' +
+            '3. Change it to "Allow"\n' +
+            '4. Refresh the page and try again',
+            'Permission Denied'
+          );
+        } else {
+          showError(`Failed to enable push notifications: ${result.error || 'Unknown error'}. Please check the console for details.`);
+        }
+        console.error('❌ Failed to enable notifications:', result);
       }
     } catch (error) {
-      console.error('Error enabling push notifications:', error);
+      console.error('❌ Error enabling push notifications:', error);
       showError('Failed to enable push notifications: ' + error.message);
     } finally {
       setLoading(false);
@@ -2617,6 +2644,24 @@ Priority: ${task.priority}`;
         localStorage.setItem('currentUser', JSON.stringify(user));
         setCurrentUser(user);
         setIsLoggedIn(true);
+        
+        // Automatically attempt to initialize notifications after successful login
+        console.log(`🔔 Auto-initializing notifications for ${user.username} after login...`);
+        setTimeout(async () => {
+          try {
+            const notifService = await import('./services/notificationService');
+            const result = await notifService.default.initialize(user._id);
+            if (result.success) {
+              console.log('✅ Auto-notification setup successful for', user.username);
+            } else {
+              console.log('⚠️ Auto-notification setup skipped:', result.error);
+              console.log('💡 User can enable manually from Settings');
+            }
+          } catch (err) {
+            console.log('⚠️ Auto-notification initialization failed:', err.message);
+          }
+        }, 1000); // Small delay to let UI settle
+        
       } catch (error) {
         showError(error.response?.data?.message || 'Login failed', 'Login Failed');
       } finally {
@@ -3851,6 +3896,46 @@ Priority: ${task.priority}`;
           </h3>
           
           <div className="space-y-4">
+            {/* Notification Status Banner */}
+            <div className={`p-4 rounded-lg border-2 ${
+              Notification.permission === 'granted' 
+                ? 'bg-green-50 border-green-200' 
+                : Notification.permission === 'denied'
+                ? 'bg-red-50 border-red-200'
+                : 'bg-yellow-50 border-yellow-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                {Notification.permission === 'granted' ? (
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                ) : Notification.permission === 'denied' ? (
+                  <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1">
+                  <h4 className="font-medium text-gray-900">
+                    {Notification.permission === 'granted' 
+                      ? '✅ Notifications Enabled' 
+                      : Notification.permission === 'denied'
+                      ? '❌ Notifications Blocked'
+                      : '⚠️ Notifications Not Set Up'}
+                  </h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {Notification.permission === 'granted' 
+                      ? `Notifications are working for ${currentUser?.username}. You'll receive real-time updates.`
+                      : Notification.permission === 'denied'
+                      ? 'Notifications are blocked. Click the lock icon in your browser address bar to allow notifications.'
+                      : 'Set up notifications to receive real-time task updates.'}
+                  </p>
+                  {Notification.permission === 'granted' && (
+                    <p className="text-xs text-green-700 font-medium mt-2">
+                      📱 Your device is registered and will receive push notifications
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Enable/Disable Notifications */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
@@ -3860,26 +3945,106 @@ Priority: ${task.priority}`;
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {pushNotificationsEnabled ? (
-                  <button
-                    onClick={disablePushNotifications}
-                    disabled={loading}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
-                  >
-                    {loading ? 'Disabling...' : 'Disable'}
-                  </button>
+                {Notification.permission === 'granted' ? (
+                  <>
+                    <button
+                      onClick={enablePushNotifications}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+                    >
+                      {loading ? 'Re-registering...' : '🔄 Re-enable'}
+                    </button>
+                    <span className="text-xs text-green-600 font-medium">
+                      ✓ Active
+                    </span>
+                  </>
                 ) : (
                   <button
                     onClick={enablePushNotifications}
                     disabled={loading || !('serviceWorker' in navigator && 'PushManager' in window)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loading ? 'Enabling...' : 'Enable'}
+                    {loading ? 'Enabling...' : '🔔 Enable Now'}
                   </button>
                 )}
-                <span className="text-xs text-gray-500">
-                  Status: {pushNotificationsEnabled ? 'Enabled' : 'Disabled'}
-                </span>
+              </div>
+            </div>
+
+            {/* Help Text */}
+            {Notification.permission === 'denied' && (
+              <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <h4 className="font-medium text-orange-900 mb-2">🔧 How to fix:</h4>
+                <ol className="space-y-1 text-sm text-orange-800 list-decimal list-inside">
+                  <li>Click the lock or info icon (🔒 or ⓘ) in your browser's address bar</li>
+                  <li>Find "Notifications" in the permissions list</li>
+                  <li>Change the setting from "Block" to "Allow"</li>
+                  <li>Refresh this page</li>
+                  <li>Click "Enable Now" button above</li>
+                </ol>
+              </div>
+            )}
+
+            {/* Diagnostic Tool */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-blue-900">🔍 Notification Diagnostics</h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Check if your notifications are working correctly
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      setLoading(true);
+                      console.log('🔍 Running notification diagnostics...');
+                      
+                      const diagnostics = {
+                        username: currentUser?.username,
+                        userId: currentUser?._id,
+                        browserPermission: Notification.permission,
+                        serviceWorkerSupported: 'serviceWorker' in navigator,
+                        pushManagerSupported: 'PushManager' in window,
+                        timestamp: new Date().toISOString()
+                      };
+                      
+                      // Check backend token status
+                      const tokenStatus = await notificationService.verifyUserToken(currentUser._id);
+                      diagnostics.backendToken = tokenStatus;
+                      
+                      // Get current FCM token
+                      const currentToken = notificationService.getCurrentToken();
+                      diagnostics.currentToken = currentToken ? currentToken.substring(0, 20) + '...' : 'none';
+                      
+                      console.log('📊 Diagnostic Results:', diagnostics);
+                      
+                      // Show results to user
+                      const message = `
+Notification Diagnostics for ${diagnostics.username}:
+
+✅ Browser Permission: ${diagnostics.browserPermission}
+✅ Service Worker: ${diagnostics.serviceWorkerSupported ? 'Supported' : 'Not Supported'}
+✅ Push Manager: ${diagnostics.pushManagerSupported ? 'Supported' : 'Not Supported'}
+✅ Backend Token: ${tokenStatus.hasToken ? 'Registered ✓' : 'NOT Registered ✗'}
+✅ Current Token: ${diagnostics.currentToken}
+
+${!tokenStatus.hasToken ? '\n⚠️ Your device is NOT registered in the backend!\nClick "Re-enable" or "Enable Now" to fix this.' : ''}
+${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not granted!\nAllow notifications in browser settings.' : ''}
+                      `.trim();
+                      
+                      showInfo(message, 'Notification Diagnostics');
+                    } catch (error) {
+                      console.error('Diagnostic error:', error);
+                      showError('Failed to run diagnostics: ' + error.message);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+                >
+                  {loading ? 'Checking...' : '🔍 Run Check'}
+                </button>
               </div>
             </div>
 
