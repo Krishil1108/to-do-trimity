@@ -1,5 +1,6 @@
 // Firebase Cloud Messaging Notification Service
 import { messaging, getToken, onMessage } from '../firebase';
+import API_URL from '../config';
 
 class NotificationService {
   constructor() {
@@ -76,7 +77,7 @@ class NotificationService {
       try {
         console.log(`📤 Saving FCM token to backend (attempt ${attempt}/${retries}) for user: ${userId}`);
         
-        const response = await fetch('/api/users/fcm-token', {
+        const response = await fetch(`${API_URL}/users/fcm-token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -92,7 +93,21 @@ class NotificationService {
           console.log('✅ FCM token saved to backend successfully:', data);
           return { success: true, data };
         } else {
-          const errorData = await response.json().catch(() => ({}));
+          // Try to get error details
+          let errorData = {};
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              errorData = await response.json();
+            } catch (e) {
+              console.warn('Could not parse error response as JSON');
+            }
+          } else {
+            const errorText = await response.text();
+            errorData = { message: errorText || 'Unknown error' };
+          }
+          
           console.error(`❌ Failed to save FCM token (HTTP ${response.status}):`, errorData);
           
           // If not the last attempt, wait before retrying
