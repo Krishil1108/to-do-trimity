@@ -218,7 +218,7 @@ class NotificationService {
    */
   async verifyUserToken(userId) {
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`${API_URL}/users/${userId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
