@@ -49,6 +49,24 @@ To display a list of attendees, use this format:
 
 This will create a bullet point for each attendee.
 
+#### Images (NEW! 🎨):
+Add images to your template using the image placeholder syntax:
+```
+{%logo}              - Company logo (150x50px)
+{%companyLogo}       - Larger logo (200x80px)
+{%signature}         - Digital signature (150x50px)
+{%photo}             - Photos (300x300px)
+{%screenshot}        - Screenshots/diagrams (500x400px)
+{%headerImage}       - Header images (600x200px)
+{%banner}            - Banner images (650x150px)
+{%image1}            - Generic image 1 (400x300px)
+{%image2}            - Generic image 2 (400x300px)
+```
+
+**Important:** Image placeholders use `{%imageName}` (with % sign) instead of `{imageName}`.
+
+**See detailed image documentation:** `../../docs/IMAGE_SUPPORT_DOCUMENTATION.md`
+
 #### Content Sections (Loop):
 To display content broken into sections with headers:
 ```
@@ -65,7 +83,8 @@ Here's a sample layout for your Word document:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  [Your Company Logo]        {companyName}           │
+│  {%companyLogo}                                     │
+│                             {companyName}           │
 │                             Address Line 1          │
 │                             Phone: XXX-XXX-XXXX     │
 ├─────────────────────────────────────────────────────┤
@@ -88,9 +107,13 @@ Here's a sample layout for your Word document:
 │                                                     │
 │  {content}                                         │
 │                                                     │
+│  {%screenshot}                                     │
+│  ↑ Optional: Add screenshots or diagrams           │
 │                                                     │
 ├─────────────────────────────────────────────────────┤
 │  Generated: {generatedDate}                        │
+│  Prepared by: {preparedBy}                         │
+│  {%signature}                                      │
 │  {documentFooter}                                  │
 └─────────────────────────────────────────────────────┘
 ```
@@ -223,7 +246,21 @@ brew install libreoffice
   "attendees": ["John Doe", "Jane Smith", "Bob Wilson"],
   "rawContent": "Discussion about project timeline...",
   "companyName": "Trimity Consultants",
-  "templateName": "letterhead.docx"  // Optional, defaults to "letterhead.docx"
+  "templateName": "letterhead.docx",  // Optional, defaults to "letterhead.docx"
+  "images": [                          // Optional - NEW!
+    {
+      "name": "companyLogo",
+      "data": "uploads/images/company-logo.png"
+    },
+    {
+      "name": "signature",
+      "data": "uploads/images/manager-signature.png"
+    },
+    {
+      "name": "screenshot",
+      "data": "data:image/png;base64,iVBORw0KGgoAAAANS..."
+    }
+  ]
 }
 ```
 

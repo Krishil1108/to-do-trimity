@@ -9,6 +9,7 @@ This feature allows you to generate professional MOM (Minutes of Meeting) PDFs u
 - ✅ Use your actual company letterhead design
 - ✅ Automatic insertion of reframed meeting content
 - ✅ Support for dynamic attendee lists
+- ✅ **NEW: Image support (logos, signatures, photos, screenshots)** 🎨
 - ✅ Professional formatting maintained
 - ✅ Automatic PDF conversion
 - ✅ Fallback to DOCX if PDF conversion unavailable
@@ -63,6 +64,20 @@ fetch('/api/mom/generate-pdf-from-template', {
 | Placeholder | Description |
 |------------|-------------|
 | `{content}` | **Main meeting content (reframed/processed)** |
+
+### Images (NEW! 🎨)
+| Placeholder | Description | Size |
+|------------|-------------|------|
+| `{%logo}` | Small logo | 150x50 px |
+| `{%companyLogo}` | Company logo | 200x80 px |
+| `{%signature}` | Digital signature | 150x50 px |
+| `{%photo}` | Photo | 300x300 px |
+| `{%screenshot}` | Screenshot/diagram | 500x400 px |
+| `{%headerImage}` | Header banner | 600x200 px |
+| `{%banner}` | Wide banner | 650x150 px |
+| `{%image1}`, `{%image2}`, etc. | Generic images | 400x300 px |
+
+**Note:** Image placeholders use `{%imageName}` syntax. See [Image Support Documentation](./IMAGE_SUPPORT_DOCUMENTATION.md) for complete guide.
 
 ### Loops (Repeating Sections)
 
@@ -173,7 +188,17 @@ Word tables help maintain consistent layout:
   "attendees": ["John Doe", "Jane Smith"],
   "rawContent": "Meeting content...",
   "companyName": "Trimity Consultants",
-  "templateName": "letterhead.docx"  // Optional
+  "templateName": "letterhead.docx",  // Optional
+  "images": [                          // Optional - NEW!
+    {
+      "name": "companyLogo",
+      "data": "uploads/images/logo.png"
+    },
+    {
+      "name": "signature",
+      "data": "data:image/png;base64,iVBORw0KGg..."
+    }
+  ]
 }
 ```
 

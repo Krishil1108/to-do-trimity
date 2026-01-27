@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const Docxtemplater = require('docxtemplater');
 const PizZip = require('pizzip');
+const ImageModule = require('docxtemplater-image-module-free');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
@@ -10,6 +11,7 @@ class WordTemplatePDFService {
   constructor() {
     this.templatesDir = path.join(__dirname, '../templates');
     this.tempDir = path.join(__dirname, '../temp');
+    this.imagesDir = path.join(__dirname, '../uploads/images'); // For storing uploaded images
     
     // Ensure directories exist
     if (!fs.existsSync(this.templatesDir)) {
@@ -18,6 +20,22 @@ class WordTemplatePDFService {
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
+    if (!fs.existsSync(this.imagesDir)) {
+      fs.mkdirSync(this.imagesDir, { recursive: true });
+    }
+
+    // Configure image module options
+    this.imageOpts = {
+      centered: false,
+      getImage: (tagValue, tagName) => {
+        // tagValue can be a file path, base64 string, or URL
+        return this.loadImage(tagValue);
+      },
+      getSize: (img, tagValue, tagName) => {
+        // Return default size or size based on tag name
+        return this.getImageSize(tagName);
+      }
+    };
   }
 
   /**
@@ -43,9 +61,14 @@ class WordTemplatePDFService {
       // Step 2: Read the template file
       const content = fs.readFileSync(templatePath, 'binary');
       const zip = new PizZip(content);
+      
+      // Step 2.5: Attach image module
+      const imageModule = new ImageModule(this.imageOpts);
+      
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
+        modules: [imageModule]
       });
 
       // Step 3: Prepare data for template
@@ -113,7 +136,8 @@ class WordTemplatePDFService {
       content = '',
       taskTitle,
       taskId,
-      companyName = 'Trimity Consultants'
+      companyName = 'Trimity Consultants',
+      images = [] // New: array of image paths or base64 strings
     } = momData;
 
     // Format attendees list
@@ -127,6 +151,9 @@ class WordTemplatePDFService {
 
     // Split content into sections if it contains headers
     const contentSections = this.parseContentSections(content);
+
+    // Process images if provided
+    const processedImages = this.processImages(images);
 
     return {
       // Header information
@@ -146,6 +173,9 @@ class WordTemplatePDFService {
       // Content
       content: formattedContent,
       contentSections,
+      
+      // Images
+      ...processedImages,
       
       // Metadata
       generatedDate: new Date().toLocaleDateString('en-IN', {
@@ -343,6 +373,113 @@ class WordTemplatePDFService {
       .substring(0, 30);
     const timestamp = Date.now();
     return `MOM_${taskId}_${sanitized}_${timestamp}.pdf`;
+  }
+
+  /**
+   * Load image from file path, base64 string, or URL
+   * @param {string} tagValue - Image source (path, base64, or URL)
+   * @returns {Buffer} - Image buffer
+   */
+  loadImage(tagValue) {
+    try {
+      // Check if it's a base64 string
+      if (tagValue.startsWith('data:image')) {
+        const base64Data = tagValue.split(',')[1];
+        return Buffer.from(base64Data, 'base64');
+      }
+      
+      // Check if it's a base64 string without prefix
+      if (tagValue.match(/^[A-Za-z0-9+/=]+$/)) {
+        return Buffer.from(tagValue, 'base64');
+      }
+
+      // Check if it's a file path
+      let imagePath = tagValue;
+      
+      // If it's a relative path, resolve it
+      if (!path.isAbsolute(imagePath)) {
+        // Try multiple possible locations
+        const possiblePaths = [
+          path.join(this.imagesDir, imagePath),
+          path.join(__dirname, '..', imagePath),
+          path.join(process.cwd(), imagePath),
+        ];
+        
+        for (const p of possiblePaths) {
+          if (fs.existsSync(p)) {
+            imagePath = p;
+            break;
+          }
+        }
+      }
+
+      // Read the image file
+      if (fs.existsSync(imagePath)) {
+        return fs.readFileSync(imagePath);
+      }
+
+      // If we get here, image wasn't found
+      console.warn(`Image not found: ${tagValue}`);
+      return Buffer.from(''); // Return empty buffer
+      
+    } catch (error) {
+      console.error('Error loading image:', error);
+      return Buffer.from(''); // Return empty buffer on error
+    }
+  }
+
+  /**
+   * Get image size based on tag name or return default
+   * @param {string} tagName - Name of the image placeholder
+   * @returns {Array} - [width, height] in pixels
+   */
+  getImageSize(tagName) {
+    // Define size presets based on tag names
+    const sizePresets = {
+      logo: [150, 50],           // Small logo
+      companyLogo: [200, 80],    // Company logo
+      headerImage: [600, 200],   // Header image
+      signature: [150, 50],      // Signature image
+      photo: [300, 300],         // Photo
+      screenshot: [500, 400],    // Screenshot
+      banner: [650, 150],        // Banner image
+    };
+
+    // Check if tagName matches a preset (case-insensitive)
+    const lowerTagName = (tagName || '').toLowerCase();
+    for (const [key, size] of Object.entries(sizePresets)) {
+      if (lowerTagName.includes(key)) {
+        return size;
+      }
+    }
+
+    // Default size
+    return [400, 300];
+  }
+
+  /**
+   * Process images array into individual placeholders
+   * @param {Array} images - Array of image objects or paths
+   * @returns {Object} - Object with image placeholders
+   */
+  processImages(images) {
+    const result = {};
+    
+    if (!images || !Array.isArray(images)) {
+      return result;
+    }
+
+    images.forEach((img, index) => {
+      if (typeof img === 'string') {
+        // If it's just a path/base64, use default naming
+        result[`image${index + 1}`] = img;
+      } else if (typeof img === 'object' && img.name && img.data) {
+        // If it's an object with name and data
+        result[img.name] = img.data;
+      }
+    });
+
+    return result;
   }
 }
 

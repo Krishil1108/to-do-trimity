@@ -4,6 +4,8 @@
 
 You can now use your **own Word document letterhead** for MOM PDFs! The system will automatically insert the reframed/processed meeting content into your template.
 
+**🎨 NEW:** Image support added! Include logos, signatures, photos, and screenshots in your PDFs.
+
 ## How to Get Started (3 Simple Steps)
 
 ### Step 1: Create Your Word Template (5 minutes)
@@ -15,6 +17,7 @@ You can now use your **own Word document letterhead** for MOM PDFs! The system w
    - Style as you want
 3. Add placeholders where you want data:
    ```
+   {%companyLogo}           ← Image placeholders use {%...}
    {companyName}
    {documentTitle}
    {meetingTitle}
@@ -29,6 +32,8 @@ You can now use your **own Word document letterhead** for MOM PDFs! The system w
    
    MEETING NOTES:
    {content}
+   
+   {%signature}             ← Add signature image
    ```
 4. Save as: `letterhead.docx`
 5. Place in: `backend/templates/letterhead.docx`
@@ -57,7 +62,17 @@ POST /api/mom/generate-pdf-from-template
   "location": "Conference Room",
   "attendees": ["John Doe", "Jane Smith"],
   "rawContent": "Meeting discussion...",
-  "companyName": "Trimity Consultants"
+  "companyName": "Trimity Consultants",
+  "images": [                              // NEW: Add images!
+    {
+      "name": "companyLogo",
+      "data": "uploads/images/logo.png"
+    },
+    {
+      "name": "signature",
+      "data": "uploads/images/signature.png"
+    }
+  ]
 }
 ```
 
@@ -80,6 +95,18 @@ POST /api/mom/generate-pdf-from-template
 • {name}
 {/attendees}
 ```
+
+### For Images (NEW! 🎨):
+```
+{%logo}              ← Company logo (150x50px)
+{%companyLogo}       ← Larger logo (200x80px)
+{%signature}         ← Digital signature (150x50px)
+{%photo}             ← Photos (300x300px)
+{%screenshot}        ← Screenshots (500x400px)
+{%image1}, {%image2} ← Generic images (400x300px)
+```
+
+**See [Image Support Documentation](./IMAGE_SUPPORT_DOCUMENTATION.md) for complete guide!**
 
 ## Important Rules
 
@@ -150,6 +177,7 @@ POST /api/mom/generate-pdf-from-template
 ## Need More Help?
 
 - 📖 Full Guide: `docs/WORD_TEMPLATE_DOCUMENTATION.md`
+- 🎨 Image Support: `docs/IMAGE_SUPPORT_DOCUMENTATION.md` ← **NEW!**
 - 🎨 Visual Guide: `backend/templates/TEMPLATE_CREATION_GUIDE.html`
 - 📝 Template Info: `backend/templates/README.md`
 

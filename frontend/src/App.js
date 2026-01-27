@@ -190,6 +190,8 @@ const TaskManagementSystem = () => {
   const [processingMOM, setProcessingMOM] = useState(false);
   const [processedMOMText, setProcessedMOMText] = useState('');
   const [momAttendeeInput, setMomAttendeeInput] = useState('');
+  const [momImages, setMomImages] = useState([]);
+  const [momImagePreviews, setMomImagePreviews] = useState([]);
   
   // PWA Installation states
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -646,6 +648,63 @@ const TaskManagementSystem = () => {
     } catch (error) {
       console.error('Error loading projects:', error);
     }
+  };
+
+  // Handle image uploads for MOM
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    
+    if (files.length === 0) return;
+
+    // Validate file types
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp'];
+    const invalidFiles = files.filter(file => !validTypes.includes(file.type));
+    
+    if (invalidFiles.length > 0) {
+      showError('Please upload only image files (PNG, JPG, JPEG, GIF, BMP)');
+      return;
+    }
+
+    // Validate file sizes (max 5MB per image)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const largeFiles = files.filter(file => file.size > maxSize);
+    
+    if (largeFiles.length > 0) {
+      showError('Image files must be less than 5MB each');
+      return;
+    }
+
+    // Process images
+    files.forEach(file => {
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        const base64String = event.target.result;
+        
+        // Add to images array
+        setMomImages(prev => [...prev, {
+          name: `image${prev.length + 1}`,
+          data: base64String,
+          fileName: file.name
+        }]);
+
+        // Add to previews
+        setMomImagePreviews(prev => [...prev, {
+          url: base64String,
+          fileName: file.name
+        }]);
+      };
+      
+      reader.readAsDataURL(file);
+    });
+
+    showSuccess(`${files.length} image(s) uploaded successfully!`);
+  };
+
+  // Remove uploaded image
+  const removeImage = (index) => {
+    setMomImages(prev => prev.filter((_, i) => i !== index));
+    setMomImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const loadAssociates = async () => {
@@ -8900,6 +8959,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                   setSelectedTaskForMOM(null);
                   setMomContent('');
                   setProcessedMOMText('');
+                  setMomImages([]);
+                  setMomImagePreviews([]);
                 }}
                 className="text-gray-400 hover:text-gray-600"
               >
@@ -9024,6 +9085,71 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 </p>
               </div>
 
+              {/* Image Upload Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    📸 Construction Site Images
+                    <span className="text-gray-500 text-xs ml-2">(Optional)</span>
+                  </label>
+                  <button
+                    onClick={() => document.getElementById('mom-image-upload').click()}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Upload Images
+                  </button>
+                  <input
+                    id="mom-image-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+                
+                <p className="text-xs text-gray-600 mb-3">
+                  💡 Upload construction site photos, diagrams, or screenshots. These will be included in your MOM document.
+                </p>
+
+                {/* Image Previews */}
+                {momImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {momImagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview.url}
+                          alt={preview.fileName}
+                          className="w-full h-24 object-cover rounded-lg border border-gray-300"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all rounded-lg flex items-center justify-center">
+                          <button
+                            onClick={() => removeImage(index)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 text-white rounded-full p-1.5 hover:bg-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1 truncate">{preview.fileName}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {momImagePreviews.length === 0 && (
+                  <div className="text-center py-6 border-2 border-dashed border-blue-300 rounded-lg bg-white">
+                    <svg className="w-12 h-12 mx-auto text-blue-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-sm text-gray-500">No images uploaded yet</p>
+                    <p className="text-xs text-gray-400 mt-1">Click "Upload Images" to add photos</p>
+                  </div>
+                )}
+              </div>
+
               {/* Processed Text Display */}
               {processedMOMText && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -9098,7 +9224,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         location: momMetadata.location,
                         attendees: momMetadata.attendees,
                         rawContent: contentToUse,
-                        companyName: 'Trimity Consultants'
+                        companyName: 'Trimity Consultants',
+                        images: momImages
                       });
 
                       showSuccess('MOM saved to history! 💾 You can download Word document later from MOM History page.');
@@ -9109,6 +9236,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         setSelectedTaskForMOM(null);
                         setMomContent('');
                         setProcessedMOMText('');
+                        setMomImages([]);
+                        setMomImagePreviews([]);
                       }, 2000);
                     } catch (error) {
                       showError('Failed to save MOM: ' + (error.response?.data?.error || error.message));
@@ -9153,7 +9282,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         location: momMetadata.location,
                         attendees: momMetadata.attendees,
                         rawContent: contentToUse,
-                        companyName: 'Trimity Consultants'
+                        companyName: 'Trimity Consultants',
+                        images: momImages
                       }, {
                         responseType: 'blob'
                       });
@@ -9177,6 +9307,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         setSelectedTaskForMOM(null);
                         setMomContent('');
                         setProcessedMOMText('');
+                        setMomImages([]);
+                        setMomImagePreviews([]);
                       }, 1000);
                     } catch (error) {
                       const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
@@ -9207,6 +9339,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                     setSelectedTaskForMOM(null);
                     setMomContent('');
                     setProcessedMOMText('');
+                    setMomImages([]);
+                    setMomImagePreviews([]);
                   }}
                   className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
                 >
@@ -9215,7 +9349,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
               </div>
 
               <p className="text-xs text-gray-500 text-center">
-                📝 Note: Word documents are generated on-demand with your letterhead template. Edit in Word and convert to PDF as needed.
+                📝 Note: Word documents are generated with your letterhead template and include uploaded images. Edit in Word and convert to PDF as needed.
               </p>
             </div>
           </div>
