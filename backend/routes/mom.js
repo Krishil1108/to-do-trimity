@@ -140,7 +140,8 @@ router.post('/generate-docx-from-template', async (req, res) => {
       attendees = [],
       rawContent,
       companyName,
-      templateName = 'letterhead.docx'
+      templateName = 'letterhead.docx',
+      images = []
     } = req.body;
 
     if (!rawContent || rawContent.trim().length === 0) {
@@ -197,7 +198,8 @@ router.post('/generate-docx-from-template', async (req, res) => {
       content: processedResult.processedText || rawContent,
       taskTitle,
       taskId,
-      companyName: companyName || 'Trimity Consultants'
+      companyName: companyName || 'Trimity Consultants',
+      images: images || []
     };
 
     // Save MOM to database
@@ -232,17 +234,45 @@ router.post('/generate-docx-from-template', async (req, res) => {
 
       const Docxtemplater = require('docxtemplater');
       const PizZip = require('pizzip');
+      const ImageModule = require('docxtemplater-image-module-free');
       
       // Read template
       const content = fs.readFileSync(templatePath, 'binary');
       const zip = new PizZip(content);
+      
+      // Configure image module
+      const imageOpts = {
+        centered: false,
+        getImage: (tagValue) => {
+          // Handle base64 images
+          if (tagValue && tagValue.startsWith('data:image')) {
+            const base64Data = tagValue.split(',')[1];
+            return Buffer.from(base64Data, 'base64');
+          }
+          // Handle plain base64
+          if (tagValue && tagValue.match(/^[A-Za-z0-9+/=]+$/)) {
+            return Buffer.from(tagValue, 'base64');
+          }
+          console.warn('Invalid or empty image data');
+          return Buffer.from('');
+        },
+        getSize: () => {
+          // Return default size for images
+          return [150, 150]; // width, height in pixels
+        }
+      };
+      
+      const imageModule = new ImageModule(imageOpts);
+      
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
+        modules: [imageModule]
       });
 
       // Prepare template data
       const templateData = wordTemplatePdfService.prepareTemplateData(momData);
+      console.log('📸 Images in template data:', Object.keys(templateData).filter(k => k.startsWith('image')));
       doc.setData(templateData);
       doc.render();
 
@@ -517,13 +547,40 @@ router.post('/regenerate-docx-from-template/:momId', async (req, res) => {
 
       const Docxtemplater = require('docxtemplater');
       const PizZip = require('pizzip');
+      const ImageModule = require('docxtemplater-image-module-free');
       
       // Read template
       const content = fs.readFileSync(templatePath, 'binary');
       const zip = new PizZip(content);
+      
+      // Configure image module
+      const imageOpts = {
+        centered: false,
+        getImage: (tagValue) => {
+          // Handle base64 images
+          if (tagValue && tagValue.startsWith('data:image')) {
+            const base64Data = tagValue.split(',')[1];
+            return Buffer.from(base64Data, 'base64');
+          }
+          // Handle plain base64
+          if (tagValue && tagValue.match(/^[A-Za-z0-9+/=]+$/)) {
+            return Buffer.from(tagValue, 'base64');
+          }
+          console.warn('Invalid or empty image data');
+          return Buffer.from('');
+        },
+        getSize: () => {
+          // Return default size for images
+          return [150, 150]; // width, height in pixels
+        }
+      };
+      
+      const imageModule = new ImageModule(imageOpts);
+      
       const doc = new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
+        modules: [imageModule]
       });
 
       // Prepare template data
