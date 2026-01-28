@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.18.1-' + Date.now(); // Fixed Download Word button for tabular format
+const CACHE_VERSION = 'v6.18.2-' + Date.now(); // Verified Word template table structure is correct
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
