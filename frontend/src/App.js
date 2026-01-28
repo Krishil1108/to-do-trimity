@@ -9424,6 +9424,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         setProcessedMOMText('');
                         setMomImages([]);
                         setMomImagePreviews([]);
+                        setDiscussionTableData([{ srNo: 1, point: '' }]);
+                        setProcessedTableData([]);
                       }, 1000);
                     } catch (error) {
                       const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
@@ -9432,7 +9434,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                       setProcessingMOM(false);
                     }
                   }}
-                  disabled={processingMOM || (!momContent.trim() && !processedMOMText)}
+                  disabled={processingMOM || (momFormat === 'paragraph' && !momContent.trim() && !processedMOMText) || (momFormat === 'tabular' && processedTableData.length === 0)}
                   className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {processingMOM ? (
