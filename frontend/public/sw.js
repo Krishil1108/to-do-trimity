@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.14.0-' + Date.now(); // Added ASCII table format for discussion points
+const CACHE_VERSION = 'v6.15.0-' + Date.now(); // Added live discussion table preview in MOM form
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

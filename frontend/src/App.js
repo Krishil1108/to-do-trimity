@@ -13,6 +13,7 @@ import notificationService from './services/notificationService';
 import UpdateChecker from './components/UpdateChecker';
 import CustomDialog from './components/CustomDialog';
 import MOMHistory from './components/MOMHistory';
+import DiscussionTablePreview from './components/DiscussionTablePreview';
 import { setupGrammarTester } from './utils/grammarTester';
 
 // Server optimization for render.com deployment
@@ -9084,6 +9085,9 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                   💡 Tip: You can write in Gujarati or improper English - it will be automatically corrected!
                 </p>
               </div>
+
+              {/* Discussion Table Preview */}
+              <DiscussionTablePreview content={momContent} />
 
               {/* Image Upload Section */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
