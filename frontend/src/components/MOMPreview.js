@@ -13,13 +13,20 @@ const MOMPreview = ({ content, images = [], metadata = {} }) => {
     }
 
     const points = [];
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    // Split by newlines but keep all content
+    const lines = text.split('\n');
     
     let currentPoint = null;
 
     lines.forEach(line => {
-      // Match numbered patterns: "1.", "1)", "1:", "1 -", etc.
-      const numberedMatch = line.match(/^(\d+)[\.\)\:\-\s]+(.+)$/);
+      const trimmedLine = line.trim();
+      if (trimmedLine.length === 0) {
+        return; // Skip empty lines
+      }
+
+      // Match numbered patterns at the START of a line: "1.", "1)", "1:", "1-"
+      // More strict regex - requires number followed by punctuation and space/content
+      const numberedMatch = trimmedLine.match(/^(\d+)[\.\)\:\-]\s*(.*)$/);
       
       if (numberedMatch) {
         // Save previous point if exists
@@ -33,22 +40,26 @@ const MOMPreview = ({ content, images = [], metadata = {} }) => {
         
         currentPoint = {
           srNo: `${number}.`,
-          point: pointText
+          point: pointText || '' // Allow empty initial text
         };
       } else if (currentPoint) {
         // Continue previous point (multi-line point)
-        currentPoint.point += ' ' + line;
+        if (currentPoint.point) {
+          currentPoint.point += ' ' + trimmedLine;
+        } else {
+          currentPoint.point = trimmedLine;
+        }
       } else {
         // No numbering detected, treat as single point
         if (points.length === 0) {
           currentPoint = {
             srNo: '1.',
-            point: line
+            point: trimmedLine
           };
         } else {
           // Add to last point
           if (points.length > 0) {
-            points[points.length - 1].point += ' ' + line;
+            points[points.length - 1].point += ' ' + trimmedLine;
           }
         }
       }
