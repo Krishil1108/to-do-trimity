@@ -151,6 +151,13 @@ class WordTemplatePDFService {
 
     // Split content into sections if it contains headers
     const contentSections = this.parseContentSections(content);
+    
+    // Parse numbered points for table rows
+    const discussionPoints = this.parseDiscussionPoints(content);
+    console.log('📝 [DEBUG] Parsed discussion points:', {
+      count: discussionPoints.length,
+      points: discussionPoints
+    });
 
     // Process images if provided
     console.log('🖼️  [DEBUG] prepareTemplateData - images parameter:', {
@@ -180,6 +187,7 @@ class WordTemplatePDFService {
       // Content
       content: formattedContent,
       contentSections,
+      discussionPoints,  // Array of points for table rows
       
       // Images
       ...processedImages,
@@ -269,6 +277,77 @@ class WordTemplatePDFService {
         text: currentSection.content.join('\n')
       });
     }
+
+    return sections.length > 0 ? sections : [{ title: 'Discussion Points', text: content }];
+  }
+
+  /**
+   * Parse discussion points into separate rows for table
+   * Detects numbered points (1., 2., 3. or 1) 2) 3) etc.)
+   * @param {string} content - Raw content
+   * @returns {Array} - Array of discussion points with serial numbers
+   */
+  parseDiscussionPoints(content) {
+    if (!content) return [{ srNo: '1.', point: '' }];
+
+    const points = [];
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    
+    let currentPoint = null;
+    let pointCounter = 1;
+
+    lines.forEach(line => {
+      // Match numbered patterns: "1.", "1)", "1 -", "1:", etc.
+      const numberedMatch = line.match(/^(\d+)[\.\)\:\-\s]+(.+)$/);
+      
+      if (numberedMatch) {
+        // Save previous point if exists
+        if (currentPoint) {
+          points.push(currentPoint);
+        }
+        
+        // Start new point
+        const number = numberedMatch[1];
+        const text = numberedMatch[2].trim();
+        
+        currentPoint = {
+          srNo: `${number}.`,
+          point: text
+        };
+      } else if (currentPoint) {
+        // Continue previous point (multi-line point)
+        currentPoint.point += ' ' + line;
+      } else {
+        // No numbering detected, treat as single point
+        if (points.length === 0) {
+          currentPoint = {
+            srNo: `${pointCounter}.`,
+            point: line
+          };
+        } else {
+          // Add to last point
+          if (points.length > 0) {
+            points[points.length - 1].point += ' ' + line;
+          }
+        }
+      }
+    });
+
+    // Add last point
+    if (currentPoint) {
+      points.push(currentPoint);
+    }
+
+    // If no points found, return content as single point
+    if (points.length === 0) {
+      return [{
+        srNo: '1.',
+        point: content.trim()
+      }];
+    }
+
+    return points;
+  }
 
     return sections.length > 0 ? sections : [{ title: 'Meeting Notes', text: content }];
   }
