@@ -8166,14 +8166,11 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 <input
                   type="date"
                   value={formData.outDate}
-                    onChange={(e) => setFormData({...formData, outDate: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
+                  onChange={(e) => setFormData({...formData, outDate: e.target.value})}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
               </div>
-
-
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
@@ -8339,10 +8336,9 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                   type="date"
                   value={formData.outDate}
                   onChange={(e) => setFormData({...formData, outDate: e.target.value})}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                    required
-                  />
-                </div>
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                  required
+                />
               </div>
 
               <div className="flex gap-3 pt-4 sticky bottom-0 bg-white border-t border-gray-100 -mx-4 sm:-mx-6 px-4 sm:px-6 py-4">
