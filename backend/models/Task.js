@@ -13,16 +13,6 @@ const taskSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  priority: {
-    type: String,
-    enum: ['Low', 'Medium', 'High'],
-    default: 'Medium'
-  },
-  severity: {
-    type: String,
-    enum: ['Minor', 'Major', 'Critical'],
-    default: 'Minor'
-  },
   inDate: {
     type: Date,
     required: true

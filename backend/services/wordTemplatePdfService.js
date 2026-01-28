@@ -74,7 +74,6 @@ class WordTemplatePDFService {
       // Step 3: Prepare data for template
       const templateData = this.prepareTemplateData(momData);
       console.log('✅ Template data prepared');
-      console.log('📊 [DEBUG] discussionPoints being sent to template:', JSON.stringify(templateData.discussionPoints, null, 2));
 
       // Step 4: Set the template data
       doc.setData(templateData);
@@ -138,8 +137,7 @@ class WordTemplatePDFService {
       taskTitle,
       taskId,
       companyName = 'Trimity Consultants',
-      images = [], // New: array of image paths or base64 strings
-      discussionPoints: providedDiscussionPoints // New: pre-parsed discussion points from tabular format
+      images = [] // New: array of image paths or base64 strings
     } = momData;
 
     // Format attendees list
@@ -153,53 +151,11 @@ class WordTemplatePDFService {
 
     // Split content into sections if it contains headers
     const contentSections = this.parseContentSections(content);
-    
-    // Use provided discussionPoints if available (from tabular format),
-    // otherwise parse from content (paragraph format)
-    let discussionPoints;
-    if (providedDiscussionPoints && Array.isArray(providedDiscussionPoints) && providedDiscussionPoints.length > 0) {
-      console.log('📊 [DEBUG] Using provided discussionPoints (tabular format):', {
-        count: providedDiscussionPoints.length,
-        points: providedDiscussionPoints
-      });
-      discussionPoints = providedDiscussionPoints;
-    } else {
-      console.log('📝 [DEBUG] Parsing discussionPoints from content (paragraph format)');
-      discussionPoints = this.parseDiscussionPoints(content);
-      console.log('📝 [DEBUG] Parsed discussion points:', {
-        count: discussionPoints.length,
-        points: discussionPoints
-      });
-    }
-    
-    // Also create individual point variables for simpler template usage
-    const pointsObj = {};
-    discussionPoints.forEach((point, index) => {
-      pointsObj[`point${index + 1}Text`] = point.point;
-      pointsObj[`point${index + 1}Sr`] = point.srNo;
-    });
-    
-    // Create formatted content with PROPER line breaks for Word
-    // Each point on a new line with double line break between points
-    const formattedPointsText = discussionPoints
-      .map(p => `${p.srNo} ${p.point}`)
-      .join('\n\n');
-    
-    // Create an HTML table structure for Word
-    const discussionTable = this.createDiscussionTable(discussionPoints);
-    console.log('📊 [DEBUG] Created discussion table with', discussionPoints.length, 'rows');
 
     // Process images if provided
-    console.log('🖼️  [DEBUG] prepareTemplateData - images parameter:', {
-      provided: !!images,
-      isArray: Array.isArray(images),
-      count: images ? images.length : 0
-    });
-    
     const processedImages = this.processImages(images);
-    console.log('🖼️  [DEBUG] Processed images result:', processedImages);
 
-    const templateData = {
+    return {
       // Header information
       companyName,
       documentTitle: 'MINUTES OF MEETING',
@@ -217,10 +173,6 @@ class WordTemplatePDFService {
       // Content
       content: formattedContent,
       contentSections,
-      discussionPoints,  // Array of points for table rows (for advanced templates)
-      formattedPointsText, // Simple formatted text with line breaks
-      discussionTable,  // HTML table for Word
-      ...pointsObj,  // Individual point variables (point1Text, point1Sr, etc.)
       
       // Images
       ...processedImages,
@@ -237,11 +189,6 @@ class WordTemplatePDFService {
       preparedBy: companyName,
       documentFooter: `This is a computer-generated document from ${companyName}`,
     };
-    
-    console.log('📋 [DEBUG] Final template data keys:', Object.keys(templateData));
-    console.log('🖼️  [DEBUG] Image keys in template data:', Object.keys(templateData).filter(k => k.startsWith('image')));
-    
-    return templateData;
   }
 
   /**
@@ -311,113 +258,7 @@ class WordTemplatePDFService {
       });
     }
 
-    return sections.length > 0 ? sections : [{ title: 'Discussion Points', text: content }];
-  }
-
-  /**
-   * Parse discussion points into separate rows for table
-   * Detects numbered points (1., 2., 3. or 1) 2) 3) etc.)
-   * @param {string} content - Raw content
-   * @returns {Array} - Array of discussion points with serial numbers
-   */
-  parseDiscussionPoints(content) {
-    if (!content) return [{ srNo: '1.', point: '' }];
-
-    const points = [];
-    // Split by newlines but keep all content
-    const lines = content.split('\n');
-    
-    let currentPoint = null;
-    let pointCounter = 1;
-
-    lines.forEach(line => {
-      const trimmedLine = line.trim();
-      if (trimmedLine.length === 0) {
-        return; // Skip empty lines
-      }
-
-      // Match numbered patterns at START of line: "1.", "1)", "1:", "1-"
-      // More strict regex - requires number followed by punctuation and space/content
-      const numberedMatch = trimmedLine.match(/^(\d+)[\.\)\:\-]\s*(.*)$/);
-      
-      if (numberedMatch) {
-        // Save previous point if exists
-        if (currentPoint) {
-          points.push(currentPoint);
-        }
-        
-        // Start new point
-        const number = numberedMatch[1];
-        const text = numberedMatch[2].trim();
-        
-        currentPoint = {
-          srNo: `${number}.`,
-          point: text || '' // Allow empty initial text
-        };
-      } else if (currentPoint) {
-        // Continue previous point (multi-line point)
-        if (currentPoint.point) {
-          currentPoint.point += ' ' + trimmedLine;
-        } else {
-          currentPoint.point = trimmedLine;
-        }
-      } else {
-        // No numbering detected, treat as single point
-        if (points.length === 0) {
-          currentPoint = {
-            srNo: `${pointCounter}.`,
-            point: trimmedLine
-          };
-        } else {
-          // Add to last point
-          if (points.length > 0) {
-            points[points.length - 1].point += ' ' + trimmedLine;
-          }
-        }
-      }
-    });
-
-    // Add last point
-    if (currentPoint) {
-      points.push(currentPoint);
-    }
-
-    // If no points found, return content as single point
-    if (points.length === 0) {
-      return [{
-        srNo: '1.',
-        point: content.trim()
-      }];
-    }
-
-    return points;
-  }
-
-  /**
-   * Create a Word XML table structure for discussion points
-   * This creates actual Word table markup that can be inserted via rawXML
-   * @param {Array} discussionPoints - Array of {srNo, point} objects
-   * @returns {string} - Plain text table representation
-   */
-  createDiscussionTable(discussionPoints) {
-    if (!discussionPoints || discussionPoints.length === 0) {
-      return 'No discussion points available.';
-    }
-
-    // Create a simple text-based table that will display nicely in Word
-    const header = '┌──────────┬────────────────────────────────────────────────────────────────────────┐\n' +
-                   '│ Sr. No.  │ Point of discussion/ Observation                                      │\n' +
-                   '├──────────┼────────────────────────────────────────────────────────────────────────┤';
-    
-    const rows = discussionPoints.map(point => {
-      const srNo = point.srNo.padEnd(8);
-      const text = point.point;
-      return `│ ${srNo} │ ${text.padEnd(70)} │`;
-    }).join('\n');
-    
-    const footer = '└──────────┴────────────────────────────────────────────────────────────────────────┘';
-
-    return `${header}\n${rows}\n${footer}`;
+    return sections.length > 0 ? sections : [{ title: 'Meeting Notes', text: content }];
   }
 
   /**
@@ -624,47 +465,20 @@ class WordTemplatePDFService {
   processImages(images) {
     const result = {};
     
-    console.log('🖼️  [DEBUG] processImages called with:', {
-      imagesProvided: !!images,
-      isArray: Array.isArray(images),
-      imageCount: images ? images.length : 0,
-      imageTypes: images ? images.map(img => typeof img) : []
-    });
-    
     if (!images || !Array.isArray(images)) {
-      console.log('⚠️  [DEBUG] No images array provided, returning empty result');
-      return result;
-    }
-
-    if (images.length === 0) {
-      console.log('⚠️  [DEBUG] Images array is empty');
       return result;
     }
 
     images.forEach((img, index) => {
-      console.log(`🖼️  [DEBUG] Processing image ${index + 1}:`, {
-        type: typeof img,
-        isString: typeof img === 'string',
-        isObject: typeof img === 'object',
-        hasData: img && img.data ? 'yes' : 'no',
-        dataLength: img && img.data ? img.data.length : 0,
-        preview: typeof img === 'string' ? img.substring(0, 50) + '...' : 'object'
-      });
-      
       if (typeof img === 'string') {
         // If it's just a path/base64, use default naming
         result[`image${index + 1}`] = img;
-        console.log(`✅ [DEBUG] Added image${index + 1} to template data`);
       } else if (typeof img === 'object' && img.name && img.data) {
         // If it's an object with name and data
         result[img.name] = img.data;
-        console.log(`✅ [DEBUG] Added ${img.name} to template data`);
-      } else {
-        console.warn(`⚠️  [DEBUG] Skipping invalid image at index ${index}:`, img);
       }
     });
 
-    console.log('🖼️  [DEBUG] Final processed images:', Object.keys(result));
     return result;
   }
 }

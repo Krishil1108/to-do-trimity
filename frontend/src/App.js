@@ -13,8 +13,6 @@ import notificationService from './services/notificationService';
 import UpdateChecker from './components/UpdateChecker';
 import CustomDialog from './components/CustomDialog';
 import MOMHistory from './components/MOMHistory';
-import MOMPreview from './components/MOMPreview';
-import ProcessedDiscussionTable from './components/ProcessedDiscussionTable';
 import { setupGrammarTester } from './utils/grammarTester';
 
 // Server optimization for render.com deployment
@@ -46,17 +44,6 @@ const wakeServer = async () => {
   return true;
 };
 
-const PRIORITY_COLORS = {
-  Low: 'bg-green-100 text-green-800 border-green-300',
-  Medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  High: 'bg-red-100 text-red-800 border-red-300'
-};
-
-const SEVERITY_BADGES = {
-  Minor: 'bg-blue-100 text-blue-700',
-  Major: 'bg-orange-100 text-orange-700',
-  Critical: 'bg-red-100 text-red-700'
-};
 
 
 
@@ -194,12 +181,6 @@ const TaskManagementSystem = () => {
   const [momAttendeeInput, setMomAttendeeInput] = useState('');
   const [momImages, setMomImages] = useState([]);
   const [momImagePreviews, setMomImagePreviews] = useState([]);
-  const [showMOMPreview, setShowMOMPreview] = useState(false);
-  const [momFormat, setMomFormat] = useState('tabular'); // 'tabular' or 'paragraph'
-  const [discussionTableData, setDiscussionTableData] = useState([
-    { srNo: 1, point: '' }
-  ]);
-  const [processedTableData, setProcessedTableData] = useState([]);
   
   // PWA Installation states
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -1369,9 +1350,7 @@ const TaskManagementSystem = () => {
     project: '',
     title: '',
     description: '',
-    priority: 'Medium',
-    severity: 'Minor',
-    inDate: '',
+    inDate: new Date().toISOString().split('T')[0],
     outDate: '',
     team: '',
     associates: [],
@@ -1397,9 +1376,7 @@ const TaskManagementSystem = () => {
       project: selectedProject || '',
       title: '',
       description: '',
-      priority: 'Medium',
-      severity: 'Minor',
-      inDate: '',
+      inDate: new Date().toISOString().split('T')[0],
       outDate: '',
       team: '',
       associates: [],
@@ -1602,8 +1579,7 @@ const TaskManagementSystem = () => {
     const taskInfo = `Project: ${task.project}
 Task Name: ${task.title}
 Description: ${task.description || 'No description'}
-Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
-Priority: ${task.priority}`;
+Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}`;
     
     navigator.clipboard.writeText(taskInfo).then(() => {
       setCopiedTaskData(taskInfo);
@@ -1619,8 +1595,7 @@ Priority: ${task.priority}`;
     const taskInfo = `Project: ${task.project}
 Task Name: ${task.title}
 Description: ${task.description || 'No description'}
-Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
-Priority: ${task.priority}`;
+Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}`;
     
     const phoneNumber = task.isAssociate && task.associateDetails?.phone 
       ? task.associateDetails.phone.replace(/\D/g, '')
@@ -1647,8 +1622,7 @@ Priority: ${task.priority}`;
       return `Project: ${task.project}
 Task Name: ${task.title}
 Description: ${task.description || 'No description'}
-Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}
-Priority: ${task.priority}`;
+Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB')}`;
     }).filter(Boolean).join('\n' + '='.repeat(49) + '\n');
 
     navigator.clipboard.writeText(tasksInfo).then(() => {
@@ -1681,8 +1655,6 @@ Priority: ${task.priority}`;
       project: task.project,
       title: task.title,
       description: task.description,
-      priority: task.priority,
-      severity: task.severity,
       inDate: task.inDate ? new Date(task.inDate).toISOString().split('T')[0] : '',
       outDate: task.outDate ? new Date(task.outDate).toISOString().split('T')[0] : '',
       team: task.team,
@@ -2081,8 +2053,6 @@ Priority: ${task.priority}`;
         project: task.project,
         title: task.title,
         description: task.description || '',
-        priority: task.priority,
-        severity: task.severity,
         inDate: task.inDate,
         outDate: task.outDate,
         team: task.team || '',
@@ -2166,8 +2136,6 @@ Priority: ${task.priority}`;
       if (filters.project && task.project !== filters.project) return false;
       if (filters.assignedTo && task.assignedTo !== filters.assignedTo) return false;
       if (filters.team && task.team !== filters.team) return false;
-      if (filters.priority && task.priority !== filters.priority) return false;
-      if (filters.severity && task.severity !== filters.severity) return false;
       
       // Handle task status filtering (separate from date-based status)
       if (filters.status) {
@@ -2420,11 +2388,6 @@ Priority: ${task.priority}`;
         },
         byUser: {},
         byAssociate: {},
-        byPriority: {
-          High: userTasks.filter(t => t.priority === 'High').length,
-          Medium: userTasks.filter(t => t.priority === 'Medium').length,
-          Low: userTasks.filter(t => t.priority === 'Low').length
-        },
         completionRate: userTasks.length > 0 ? 
           (userTasks.filter(t => t.status === 'Completed').length / userTasks.length * 100).toFixed(2) : '0'
       };
@@ -2676,7 +2639,6 @@ Priority: ${task.priority}`;
         'Title': task.title,
         'Description': task.description,
         'Status': task.status,
-        'Priority': task.priority,
         'Assigned To': task.assignedTo,
         'Assigned By': task.assignedBy,
         'Start Date': task.inDate ? new Date(task.inDate).toLocaleDateString() : '',
@@ -3276,8 +3238,6 @@ Priority: ${task.priority}`;
                                     project: task.project,
                                     title: task.title, // Pre-fill with parent task name
                                     description: task.description,
-                                    priority: task.priority,
-                                    severity: task.severity,
                                     inDate: formatDate(task.inDate),
                                     outDate: formatDate(task.outDate),
                                     team: task.team,
@@ -3347,9 +3307,6 @@ Priority: ${task.priority}`;
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
               <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{getProjectName(task.project)}</h3>
-              <span className={`px-2 py-1 rounded text-xs font-medium ${PRIORITY_COLORS[task.priority]} border inline-block w-fit`}>
-                {task.priority}
-              </span>
             </div>
             {task.isSubtask && task.parentTask ? (
               <button
@@ -3411,8 +3368,6 @@ Priority: ${task.priority}`;
                       project: task.project,
                       title: task.title, // Pre-fill with parent task name
                       description: task.description,
-                      priority: task.priority,
-                      severity: task.severity,
                       inDate: formatDate(task.inDate),
                       outDate: formatDate(task.outDate),
                       team: task.team,
@@ -3530,9 +3485,6 @@ Priority: ${task.priority}`;
             )}
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium ${SEVERITY_BADGES[task.severity]}`}>
-              {task.severity}
-            </span>
             <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium border ${STATUS_COLORS[task.status]}`}>
               {task.status}
             </span>
@@ -3564,8 +3516,6 @@ Priority: ${task.priority}`;
     // Apply filters to my tasks
     const filteredMyTasks = myTasks.filter(task => {
       if (filters.project && task.project !== filters.project) return false;
-      if (filters.priority && task.priority !== filters.priority) return false;
-      if (filters.severity && task.severity !== filters.severity) return false;
       
       // Handle task status filtering (separate from date-based status)
       if (filters.status) {
@@ -3715,34 +3665,6 @@ Priority: ${task.priority}`;
                     })}
                   </select>
                 </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <select
-                value={filters.priority || ''}
-                onChange={(e) => setFilters({...filters, priority: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
-              <select
-                value={filters.severity || ''}
-                onChange={(e) => setFilters({...filters, severity: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                <option value="Minor">Minor</option>
-                <option value="Major">Major</option>
-                <option value="Critical">Critical</option>
-              </select>
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status by Date</label>
@@ -4151,6 +4073,96 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* WhatsApp Notification Settings */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-green-600" />
+            WhatsApp Notifications
+          </h3>
+          
+          <div className="space-y-4">
+            {/* WhatsApp Number */}
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                WhatsApp Number
+              </label>
+              <input
+                type="tel"
+                placeholder="+1234567890 (with country code)"
+                value={currentUser?.whatsappNumber || ''}
+                onChange={async (e) => {
+                  const newNumber = e.target.value;
+                  try {
+                    await axios.put(`${API_URL}/users/${currentUser._id}`, {
+                      ...currentUser,
+                      whatsappNumber: newNumber
+                    });
+                    setCurrentUser({ ...currentUser, whatsappNumber: newNumber });
+                  } catch (error) {
+                    console.error('Error updating WhatsApp number:', error);
+                    showError('Failed to update WhatsApp number');
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Enter your WhatsApp number in international format (e.g., +14155552671)
+              </p>
+            </div>
+
+            {/* Enable/Disable WhatsApp Notifications */}
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+              <div>
+                <h4 className="font-medium text-gray-900">WhatsApp Notifications</h4>
+                <p className="text-sm text-gray-600">
+                  Receive task updates and assignments via WhatsApp
+                </p>
+                <p className="text-xs text-green-600 font-medium mt-1">
+                  ✓ Works even when you're offline
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  const newValue = !currentUser?.whatsappNotifications;
+                  try {
+                    if (newValue && !currentUser?.whatsappNumber) {
+                      showError('Please enter your WhatsApp number first');
+                      return;
+                    }
+                    await axios.put(`${API_URL}/users/${currentUser._id}`, {
+                      ...currentUser,
+                      whatsappNotifications: newValue
+                    });
+                    setCurrentUser({ ...currentUser, whatsappNotifications: newValue });
+                    showSuccess(newValue ? 'WhatsApp notifications enabled' : 'WhatsApp notifications disabled');
+                  } catch (error) {
+                    console.error('Error updating WhatsApp notifications:', error);
+                    showError('Failed to update WhatsApp notifications');
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  currentUser?.whatsappNotifications
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {currentUser?.whatsappNotifications ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+
+            {/* WhatsApp Info */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900 mb-2">📋 What you'll receive via WhatsApp:</h4>
+              <ul className="space-y-1 text-sm text-blue-800">
+                <li>• New task assignments with full details</li>
+                <li>• Task completion notifications</li>
+                <li>• Task status updates</li>
+                <li>• Formatted messages for easy reading</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -5266,32 +5278,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <select
-                value={filters.priority || ''}
-                onChange={(e) => setFilters({...filters, priority: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
-              <select
-                value={filters.severity || ''}
-                onChange={(e) => setFilters({...filters, severity: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                <option value="Minor">Minor</option>
-                <option value="Major">Major</option>
-                <option value="Critical">Critical</option>
-              </select>
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status by Date</label>
               <select
                 value={filters.statusByDate || ''}
@@ -5418,8 +5404,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
       }
       
       if (filters.project && task.project !== filters.project) return false;
-      if (filters.priority && task.priority !== filters.priority) return false;
-      if (filters.severity && task.severity !== filters.severity) return false;
       if (filters.status && task.status !== filters.status) return false;
       return true;
     });
@@ -5525,34 +5509,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                     })}
                   </select>
                 </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <select
-                value={filters.priority || ''}
-                onChange={(e) => setFilters({...filters, priority: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
-              <select
-                value={filters.severity || ''}
-                onChange={(e) => setFilters({...filters, severity: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                <option value="Minor">Minor</option>
-                <option value="Major">Major</option>
-                <option value="Critical">Critical</option>
-              </select>
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Status by Date</label>
@@ -5842,12 +5798,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
     if (associateFilters.associate) {
       associateTasks = associateTasks.filter(t => t.associateDetails?.name === associateFilters.associate);
     }
-    if (associateFilters.priority) {
-      associateTasks = associateTasks.filter(t => t.priority === associateFilters.priority);
-    }
-    if (associateFilters.severity) {
-      associateTasks = associateTasks.filter(t => t.severity === associateFilters.severity);
-    }
     if (associateFilters.status) {
       associateTasks = associateTasks.filter(t => t.status === associateFilters.status);
     }
@@ -6042,34 +5992,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                     {assoc}
                   </option>
                 ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <select
-                value={associateFilters.priority || ''}
-                onChange={(e) => setAssociateFilters({...associateFilters, priority: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
-              <select
-                value={associateFilters.severity || ''}
-                onChange={(e) => setAssociateFilters({...associateFilters, severity: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              >
-                <option value="">All</option>
-                <option value="Minor">Minor</option>
-                <option value="Major">Major</option>
-                <option value="Critical">Critical</option>
               </select>
             </div>
 
@@ -6484,12 +6406,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
     if (externalFilters.externalUser) {
       externalTasks = externalTasks.filter(t => t.externalUserDetails?.name === externalFilters.externalUser);
     }
-    if (externalFilters.priority) {
-      externalTasks = externalTasks.filter(t => t.priority === externalFilters.priority);
-    }
-    if (externalFilters.severity) {
-      externalTasks = externalTasks.filter(t => t.severity === externalFilters.severity);
-    }
     if (externalFilters.status) {
       externalTasks = externalTasks.filter(t => t.status === externalFilters.status);
     }
@@ -6685,36 +6601,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                     {uniqueExternalUsers.map(user => (
                       <option key={user} value={user}>{user}</option>
                     ))}
-                  </select>
-                </div>
-
-                {/* Priority Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                  <select
-                    value={externalFilters.priority || ''}
-                    onChange={(e) => setExternalFilters({...externalFilters, priority: e.target.value || null})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  >
-                    <option value="">All Priorities</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                </div>
-
-                {/* Severity Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
-                  <select
-                    value={externalFilters.severity || ''}
-                    onChange={(e) => setExternalFilters({...externalFilters, severity: e.target.value || null})}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  >
-                    <option value="">All Severities</option>
-                    <option value="Minor">Minor</option>
-                    <option value="Major">Major</option>
-                    <option value="Critical">Critical</option>
                   </select>
                 </div>
 
@@ -8275,51 +8161,11 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Severity</label>
-                  <select
-                    value={formData.severity}
-                    onChange={(e) => setFormData({...formData, severity: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="Minor">Minor</option>
-                    <option value="Major">Major</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
-                  <input
-                    type="date"
-                    value={formData.inDate}
-                    onChange={(e) => setFormData({...formData, inDate: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
-                  <input
-                    type="date"
-                    value={formData.outDate}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
+                <input
+                  type="date"
+                  value={formData.outDate}
                     onChange={(e) => setFormData({...formData, outDate: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
@@ -8487,52 +8333,12 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Priority *</label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Severity *</label>
-                  <select
-                    value={formData.severity}
-                    onChange={(e) => setFormData({...formData, severity: e.target.value})}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                  >
-                    <option value="Minor">Minor</option>
-                    <option value="Major">Major</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
-                  <input
-                    type="date"
-                    value={formData.inDate}
-                    onChange={(e) => setFormData({...formData, inDate: e.target.value})}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Target Date *</label>
-                  <input
-                    type="date"
-                    value={formData.outDate}
-                    onChange={(e) => setFormData({...formData, outDate: e.target.value})}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Target Date *</label>
+                <input
+                  type="date"
+                  value={formData.outDate}
+                  onChange={(e) => setFormData({...formData, outDate: e.target.value})}
                     className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                     required
                   />
@@ -8985,129 +8791,28 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 </div>
               </div>
 
-              {/* Step 1: MOM Content Input */}
-              <div className="border-l-4 border-orange-500 pl-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <span className="bg-orange-600 text-white px-2 py-1 rounded mr-2 text-xs font-bold">STEP 1</span>
-                  Meeting Notes Format
+              {/* MOM Content Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Meeting Notes
+                  <span className="text-gray-500 text-xs ml-2">(Supports English, Gujarati, or improper English)</span>
                 </label>
-                
-                {/* Format Selection Dropdown */}
-                <div className="mb-4">
-                  <select
-                    value={momFormat}
-                    onChange={(e) => {
-                      setMomFormat(e.target.value);
-                      setShowMOMPreview(false);
-                      setProcessedMOMText('');
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-medium"
-                  >
-                    <option value="tabular">📊 Pointer-wise Tabular Format (Recommended)</option>
-                    <option value="paragraph">📝 Paragraph Format</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {momFormat === 'tabular' 
-                      ? '✓ Enter discussion points in a table - each row will appear as a separate entry in the document'
-                      : '💡 Write in paragraph format with numbered points (1., 2., 3.)'}
-                  </p>
-                </div>
-
-                {/* Tabular Input */}
-                {momFormat === 'tabular' ? (
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h4 className="font-semibold text-gray-800">Discussion Points Table</h4>
-                      <button
-                        onClick={() => {
-                          setDiscussionTableData([...discussionTableData, { 
-                            srNo: discussionTableData.length + 1, 
-                            point: '' 
-                          }]);
-                        }}
-                        className="px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Add Row
-                      </button>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse border-2 border-gray-800">
-                        <thead>
-                          <tr className="bg-gray-100">
-                            <th className="border border-gray-800 px-3 py-2 text-left font-bold text-sm w-20">Sr. No.</th>
-                            <th className="border border-gray-800 px-3 py-2 text-left font-bold text-sm">Point of discussion/ Observation</th>
-                            <th className="border border-gray-800 px-3 py-2 text-center w-16">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {discussionTableData.map((row, index) => (
-                            <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-800 px-3 py-2 text-center font-bold">
-                                {row.srNo}.
-                              </td>
-                              <td className="border border-gray-800 px-3 py-2">
-                                <textarea
-                                  value={row.point}
-                                  onChange={(e) => {
-                                    const newData = [...discussionTableData];
-                                    newData[index].point = e.target.value;
-                                    setDiscussionTableData(newData);
-                                  }}
-                                  rows={2}
-                                  className="w-full px-2 py-1 border-none focus:ring-2 focus:ring-orange-500 rounded resize-none"
-                                  placeholder="Enter discussion point... (Supports English, Gujarati, or improper English)"
-                                />
-                              </td>
-                              <td className="border border-gray-800 px-3 py-2 text-center">
-                                {discussionTableData.length > 1 && (
-                                  <button
-                                    onClick={() => {
-                                      const newData = discussionTableData.filter((_, i) => i !== index);
-                                      // Renumber after deletion
-                                      newData.forEach((item, i) => item.srNo = i + 1);
-                                      setDiscussionTableData(newData);
-                                    }}
-                                    className="text-red-600 hover:text-red-800"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">
-                      💡 Add rows and fill in discussion points. AI will enhance the text while preserving the table structure.
-                    </p>
-                  </div>
-                ) : (
-                  /* Paragraph Input */
-                  <div>
-                    <textarea
-                      value={momContent}
-                      onChange={(e) => setMomContent(e.target.value)}
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Write numbered points:\n1. First point of discussion\n2. Second point of discussion\n\nઆજે મીટિંગ સારી રહી... or write in English (proper or improper)"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      💡 Tip: Write numbered points (1., 2., 3.) for automatic table formatting. Supports Gujarati or improper English!
-                    </p>
-                  </div>
-                )}
+                <textarea
+                  value={momContent}
+                  onChange={(e) => setMomContent(e.target.value)}
+                  rows={8}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="આજે મીટિંગ સારી રહી... or write in English (proper or improper)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Tip: You can write in Gujarati or improper English - it will be automatically corrected!
+                </p>
               </div>
 
-              {/* Step 2: Image Upload Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 border-l-4 border-blue-500">
+              {/* Image Upload Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-medium text-gray-700">
-                    <span className="bg-blue-600 text-white px-2 py-1 rounded mr-2 text-xs font-bold">STEP 2</span>
                     📸 Construction Site Images
                     <span className="text-gray-500 text-xs ml-2">(Optional)</span>
                   </label>
@@ -9169,66 +8874,39 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 )}
               </div>
 
-              {/* Step 3: Process & Generate Preview Button */}
-              <div className="border-t pt-4">
+              {/* Processed Text Display */}
+              {processedMOMText && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <label className="text-sm font-medium text-green-900">Processed Text (Ready for PDF)</label>
+                  </div>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded border border-green-100">
+                    {processedMOMText}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 pt-4 border-t">
                 <button
                   onClick={async () => {
-                    // Validation based on format
-                    if (momFormat === 'paragraph' && !momContent.trim()) {
-                      showError('Please enter meeting notes first');
-                      return;
-                    }
-                    if (momFormat === 'tabular' && discussionTableData.every(row => !row.point.trim())) {
-                      showError('Please enter at least one discussion point in the table');
+                    if (!momContent.trim()) {
+                      showError('Please enter meeting notes');
                       return;
                     }
 
                     setProcessingMOM(true);
                     try {
-                      if (momFormat === 'tabular') {
-                        // Process each table row through AI
-                        const processedRows = [];
-                        
-                        for (let i = 0; i < discussionTableData.length; i++) {
-                          const row = discussionTableData[i];
-                          if (row.point.trim()) {
-                            const response = await axios.post(`${API_URL}/mom/process-text`, {
-                              text: row.point
-                            });
+                      const response = await axios.post(`${API_URL}/mom/process-text`, {
+                        text: momContent
+                      });
 
-                            if (response.data.success && response.data.data) {
-                              processedRows.push({
-                                srNo: row.srNo,
-                                originalPoint: row.point,
-                                processedPoint: response.data.data.processedText
-                              });
-                            } else {
-                              processedRows.push({
-                                srNo: row.srNo,
-                                originalPoint: row.point,
-                                processedPoint: row.point // Fallback to original if processing fails
-                              });
-                            }
-                          }
-                        }
-                        
-                        setProcessedTableData(processedRows);
-                        setShowMOMPreview(true);
-                        showSuccess(`Processed ${processedRows.length} discussion points! ✨`);
-                        
+                      if (response.data.success && response.data.data) {
+                        setProcessedMOMText(response.data.data.processedText);
+                        showSuccess('Text processed successfully! ✨');
                       } else {
-                        // Process paragraph format
-                        const response = await axios.post(`${API_URL}/mom/process-text`, {
-                          text: momContent
-                        });
-
-                        if (response.data.success && response.data.data) {
-                          setProcessedMOMText(response.data.data.processedText);
-                          setShowMOMPreview(true);
-                          showSuccess('Text processed and preview generated! ✨');
-                        } else {
-                          showError('Failed to process text');
-                        }
+                        showError('Failed to process text');
                       }
                     } catch (error) {
                       showError('Failed to process text: ' + (error.response?.data?.error || error.message));
@@ -9236,73 +8914,28 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                       setProcessingMOM(false);
                     }
                   }}
-                  disabled={(momFormat === 'paragraph' && !momContent.trim()) || 
-                           (momFormat === 'tabular' && discussionTableData.every(row => !row.point.trim())) || 
-                           processingMOM}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg hover:from-orange-700 hover:to-orange-800 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg"
+                  disabled={processingMOM || !momContent.trim()}
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {processingMOM ? (
                     <>
-                      <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-lg">Processing & Generating Preview...</span>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Processing...
                     </>
                   ) : (
                     <>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      <span className="text-lg">
-                        <span className="bg-white text-orange-600 px-2 py-1 rounded mr-2 text-xs font-bold">STEP 3</span>
-                        Process Text & Generate Preview
-                      </span>
+                      <CheckCircle className="w-5 h-5" />
+                      Process Text
                     </>
                   )}
                 </button>
-                <p className="text-xs text-center text-gray-600 mt-2">
-                  AI will enhance your {momFormat === 'tabular' ? 'table entries' : 'text'} and show preview of the Word document
-                </p>
-              </div>
-
-              {/* MOM Preview Display */}
-              {showMOMPreview && (
-                <>
-                  {momFormat === 'tabular' && processedTableData.length > 0 && (
-                    <ProcessedDiscussionTable tableData={processedTableData} />
-                  )}
-                  
-                  {momFormat === 'paragraph' && processedMOMText && (
-                    <MOMPreview 
-                      content={processedMOMText}
-                      images={momImagePreviews}
-                      metadata={momMetadata}
-                    />
-                  )}
-                </>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t">
 
                 <button
                   onClick={async () => {
-                    // Prepare content based on format
-                    let contentToUse;
-                    if (momFormat === 'tabular') {
-                      if (processedTableData.length === 0) {
-                        showError('Please generate preview first to process the text');
-                        return;
-                      }
-                      // Convert processed table data to formatted text
-                      contentToUse = processedTableData.map(row => 
-                        `${row.srNo}. ${row.processedPoint}`
-                      ).join('\n\n');
-                    } else {
-                      contentToUse = processedMOMText || momContent;
-                      if (!contentToUse.trim()) {
-                        showError('Please generate preview first to process the text');
-                        return;
-                      }
+                    const contentToUse = processedMOMText || momContent;
+                    if (!contentToUse.trim()) {
+                      showError('Please enter meeting notes or process the text first');
+                      return;
                     }
 
                     setProcessingMOM(true);
@@ -9316,8 +8949,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         attendees: momMetadata.attendees,
                         rawContent: contentToUse,
                         companyName: 'Trimity Consultants',
-                        images: momImages,
-                        discussionPoints: momFormat === 'tabular' ? processedTableData : undefined
+                        images: momImages
                       });
 
                       showSuccess('MOM saved to history! 💾 You can download Word document later from MOM History page.');
@@ -9330,8 +8962,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         setProcessedMOMText('');
                         setMomImages([]);
                         setMomImagePreviews([]);
-                        setDiscussionTableData([{ srNo: 1, point: '' }]);
-                        setProcessedTableData([]);
                       }, 2000);
                     } catch (error) {
                       showError('Failed to save MOM: ' + (error.response?.data?.error || error.message));
@@ -9339,7 +8969,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                       setProcessingMOM(false);
                     }
                   }}
-                  disabled={processingMOM || (momFormat === 'paragraph' && !momContent.trim() && !processedMOMText) || (momFormat === 'tabular' && processedTableData.length === 0)}
+                  disabled={processingMOM || (!momContent.trim() && !processedMOMText)}
                   className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {processingMOM ? (
@@ -9359,30 +8989,10 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
 
                 <button
                   onClick={async () => {
-                    // Prepare content based on format
-                    let contentToUse;
-                    let discussionPointsData;
-                    
-                    if (momFormat === 'tabular') {
-                      if (processedTableData.length === 0) {
-                        showError('Please generate preview first to process the text');
-                        return;
-                      }
-                      // Convert processed table data to formatted text
-                      contentToUse = processedTableData.map(row => 
-                        `${row.srNo}. ${row.processedPoint}`
-                      ).join('\n\n');
-                      // Also pass the structured data for proper table rendering
-                      discussionPointsData = processedTableData.map((row, index) => ({
-                        srNo: `${index + 1}.`,
-                        point: row.processedPoint
-                      }));
-                    } else {
-                      contentToUse = processedMOMText || momContent;
-                      if (!contentToUse.trim()) {
-                        showError('Please generate preview first to process the text');
-                        return;
-                      }
+                    const contentToUse = processedMOMText || momContent;
+                    if (!contentToUse.trim()) {
+                      showError('Please enter meeting notes or process the text first');
+                      return;
                     }
 
                     setProcessingMOM(true);
@@ -9397,8 +9007,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         attendees: momMetadata.attendees,
                         rawContent: contentToUse,
                         companyName: 'Trimity Consultants',
-                        images: momImages,
-                        discussionPoints: discussionPointsData
+                        images: momImages
                       }, {
                         responseType: 'blob'
                       });
@@ -9424,8 +9033,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         setProcessedMOMText('');
                         setMomImages([]);
                         setMomImagePreviews([]);
-                        setDiscussionTableData([{ srNo: 1, point: '' }]);
-                        setProcessedTableData([]);
                       }, 1000);
                     } catch (error) {
                       const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
@@ -9434,7 +9041,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                       setProcessingMOM(false);
                     }
                   }}
-                  disabled={processingMOM || (momFormat === 'paragraph' && !momContent.trim() && !processedMOMText) || (momFormat === 'tabular' && processedTableData.length === 0)}
+                  disabled={processingMOM || (!momContent.trim() && !processedMOMText)}
                   className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {processingMOM ? (
