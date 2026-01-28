@@ -9064,73 +9064,26 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 )}
               </div>
 
-              {/* Step 3: Generate Preview Button */}
+              {/* Step 3: Process & Generate Preview Button */}
               <div className="border-t pt-4">
-                <button
-                  onClick={() => {
-                    if (!momContent.trim()) {
-                      showError('Please enter meeting notes first');
-                      return;
-                    }
-                    setShowMOMPreview(true);
-                  }}
-                  disabled={!momContent.trim()}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg hover:from-orange-700 hover:to-orange-800 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  <span className="text-lg">
-                    <span className="bg-white text-orange-600 px-2 py-1 rounded mr-2 text-xs font-bold">STEP 3</span>
-                    Generate Preview
-                  </span>
-                </button>
-                <p className="text-xs text-center text-gray-600 mt-2">
-                  Click to see how your MOM will look in the Word document
-                </p>
-              </div>
-
-              {/* MOM Preview Display */}
-              {showMOMPreview && (
-                <MOMPreview 
-                  content={momContent}
-                  images={momImagePreviews}
-                  metadata={momMetadata}
-                />
-              )}
-
-              {/* Processed Text Display */}
-              {processedMOMText && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <label className="text-sm font-medium text-green-900">Processed Text (Ready for PDF)</label>
-                  </div>
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded border border-green-100">
-                    {processedMOMText}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t">
                 <button
                   onClick={async () => {
                     if (!momContent.trim()) {
-                      showError('Please enter meeting notes');
+                      showError('Please enter meeting notes first');
                       return;
                     }
 
                     setProcessingMOM(true);
                     try {
+                      // First, process the text through AI
                       const response = await axios.post(`${API_URL}/mom/process-text`, {
                         text: momContent
                       });
 
                       if (response.data.success && response.data.data) {
                         setProcessedMOMText(response.data.data.processedText);
-                        showSuccess('Text processed successfully! ✨');
+                        setShowMOMPreview(true);
+                        showSuccess('Text processed and preview generated! ✨');
                       } else {
                         showError('Failed to process text');
                       }
@@ -9140,27 +9093,49 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                       setProcessingMOM(false);
                     }
                   }}
-                  disabled={processingMOM || !momContent.trim()}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  disabled={!momContent.trim() || processingMOM}
+                  className="w-full px-6 py-4 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg hover:from-orange-700 hover:to-orange-800 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg"
                 >
                   {processingMOM ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Processing...
+                      <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-lg">Processing & Generating Preview...</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle className="w-5 h-5" />
-                      Process Text
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <span className="text-lg">
+                        <span className="bg-white text-orange-600 px-2 py-1 rounded mr-2 text-xs font-bold">STEP 3</span>
+                        Process Text & Generate Preview
+                      </span>
                     </>
                   )}
                 </button>
+                <p className="text-xs text-center text-gray-600 mt-2">
+                  AI will enhance your text and show preview of the Word document
+                </p>
+              </div>
+
+              {/* MOM Preview Display */}
+              {showMOMPreview && processedMOMText && (
+                <MOMPreview 
+                  content={processedMOMText}
+                  images={momImagePreviews}
+                  metadata={momMetadata}
+                />
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 pt-4 border-t">
 
                 <button
                   onClick={async () => {
                     const contentToUse = processedMOMText || momContent;
                     if (!contentToUse.trim()) {
-                      showError('Please enter meeting notes or process the text first');
+                      showError('Please generate preview first to process the text');
                       return;
                     }
 
@@ -9217,7 +9192,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                   onClick={async () => {
                     const contentToUse = processedMOMText || momContent;
                     if (!contentToUse.trim()) {
-                      showError('Please enter meeting notes or process the text first');
+                      showError('Please generate preview first to process the text');
                       return;
                     }
 
