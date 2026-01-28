@@ -153,9 +153,16 @@ class WordTemplatePDFService {
     const contentSections = this.parseContentSections(content);
 
     // Process images if provided
+    console.log('🖼️  [DEBUG] prepareTemplateData - images parameter:', {
+      provided: !!images,
+      isArray: Array.isArray(images),
+      count: images ? images.length : 0
+    });
+    
     const processedImages = this.processImages(images);
+    console.log('🖼️  [DEBUG] Processed images result:', processedImages);
 
-    return {
+    const templateData = {
       // Header information
       companyName,
       documentTitle: 'MINUTES OF MEETING',
@@ -189,6 +196,11 @@ class WordTemplatePDFService {
       preparedBy: companyName,
       documentFooter: `This is a computer-generated document from ${companyName}`,
     };
+    
+    console.log('📋 [DEBUG] Final template data keys:', Object.keys(templateData));
+    console.log('🖼️  [DEBUG] Image keys in template data:', Object.keys(templateData).filter(k => k.startsWith('image')));
+    
+    return templateData;
   }
 
   /**
@@ -465,20 +477,47 @@ class WordTemplatePDFService {
   processImages(images) {
     const result = {};
     
+    console.log('🖼️  [DEBUG] processImages called with:', {
+      imagesProvided: !!images,
+      isArray: Array.isArray(images),
+      imageCount: images ? images.length : 0,
+      imageTypes: images ? images.map(img => typeof img) : []
+    });
+    
     if (!images || !Array.isArray(images)) {
+      console.log('⚠️  [DEBUG] No images array provided, returning empty result');
+      return result;
+    }
+
+    if (images.length === 0) {
+      console.log('⚠️  [DEBUG] Images array is empty');
       return result;
     }
 
     images.forEach((img, index) => {
+      console.log(`🖼️  [DEBUG] Processing image ${index + 1}:`, {
+        type: typeof img,
+        isString: typeof img === 'string',
+        isObject: typeof img === 'object',
+        hasData: img && img.data ? 'yes' : 'no',
+        dataLength: img && img.data ? img.data.length : 0,
+        preview: typeof img === 'string' ? img.substring(0, 50) + '...' : 'object'
+      });
+      
       if (typeof img === 'string') {
         // If it's just a path/base64, use default naming
         result[`image${index + 1}`] = img;
+        console.log(`✅ [DEBUG] Added image${index + 1} to template data`);
       } else if (typeof img === 'object' && img.name && img.data) {
         // If it's an object with name and data
         result[img.name] = img.data;
+        console.log(`✅ [DEBUG] Added ${img.name} to template data`);
+      } else {
+        console.warn(`⚠️  [DEBUG] Skipping invalid image at index ${index}:`, img);
       }
     });
 
+    console.log('🖼️  [DEBUG] Final processed images:', Object.keys(result));
     return result;
   }
 }

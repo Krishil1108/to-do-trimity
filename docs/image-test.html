@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOM Image Upload Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .preview {
+            max-width: 200px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+        }
+        label {
+            display: block;
+            margin: 15px 0 5px;
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ MOM Image Upload Tester</h1>
+        <p>Test image upload and Word document generation with images</p>
+
+        <!-- API URL Configuration -->
+        <div class="test-section">
+            <h2>⚙️ Configuration</h2>
+            <label>Backend API URL:</label>
+            <input type="text" id="apiUrl" value="http://localhost:5000" placeholder="http://localhost:5000 or https://your-backend.onrender.com">
+            <small>Enter your backend URL (no trailing slash)</small>
+        </div>
+
+        <!-- Test 1: Image Upload -->
+        <div class="test-section">
+            <h2>Test 1: Upload Image File</h2>
+            <label>Select an image file:</label>
+            <input type="file" id="imageFile" accept="image/*">
+            <div id="imagePreview"></div>
+            <button onclick="testImageUpload()">🧪 Test Image Processing</button>
+            <div id="testResult1"></div>
+        </div>
+
+        <!-- Test 2: Generate DOCX with Image -->
+        <div class="test-section">
+            <h2>Test 2: Generate DOCX with Image</h2>
+            <label>Meeting Title:</label>
+            <input type="text" id="meetingTitle" value="Image Test MOM">
+            
+            <label>Meeting Content:</label>
+            <textarea id="meetingContent">This is a test meeting.
+
+The image should appear in the Word document where the {%image1} placeholder is located.
+
+Please verify that the image renders correctly.</textarea>
+            
+            <label>Select image for document:</label>
+            <input type="file" id="docImageFile" accept="image/*">
+            <div id="docImagePreview"></div>
+            
+            <button onclick="generateDocWithImage()">📄 Generate DOCX with Image</button>
+            <div id="testResult2"></div>
+        </div>
+
+        <!-- Test 3: Pre-built Test Image -->
+        <div class="test-section">
+            <h2>Test 3: Use Test Pixel (No Upload Needed)</h2>
+            <p>Test with a built-in 1x1 red pixel image</p>
+            <button onclick="testWithBuiltInImage()">🔴 Test with Red Pixel</button>
+            <button onclick="generateDocWithBuiltInImage()">📄 Generate DOCX with Red Pixel</button>
+            <div id="testResult3"></div>
+        </div>
+
+        <!-- Logs -->
+        <div class="test-section">
+            <h2>📋 Logs</h2>
+            <div id="logs" class="result"></div>
+            <button onclick="clearLogs()">Clear Logs</button>
+        </div>
+    </div>
+
+    <script>
+        // Test images
+        const TEST_IMAGE_RED = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
+        
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            logsDiv.innerHTML += `[${timestamp}] ${icon} ${message}\n`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value.trim();
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Preview image
+        document.getElementById('imageFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const base64 = await fileToBase64(file);
+                document.getElementById('imagePreview').innerHTML = `<img src="${base64}" class="preview" alt="Preview">`;
+                log(`Image loaded: ${file.name} (${(file.size/1024).toFixed(2)} KB)`);
+            }
+        });
+
+        document.getElementById('docImageFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const base64 = await fileToBase64(file);
+                document.getElementById('docImagePreview').innerHTML = `<img src="${base64}" class="preview" alt="Preview">`;
+                log(`Document image loaded: ${file.name} (${(file.size/1024).toFixed(2)} KB)`);
+            }
+        });
+
+        // Test 1: Test image processing
+        async function testImageUpload() {
+            const fileInput = document.getElementById('imageFile');
+            const resultDiv = document.getElementById('testResult1');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<div class="result error">Please select an image file first</div>';
+                return;
+            }
+
+            try {
+                log('Converting image to base64...');
+                const base64 = await fileToBase64(fileInput.files[0]);
+                
+                log('Sending test request...');
+                const response = await fetch(`${getApiUrl()}/api/mom/test-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ images: [base64] })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `<div class="result success">${JSON.stringify(result, null, 2)}</div>`;
+                    log(`✅ Test passed! Processed ${result.data.processed.count} image(s)`, 'success');
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">${JSON.stringify(result, null, 2)}</div>`;
+                    log(`❌ Test failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 2: Generate DOCX with uploaded image
+        async function generateDocWithImage() {
+            const fileInput = document.getElementById('docImageFile');
+            const resultDiv = document.getElementById('testResult2');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<div class="result error">Please select an image file first</div>';
+                return;
+            }
+
+            try {
+                log('Preparing document with image...');
+                const base64 = await fileToBase64(fileInput.files[0]);
+                
+                const momData = {
+                    title: document.getElementById('meetingTitle').value,
+                    rawContent: document.getElementById('meetingContent').value,
+                    date: new Date().toLocaleDateString(),
+                    location: 'Test Location',
+                    attendees: ['Test User 1', 'Test User 2'],
+                    companyName: 'Test Company',
+                    images: [base64]
+                };
+
+                log('Sending request to generate DOCX...');
+                const response = await fetch(`${getApiUrl()}/api/mom/generate-docx-from-template`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(momData)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'test-mom-with-image.docx';
+                    a.click();
+                    
+                    resultDiv.innerHTML = '<div class="result success">✅ DOCX generated and downloaded! Check the document for your image.</div>';
+                    log('✅ DOCX downloaded successfully', 'success');
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `<div class="result error">❌ Error: ${JSON.stringify(error, null, 2)}</div>`;
+                    log(`❌ Generation failed: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 3: Test with built-in image
+        async function testWithBuiltInImage() {
+            const resultDiv = document.getElementById('testResult3');
+            
+            try {
+                log('Testing with built-in red pixel image...');
+                const response = await fetch(`${getApiUrl()}/api/mom/test-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ images: [TEST_IMAGE_RED] })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.innerHTML = `<div class="result success">${JSON.stringify(result, null, 2)}</div>`;
+                    log(`✅ Built-in image test passed!`, 'success');
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">${JSON.stringify(result, null, 2)}</div>`;
+                    log(`❌ Test failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function generateDocWithBuiltInImage() {
+            const resultDiv = document.getElementById('testResult3');
+            
+            try {
+                log('Generating DOCX with built-in red pixel...');
+                const momData = {
+                    title: 'Built-in Image Test',
+                    rawContent: 'This document contains a 1x1 red pixel image.\n\nThe image placeholder {%image1} should show a tiny red square.',
+                    date: new Date().toLocaleDateString(),
+                    location: 'Virtual',
+                    attendees: ['Tester'],
+                    companyName: 'Test Co',
+                    images: [TEST_IMAGE_RED]
+                };
+
+                const response = await fetch(`${getApiUrl()}/api/mom/generate-docx-from-template`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(momData)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'test-builtin-image.docx';
+                    a.click();
+                    
+                    resultDiv.innerHTML = '<div class="result success">✅ DOCX with built-in image downloaded!</div>';
+                    log('✅ Built-in image DOCX downloaded', 'success');
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `<div class="result error">❌ Error: ${JSON.stringify(error, null, 2)}</div>`;
+                    log(`❌ Generation failed: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        log('🚀 Image tester ready!');
+        log('📝 Set your backend URL and start testing');
+    </script>
+</body>
+</html>

@@ -144,6 +144,18 @@ router.post('/generate-docx-from-template', async (req, res) => {
       images = []
     } = req.body;
 
+    console.log('🖼️  [DEBUG] Request received with images:', {
+      imagesProvided: !!images,
+      imagesType: typeof images,
+      isArray: Array.isArray(images),
+      imageCount: images ? images.length : 0,
+      imagePreview: images && images.length > 0 ? images.map((img, i) => ({
+        index: i,
+        type: typeof img,
+        hasData: typeof img === 'string' ? img.substring(0, 30) : (img && img.data ? 'yes' : 'no')
+      })) : []
+    });
+
     if (!rawContent || rawContent.trim().length === 0) {
       return res.status(400).json({
         success: false,
@@ -662,9 +674,66 @@ router.get('/test', (req, res) => {
       'AI-powered text improvement',
       'Word document generation with letterhead',
       'MOM history tracking',
-      'Task-MOM association'
+      'Task-MOM association',
+      'Image support in Word templates'
     ]
   });
+});
+
+/**
+ * POST /api/mom/test-image
+ * Test endpoint for debugging image upload and processing
+ */
+router.post('/test-image', async (req, res) => {
+  try {
+    const { images } = req.body;
+    
+    console.log('🧪 [TEST] Image test endpoint called');
+    console.log('🖼️  [TEST] Images received:', {
+      provided: !!images,
+      type: typeof images,
+      isArray: Array.isArray(images),
+      count: images ? images.length : 0
+    });
+    
+    if (images && Array.isArray(images)) {
+      images.forEach((img, index) => {
+        console.log(`🖼️  [TEST] Image ${index + 1}:`, {
+          type: typeof img,
+          isString: typeof img === 'string',
+          isObject: typeof img === 'object',
+          length: typeof img === 'string' ? img.length : 'N/A',
+          preview: typeof img === 'string' ? img.substring(0, 50) + '...' : JSON.stringify(img).substring(0, 100)
+        });
+      });
+    }
+    
+    // Test processing
+    const processedImages = wordTemplatePdfService.processImages(images);
+    
+    res.json({
+      success: true,
+      message: 'Image test completed',
+      data: {
+        received: {
+          count: images ? images.length : 0,
+          type: typeof images,
+          isArray: Array.isArray(images)
+        },
+        processed: {
+          imageKeys: Object.keys(processedImages),
+          count: Object.keys(processedImages).length
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ [TEST] Image test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 module.exports = router;

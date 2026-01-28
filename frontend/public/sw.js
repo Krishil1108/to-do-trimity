@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.10.0-' + Date.now(); // Fixed 413 error and image rendering in Word templates
+const CACHE_VERSION = 'v6.11.0-' + Date.now(); // Added comprehensive image debugging and test tools
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
