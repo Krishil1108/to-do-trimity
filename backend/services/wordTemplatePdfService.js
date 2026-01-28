@@ -171,6 +171,10 @@ class WordTemplatePDFService {
     const formattedPointsText = discussionPoints
       .map(p => `${p.srNo} ${p.point}`)
       .join('\n\n');
+    
+    // Create an HTML table structure for Word
+    const discussionTable = this.createDiscussionTable(discussionPoints);
+    console.log('📊 [DEBUG] Created discussion table with', discussionPoints.length, 'rows');
 
     // Process images if provided
     console.log('🖼️  [DEBUG] prepareTemplateData - images parameter:', {
@@ -202,6 +206,7 @@ class WordTemplatePDFService {
       contentSections,
       discussionPoints,  // Array of points for table rows (for advanced templates)
       formattedPointsText, // Simple formatted text with line breaks
+      discussionTable,  // HTML table for Word
       ...pointsObj,  // Individual point variables (point1Text, point1Sr, etc.)
       
       // Images
@@ -362,6 +367,33 @@ class WordTemplatePDFService {
     }
 
     return points;
+  }
+
+  /**
+   * Create a Word XML table structure for discussion points
+   * This creates actual Word table markup that can be inserted via rawXML
+   * @param {Array} discussionPoints - Array of {srNo, point} objects
+   * @returns {string} - Plain text table representation
+   */
+  createDiscussionTable(discussionPoints) {
+    if (!discussionPoints || discussionPoints.length === 0) {
+      return 'No discussion points available.';
+    }
+
+    // Create a simple text-based table that will display nicely in Word
+    const header = '┌──────────┬────────────────────────────────────────────────────────────────────────┐\n' +
+                   '│ Sr. No.  │ Point of discussion/ Observation                                      │\n' +
+                   '├──────────┼────────────────────────────────────────────────────────────────────────┤';
+    
+    const rows = discussionPoints.map(point => {
+      const srNo = point.srNo.padEnd(8);
+      const text = point.point;
+      return `│ ${srNo} │ ${text.padEnd(70)} │`;
+    }).join('\n');
+    
+    const footer = '└──────────┴────────────────────────────────────────────────────────────────────────┘';
+
+    return `${header}\n${rows}\n${footer}`;
   }
 
   /**
