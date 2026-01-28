@@ -14,6 +14,7 @@ import UpdateChecker from './components/UpdateChecker';
 import CustomDialog from './components/CustomDialog';
 import MOMHistory from './components/MOMHistory';
 import MOMPreview from './components/MOMPreview';
+import ProcessedDiscussionTable from './components/ProcessedDiscussionTable';
 import { setupGrammarTester } from './utils/grammarTester';
 
 // Server optimization for render.com deployment
@@ -194,6 +195,11 @@ const TaskManagementSystem = () => {
   const [momImages, setMomImages] = useState([]);
   const [momImagePreviews, setMomImagePreviews] = useState([]);
   const [showMOMPreview, setShowMOMPreview] = useState(false);
+  const [momFormat, setMomFormat] = useState('tabular'); // 'tabular' or 'paragraph'
+  const [discussionTableData, setDiscussionTableData] = useState([
+    { srNo: 1, point: '' }
+  ]);
+  const [processedTableData, setProcessedTableData] = useState([]);
   
   // PWA Installation states
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -8981,21 +8987,120 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
 
               {/* Step 1: MOM Content Input */}
               <div className="border-l-4 border-orange-500 pl-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   <span className="bg-orange-600 text-white px-2 py-1 rounded mr-2 text-xs font-bold">STEP 1</span>
-                  Meeting Notes
-                  <span className="text-gray-500 text-xs ml-2">(Supports English, Gujarati, or improper English)</span>
+                  Meeting Notes Format
                 </label>
-                <textarea
-                  value={momContent}
-                  onChange={(e) => setMomContent(e.target.value)}
-                  rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Write numbered points:\n1. First point of discussion\n2. Second point of discussion\n\nઆજે મીટિંગ સારી રહી... or write in English (proper or improper)"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  💡 Tip: Write numbered points (1., 2., 3.) for automatic table formatting. Supports Gujarati or improper English!
-                </p>
+                
+                {/* Format Selection Dropdown */}
+                <div className="mb-4">
+                  <select
+                    value={momFormat}
+                    onChange={(e) => {
+                      setMomFormat(e.target.value);
+                      setShowMOMPreview(false);
+                      setProcessedMOMText('');
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent font-medium"
+                  >
+                    <option value="tabular">📊 Pointer-wise Tabular Format (Recommended)</option>
+                    <option value="paragraph">📝 Paragraph Format</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {momFormat === 'tabular' 
+                      ? '✓ Enter discussion points in a table - each row will appear as a separate entry in the document'
+                      : '💡 Write in paragraph format with numbered points (1., 2., 3.)'}
+                  </p>
+                </div>
+
+                {/* Tabular Input */}
+                {momFormat === 'tabular' ? (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h4 className="font-semibold text-gray-800">Discussion Points Table</h4>
+                      <button
+                        onClick={() => {
+                          setDiscussionTableData([...discussionTableData, { 
+                            srNo: discussionTableData.length + 1, 
+                            point: '' 
+                          }]);
+                        }}
+                        className="px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Row
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse border-2 border-gray-800">
+                        <thead>
+                          <tr className="bg-gray-100">
+                            <th className="border border-gray-800 px-3 py-2 text-left font-bold text-sm w-20">Sr. No.</th>
+                            <th className="border border-gray-800 px-3 py-2 text-left font-bold text-sm">Point of discussion/ Observation</th>
+                            <th className="border border-gray-800 px-3 py-2 text-center w-16">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {discussionTableData.map((row, index) => (
+                            <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="border border-gray-800 px-3 py-2 text-center font-bold">
+                                {row.srNo}.
+                              </td>
+                              <td className="border border-gray-800 px-3 py-2">
+                                <textarea
+                                  value={row.point}
+                                  onChange={(e) => {
+                                    const newData = [...discussionTableData];
+                                    newData[index].point = e.target.value;
+                                    setDiscussionTableData(newData);
+                                  }}
+                                  rows={2}
+                                  className="w-full px-2 py-1 border-none focus:ring-2 focus:ring-orange-500 rounded resize-none"
+                                  placeholder="Enter discussion point... (Supports English, Gujarati, or improper English)"
+                                />
+                              </td>
+                              <td className="border border-gray-800 px-3 py-2 text-center">
+                                {discussionTableData.length > 1 && (
+                                  <button
+                                    onClick={() => {
+                                      const newData = discussionTableData.filter((_, i) => i !== index);
+                                      // Renumber after deletion
+                                      newData.forEach((item, i) => item.srNo = i + 1);
+                                      setDiscussionTableData(newData);
+                                    }}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      💡 Add rows and fill in discussion points. AI will enhance the text while preserving the table structure.
+                    </p>
+                  </div>
+                ) : (
+                  /* Paragraph Input */
+                  <div>
+                    <textarea
+                      value={momContent}
+                      onChange={(e) => setMomContent(e.target.value)}
+                      rows={8}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Write numbered points:\n1. First point of discussion\n2. Second point of discussion\n\nઆજે મીટિંગ સારી રહી... or write in English (proper or improper)"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 Tip: Write numbered points (1., 2., 3.) for automatic table formatting. Supports Gujarati or improper English!
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Step 2: Image Upload Section */}
@@ -9068,24 +9173,62 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
               <div className="border-t pt-4">
                 <button
                   onClick={async () => {
-                    if (!momContent.trim()) {
+                    // Validation based on format
+                    if (momFormat === 'paragraph' && !momContent.trim()) {
                       showError('Please enter meeting notes first');
+                      return;
+                    }
+                    if (momFormat === 'tabular' && discussionTableData.every(row => !row.point.trim())) {
+                      showError('Please enter at least one discussion point in the table');
                       return;
                     }
 
                     setProcessingMOM(true);
                     try {
-                      // First, process the text through AI
-                      const response = await axios.post(`${API_URL}/mom/process-text`, {
-                        text: momContent
-                      });
+                      if (momFormat === 'tabular') {
+                        // Process each table row through AI
+                        const processedRows = [];
+                        
+                        for (let i = 0; i < discussionTableData.length; i++) {
+                          const row = discussionTableData[i];
+                          if (row.point.trim()) {
+                            const response = await axios.post(`${API_URL}/mom/process-text`, {
+                              text: row.point
+                            });
 
-                      if (response.data.success && response.data.data) {
-                        setProcessedMOMText(response.data.data.processedText);
+                            if (response.data.success && response.data.data) {
+                              processedRows.push({
+                                srNo: row.srNo,
+                                originalPoint: row.point,
+                                processedPoint: response.data.data.processedText
+                              });
+                            } else {
+                              processedRows.push({
+                                srNo: row.srNo,
+                                originalPoint: row.point,
+                                processedPoint: row.point // Fallback to original if processing fails
+                              });
+                            }
+                          }
+                        }
+                        
+                        setProcessedTableData(processedRows);
                         setShowMOMPreview(true);
-                        showSuccess('Text processed and preview generated! ✨');
+                        showSuccess(`Processed ${processedRows.length} discussion points! ✨`);
+                        
                       } else {
-                        showError('Failed to process text');
+                        // Process paragraph format
+                        const response = await axios.post(`${API_URL}/mom/process-text`, {
+                          text: momContent
+                        });
+
+                        if (response.data.success && response.data.data) {
+                          setProcessedMOMText(response.data.data.processedText);
+                          setShowMOMPreview(true);
+                          showSuccess('Text processed and preview generated! ✨');
+                        } else {
+                          showError('Failed to process text');
+                        }
                       }
                     } catch (error) {
                       showError('Failed to process text: ' + (error.response?.data?.error || error.message));
@@ -9093,7 +9236,9 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                       setProcessingMOM(false);
                     }
                   }}
-                  disabled={!momContent.trim() || processingMOM}
+                  disabled={(momFormat === 'paragraph' && !momContent.trim()) || 
+                           (momFormat === 'tabular' && discussionTableData.every(row => !row.point.trim())) || 
+                           processingMOM}
                   className="w-full px-6 py-4 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg hover:from-orange-700 hover:to-orange-800 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg"
                 >
                   {processingMOM ? (
@@ -9115,17 +9260,25 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                   )}
                 </button>
                 <p className="text-xs text-center text-gray-600 mt-2">
-                  AI will enhance your text and show preview of the Word document
+                  AI will enhance your {momFormat === 'tabular' ? 'table entries' : 'text'} and show preview of the Word document
                 </p>
               </div>
 
               {/* MOM Preview Display */}
-              {showMOMPreview && processedMOMText && (
-                <MOMPreview 
-                  content={processedMOMText}
-                  images={momImagePreviews}
-                  metadata={momMetadata}
-                />
+              {showMOMPreview && (
+                <>
+                  {momFormat === 'tabular' && processedTableData.length > 0 && (
+                    <ProcessedDiscussionTable tableData={processedTableData} />
+                  )}
+                  
+                  {momFormat === 'paragraph' && processedMOMText && (
+                    <MOMPreview 
+                      content={processedMOMText}
+                      images={momImagePreviews}
+                      metadata={momMetadata}
+                    />
+                  )}
+                </>
               )}
 
               {/* Action Buttons */}
@@ -9133,10 +9286,23 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
 
                 <button
                   onClick={async () => {
-                    const contentToUse = processedMOMText || momContent;
-                    if (!contentToUse.trim()) {
-                      showError('Please generate preview first to process the text');
-                      return;
+                    // Prepare content based on format
+                    let contentToUse;
+                    if (momFormat === 'tabular') {
+                      if (processedTableData.length === 0) {
+                        showError('Please generate preview first to process the text');
+                        return;
+                      }
+                      // Convert processed table data to formatted text
+                      contentToUse = processedTableData.map(row => 
+                        `${row.srNo}. ${row.processedPoint}`
+                      ).join('\n\n');
+                    } else {
+                      contentToUse = processedMOMText || momContent;
+                      if (!contentToUse.trim()) {
+                        showError('Please generate preview first to process the text');
+                        return;
+                      }
                     }
 
                     setProcessingMOM(true);
@@ -9150,7 +9316,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         attendees: momMetadata.attendees,
                         rawContent: contentToUse,
                         companyName: 'Trimity Consultants',
-                        images: momImages
+                        images: momImages,
+                        discussionPoints: momFormat === 'tabular' ? processedTableData : undefined
                       });
 
                       showSuccess('MOM saved to history! 💾 You can download Word document later from MOM History page.');
@@ -9163,6 +9330,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         setProcessedMOMText('');
                         setMomImages([]);
                         setMomImagePreviews([]);
+                        setDiscussionTableData([{ srNo: 1, point: '' }]);
+                        setProcessedTableData([]);
                       }, 2000);
                     } catch (error) {
                       showError('Failed to save MOM: ' + (error.response?.data?.error || error.message));
@@ -9170,7 +9339,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                       setProcessingMOM(false);
                     }
                   }}
-                  disabled={processingMOM || (!momContent.trim() && !processedMOMText)}
+                  disabled={processingMOM || (momFormat === 'paragraph' && !momContent.trim() && !processedMOMText) || (momFormat === 'tabular' && processedTableData.length === 0)}
                   className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {processingMOM ? (
@@ -9190,10 +9359,30 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
 
                 <button
                   onClick={async () => {
-                    const contentToUse = processedMOMText || momContent;
-                    if (!contentToUse.trim()) {
-                      showError('Please generate preview first to process the text');
-                      return;
+                    // Prepare content based on format
+                    let contentToUse;
+                    let discussionPointsData;
+                    
+                    if (momFormat === 'tabular') {
+                      if (processedTableData.length === 0) {
+                        showError('Please generate preview first to process the text');
+                        return;
+                      }
+                      // Convert processed table data to formatted text
+                      contentToUse = processedTableData.map(row => 
+                        `${row.srNo}. ${row.processedPoint}`
+                      ).join('\n\n');
+                      // Also pass the structured data for proper table rendering
+                      discussionPointsData = processedTableData.map(row => ({
+                        srNo: `${row.srNo}.`,
+                        point: row.processedPoint
+                      }));
+                    } else {
+                      contentToUse = processedMOMText || momContent;
+                      if (!contentToUse.trim()) {
+                        showError('Please generate preview first to process the text');
+                        return;
+                      }
                     }
 
                     setProcessingMOM(true);
@@ -9208,7 +9397,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         attendees: momMetadata.attendees,
                         rawContent: contentToUse,
                         companyName: 'Trimity Consultants',
-                        images: momImages
+                        images: momImages,
+                        discussionPoints: discussionPointsData
                       }, {
                         responseType: 'blob'
                       });
