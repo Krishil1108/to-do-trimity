@@ -166,7 +166,8 @@ class WordTemplatePDFService {
       pointsObj[`point${index + 1}Sr`] = point.srNo;
     });
     
-    // Create formatted content with line breaks between points
+    // Create formatted content with PROPER line breaks for Word
+    // Each point on a new line with double line break between points
     const formattedPointsText = discussionPoints
       .map(p => `${p.srNo} ${p.point}`)
       .join('\n\n');
