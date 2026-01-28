@@ -141,7 +141,8 @@ router.post('/generate-docx-from-template', async (req, res) => {
       rawContent,
       companyName,
       templateName = 'letterhead.docx',
-      images = []
+      images = [],
+      discussionPoints // Added: structured discussion points from tabular format
     } = req.body;
 
     console.log('🖼️  [DEBUG] Request received with images:', {
@@ -154,6 +155,13 @@ router.post('/generate-docx-from-template', async (req, res) => {
         type: typeof img,
         hasData: typeof img === 'string' ? img.substring(0, 30) : (img && img.data ? 'yes' : 'no')
       })) : []
+    });
+
+    console.log('📊 [DEBUG] Discussion points received:', {
+      hasDiscussionPoints: !!discussionPoints,
+      isArray: Array.isArray(discussionPoints),
+      count: discussionPoints ? discussionPoints.length : 0,
+      sample: discussionPoints && discussionPoints.length > 0 ? discussionPoints[0] : null
     });
 
     if (!rawContent || rawContent.trim().length === 0) {
@@ -211,7 +219,12 @@ router.post('/generate-docx-from-template', async (req, res) => {
       taskTitle,
       taskId,
       companyName: companyName || 'Trimity Consultants',
-      images: images || []
+      images: images || [],
+      // If discussionPoints array is provided (tabular format), use it directly
+      // Otherwise, parse from content (paragraph format)
+      discussionPoints: discussionPoints && Array.isArray(discussionPoints) && discussionPoints.length > 0
+        ? discussionPoints
+        : undefined // Let prepareTemplateData handle parsing
     };
 
     // Save MOM to database

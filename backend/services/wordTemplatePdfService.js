@@ -137,7 +137,8 @@ class WordTemplatePDFService {
       taskTitle,
       taskId,
       companyName = 'Trimity Consultants',
-      images = [] // New: array of image paths or base64 strings
+      images = [], // New: array of image paths or base64 strings
+      discussionPoints: providedDiscussionPoints // New: pre-parsed discussion points from tabular format
     } = momData;
 
     // Format attendees list
@@ -152,12 +153,23 @@ class WordTemplatePDFService {
     // Split content into sections if it contains headers
     const contentSections = this.parseContentSections(content);
     
-    // Parse numbered points for table rows
-    const discussionPoints = this.parseDiscussionPoints(content);
-    console.log('📝 [DEBUG] Parsed discussion points:', {
-      count: discussionPoints.length,
-      points: discussionPoints
-    });
+    // Use provided discussionPoints if available (from tabular format),
+    // otherwise parse from content (paragraph format)
+    let discussionPoints;
+    if (providedDiscussionPoints && Array.isArray(providedDiscussionPoints) && providedDiscussionPoints.length > 0) {
+      console.log('📊 [DEBUG] Using provided discussionPoints (tabular format):', {
+        count: providedDiscussionPoints.length,
+        points: providedDiscussionPoints
+      });
+      discussionPoints = providedDiscussionPoints;
+    } else {
+      console.log('📝 [DEBUG] Parsing discussionPoints from content (paragraph format)');
+      discussionPoints = this.parseDiscussionPoints(content);
+      console.log('📝 [DEBUG] Parsed discussion points:', {
+        count: discussionPoints.length,
+        points: discussionPoints
+      });
+    }
     
     // Also create individual point variables for simpler template usage
     const pointsObj = {};
