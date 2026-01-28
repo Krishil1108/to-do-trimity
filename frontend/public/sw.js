@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.15.0-' + Date.now(); // Added live discussion table preview in MOM form
+const CACHE_VERSION = 'v6.15.1-' + Date.now(); // Removed WhatsApp notification settings
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'
