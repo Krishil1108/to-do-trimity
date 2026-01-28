@@ -349,9 +349,6 @@ class WordTemplatePDFService {
     return points;
   }
 
-    return sections.length > 0 ? sections : [{ title: 'Meeting Notes', text: content }];
-  }
-
   /**
    * Convert DOCX to PDF using available methods
    * @param {string} docxPath - Path to DOCX file
