@@ -74,6 +74,7 @@ class WordTemplatePDFService {
       // Step 3: Prepare data for template
       const templateData = this.prepareTemplateData(momData);
       console.log('✅ Template data prepared');
+      console.log('📊 [DEBUG] discussionPoints being sent to template:', JSON.stringify(templateData.discussionPoints, null, 2));
 
       // Step 4: Set the template data
       doc.setData(templateData);

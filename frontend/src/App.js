@@ -9373,8 +9373,8 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         `${row.srNo}. ${row.processedPoint}`
                       ).join('\n\n');
                       // Also pass the structured data for proper table rendering
-                      discussionPointsData = processedTableData.map(row => ({
-                        srNo: `${row.srNo}.`,
+                      discussionPointsData = processedTableData.map((row, index) => ({
+                        srNo: `${index + 1}.`,
                         point: row.processedPoint
                       }));
                     } else {
