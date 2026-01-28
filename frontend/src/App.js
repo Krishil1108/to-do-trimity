@@ -13,7 +13,7 @@ import notificationService from './services/notificationService';
 import UpdateChecker from './components/UpdateChecker';
 import CustomDialog from './components/CustomDialog';
 import MOMHistory from './components/MOMHistory';
-import DiscussionTablePreview from './components/DiscussionTablePreview';
+import MOMPreview from './components/MOMPreview';
 import { setupGrammarTester } from './utils/grammarTester';
 
 // Server optimization for render.com deployment
@@ -193,6 +193,7 @@ const TaskManagementSystem = () => {
   const [momAttendeeInput, setMomAttendeeInput] = useState('');
   const [momImages, setMomImages] = useState([]);
   const [momImagePreviews, setMomImagePreviews] = useState([]);
+  const [showMOMPreview, setShowMOMPreview] = useState(false);
   
   // PWA Installation states
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -8978,9 +8979,10 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 </div>
               </div>
 
-              {/* MOM Content Input */}
-              <div>
+              {/* Step 1: MOM Content Input */}
+              <div className="border-l-4 border-orange-500 pl-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <span className="bg-orange-600 text-white px-2 py-1 rounded mr-2 text-xs font-bold">STEP 1</span>
                   Meeting Notes
                   <span className="text-gray-500 text-xs ml-2">(Supports English, Gujarati, or improper English)</span>
                 </label>
@@ -8989,20 +8991,18 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                   onChange={(e) => setMomContent(e.target.value)}
                   rows={8}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="આજે મીટિંગ સારી રહી... or write in English (proper or improper)"
+                  placeholder="Write numbered points:\n1. First point of discussion\n2. Second point of discussion\n\nઆજે મીટિંગ સારી રહી... or write in English (proper or improper)"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  💡 Tip: You can write in Gujarati or improper English - it will be automatically corrected!
+                  💡 Tip: Write numbered points (1., 2., 3.) for automatic table formatting. Supports Gujarati or improper English!
                 </p>
               </div>
 
-              {/* Discussion Table Preview */}
-              <DiscussionTablePreview content={momContent} />
-
-              {/* Image Upload Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              {/* Step 2: Image Upload Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 border-l-4 border-blue-500">
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-medium text-gray-700">
+                    <span className="bg-blue-600 text-white px-2 py-1 rounded mr-2 text-xs font-bold">STEP 2</span>
                     📸 Construction Site Images
                     <span className="text-gray-500 text-xs ml-2">(Optional)</span>
                   </label>
@@ -9063,6 +9063,42 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                   </div>
                 )}
               </div>
+
+              {/* Step 3: Generate Preview Button */}
+              <div className="border-t pt-4">
+                <button
+                  onClick={() => {
+                    if (!momContent.trim()) {
+                      showError('Please enter meeting notes first');
+                      return;
+                    }
+                    setShowMOMPreview(true);
+                  }}
+                  disabled={!momContent.trim()}
+                  className="w-full px-6 py-4 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg hover:from-orange-700 hover:to-orange-800 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span className="text-lg">
+                    <span className="bg-white text-orange-600 px-2 py-1 rounded mr-2 text-xs font-bold">STEP 3</span>
+                    Generate Preview
+                  </span>
+                </button>
+                <p className="text-xs text-center text-gray-600 mt-2">
+                  Click to see how your MOM will look in the Word document
+                </p>
+              </div>
+
+              {/* MOM Preview Display */}
+              {showMOMPreview && (
+                <MOMPreview 
+                  content={momContent}
+                  images={momImagePreviews}
+                  metadata={momMetadata}
+                />
+              )}
 
               {/* Processed Text Display */}
               {processedMOMText && (
