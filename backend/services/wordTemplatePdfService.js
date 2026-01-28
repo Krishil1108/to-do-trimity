@@ -158,6 +158,18 @@ class WordTemplatePDFService {
       count: discussionPoints.length,
       points: discussionPoints
     });
+    
+    // Also create individual point variables for simpler template usage
+    const pointsObj = {};
+    discussionPoints.forEach((point, index) => {
+      pointsObj[`point${index + 1}Text`] = point.point;
+      pointsObj[`point${index + 1}Sr`] = point.srNo;
+    });
+    
+    // Create formatted content with line breaks between points
+    const formattedPointsText = discussionPoints
+      .map(p => `${p.srNo} ${p.point}`)
+      .join('\n\n');
 
     // Process images if provided
     console.log('🖼️  [DEBUG] prepareTemplateData - images parameter:', {
@@ -187,7 +199,9 @@ class WordTemplatePDFService {
       // Content
       content: formattedContent,
       contentSections,
-      discussionPoints,  // Array of points for table rows
+      discussionPoints,  // Array of points for table rows (for advanced templates)
+      formattedPointsText, // Simple formatted text with line breaks
+      ...pointsObj,  // Individual point variables (point1Text, point1Sr, etc.)
       
       // Images
       ...processedImages,
