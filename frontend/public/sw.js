@@ -1,6 +1,6 @@
 // Service Worker for Task Management System with Firebase Messaging
 // AUTO-VERSIONED - Updates automatically on every deployment
-const CACHE_VERSION = 'v6.10.0-' + Date.now(); // Auto-set today's date as start date, removed priority/severity fields
+const CACHE_VERSION = 'v6.11.0-' + Date.now(); // Removed users: Ankit and Happy from database
 const CACHE_NAME = 'task-manager-' + CACHE_VERSION;
 const urlsToCache = [
   '/'

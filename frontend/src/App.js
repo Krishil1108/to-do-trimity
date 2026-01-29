@@ -7977,7 +7977,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                         return true;
                       }
                       // For other users (like Vraj, Kinjal):
-                      // - Hide Studio Team members (Ankit, Happy, Darshit)
+                      // - Hide Studio Team members (Darshit)
                       // - Show Studio Team - Manager (Piyush Diwan)
                       if (user.department === 'Studio Team') {
                         return false; // Hide studio team members
@@ -8259,7 +8259,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                           return true;
                         }
                         // For other users (like Vraj, Kinjal):
-                        // - Hide Studio Team members (Ankit, Happy, Darshit)
+                        // - Hide Studio Team members (Darshit)
                         // - Show Studio Team - Manager (Piyush Diwan)
                         if (user.department === 'Studio Team') {
                           return false; // Hide studio team members

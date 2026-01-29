@@ -54,6 +54,7 @@ const associateRoutes = require('./routes/associates');
 const externalUserRoutes = require('./routes/externalUsers');
 const migrationRoutes = require('./routes/migration');
 const momRoutes = require('./routes/mom');
+const removeUsersRoutes = require('./routes/remove-users');
 
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
@@ -63,6 +64,7 @@ app.use('/api/associates', associateRoutes);
 app.use('/api/external-users', externalUserRoutes);
 app.use('/api/migration', migrationRoutes);
 app.use('/api/mom', momRoutes);
+app.use('/api/admin', removeUsersRoutes);
 
 // Health check endpoints for keep-alive
 app.get('/health', (req, res) => {
