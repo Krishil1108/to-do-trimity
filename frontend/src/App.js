@@ -2940,7 +2940,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
     return (
       <div className="space-y-6">
         {showStats && stats && (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
             <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg p-3 sm:p-4 text-white shadow-md">
               <div className="flex items-center justify-between">
                 <div>

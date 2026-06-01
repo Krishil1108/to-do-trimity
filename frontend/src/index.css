@@ -43,6 +43,7 @@ body {
   font-family: "Plus Jakarta Sans", "Avenir Next", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 .app-shell {
@@ -286,7 +287,7 @@ body {
 
   .stats-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 0.7rem;
     margin: 0;
     padding: 0.2rem;
@@ -300,9 +301,6 @@ body {
     flex: none;
   }
 
-  .stat-card:last-child {
-    grid-column: span 2;
-  }
 
   .task-card {
     border-radius: 1rem !important;
