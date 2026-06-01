@@ -7426,124 +7426,134 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           </div>
 
           {/* Mobile Navigation - Toggle Menu */}
+          {/* Mobile Sidebar Overlay */}
           {showAdvancedMenu && (
-            <div className="lg:hidden mt-3 flex flex-wrap gap-1 sm:gap-2 pb-2 border-t pt-3 overflow-x-auto">
+            <div className="fixed inset-0 bg-gray-900/60 z-40 lg:hidden backdrop-blur-sm transition-opacity" onClick={() => setShowAdvancedMenu(false)} />
+          )}
+
+          {/* Mobile Sidebar Drawer */}
+          <div className={`fixed top-0 right-0 h-full w-[280px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden flex flex-col ${showAdvancedMenu ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">
+                  {currentUser?.name?.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{currentUser?.name}</p>
+                  <p className="text-xs text-gray-500">{currentUser?.department}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAdvancedMenu(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">
+              <div className="px-3 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Navigation</div>
               <button
                 onClick={() => { setCurrentView('my-tasks'); setShowAdvancedMenu(false); }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  currentView === 'my-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'my-tasks' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
               >
+                <User className="w-5 h-5 mr-3" />
                 My Tasks
               </button>
               
               {!isTeamMember() && (
                 <>
-                  {/* All Tasks - hidden from Kinjal and Vraj */}
                   {!['Kinjal Solanki', 'Vraj Patel'].includes(currentUser?.name) && (
                     <button
                       onClick={() => { setCurrentView('all-tasks'); setShowAdvancedMenu(false); }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        currentView === 'all-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'all-tasks' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
+                      <LayoutGrid className="w-5 h-5 mr-3" />
                       All Tasks
                     </button>
                   )}
                   
                   <button
                     onClick={() => { setCurrentView('assigned-by-me'); setShowAdvancedMenu(false); }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      currentView === 'assigned-by-me' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-                    }`}
+                    className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'assigned-by-me' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
                   >
+                    <UserPlus className="w-5 h-5 mr-3" />
                     Assigned By Me
                   </button>
-                  
 
-                  
-                  {/* Associate Tasks - exclude Kinjal Solanki */}
                   {currentUser?.name !== 'Kinjal Solanki' && (
                     <button
                       onClick={() => { setCurrentView('associate-tasks'); setShowAdvancedMenu(false); }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        currentView === 'associate-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'associate-tasks' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
-                      Associate Tasks
+                      <Users className="w-5 h-5 mr-3" />
+                      Associates
                     </button>
                   )}
 
-                  {/* External Tasks - exclude Kinjal Solanki */}
                   {currentUser?.name !== 'Kinjal Solanki' && (
                     <button
                       onClick={() => { setCurrentView('external-tasks'); setShowAdvancedMenu(false); }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        currentView === 'external-tasks' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'external-tasks' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
-                      External Tasks
+                      <Users className="w-5 h-5 mr-3" />
+                      External
                     </button>
                   )}
 
-                  {/* Confidential Tasks - Only for Ketul Lathia */}
                   {currentUser?.name === 'Ketul Lathia' && (
                     <button
                       onClick={() => { setCurrentView('confidential-tasks'); setShowAdvancedMenu(false); }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        currentView === 'confidential-tasks' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
-                      }`}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'confidential-tasks' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                        Confidential Tasks
-                      </div>
+                      <Lock className="w-5 h-5 mr-3 text-orange-500" />
+                      Confidential
                     </button>
                   )}
                 </>
               )}
               
+              <div className="my-2 border-t border-gray-100" />
+              <div className="px-3 pb-2 pt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">More</div>
+              
               {isAdmin() && (
                 <button
                   onClick={() => { setCurrentView('admin-reports'); setShowAdvancedMenu(false); }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentView === 'admin-reports' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
-                  }`}
+                  className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'admin-reports' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4" />
-                    Admin Reports
-                  </div>
+                  <BarChart3 className="w-5 h-5 mr-3 text-purple-500" />
+                  Admin Reports
                 </button>
               )}
               
               <button
                 onClick={() => { setCurrentView('mom-history'); setShowAdvancedMenu(false); }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  currentView === 'mom-history' ? 'bg-orange-600 text-white' : 'text-gray-600 hover:bg-orange-50 hover:text-orange-600'
-                }`}
+                className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'mom-history' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-100'}`}
               >
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  MOM History
-                </div>
+                <FileText className="w-5 h-5 mr-3 text-orange-500" />
+                MOM History
               </button>
               
               <button
                 onClick={() => { setCurrentView('settings'); setShowAdvancedMenu(false); }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  currentView === 'settings' ? 'bg-gray-600 text-white' : 'text-gray-600 hover:bg-gray-50'
-                }`}
+                className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'settings' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
               >
-                <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4" />
-                  Settings
-                </div>
+                <Bell className="w-5 h-5 mr-3" />
+                Settings
               </button>
             </div>
-          )}
+            
+            <div className="p-4 border-t border-gray-100">
+              <button
+                onClick={() => { handleLogout(); setShowAdvancedMenu(false); }}
+                className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="w-5 h-5 mr-3" />
+                Logout
+              </button>
+            </div>
+          </div>
+
+
+
+
         </div>
       </div>
 
@@ -9075,120 +9085,6 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           </div>
         </div>
       )}
-
-      {/* Mobile Bottom Navigation */}
-      <div className="mobile-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-30">
-        <div className="flex overflow-x-auto scrollbar-hide px-2 py-2 gap-2">
-          <button
-            onClick={() => setCurrentView('my-tasks')}
-            className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-              currentView === 'my-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
-            }`}
-          >
-            <User className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium whitespace-nowrap">My Tasks</span>
-          </button>
-          
-          {/* All Tasks - hidden from Kinjal Solanki and Vraj Patel */}
-          {!isTeamMember() && !['Kinjal Solanki', 'Vraj Patel'].includes(currentUser?.name) && (
-            <button
-              onClick={() => setCurrentView('all-tasks')}
-              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-                currentView === 'all-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4 mb-1" />
-              <span className="text-xs font-medium whitespace-nowrap">All Tasks</span>
-            </button>
-          )}
-
-          {/* Assigned by Me - available to non-team members */}
-          {!isTeamMember() && (
-            <button
-              onClick={() => setCurrentView('assigned-by-me')}
-              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-                currentView === 'assigned-by-me' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
-              }`}
-            >
-              <UserPlus className="w-4 h-4 mb-1" />
-              <span className="text-xs font-medium whitespace-nowrap">Assigned by Me</span>
-            </button>
-          )}
-
-
-
-          {/* Associate Tasks - available to non-team members, exclude Kinjal Solanki */}
-          {!isTeamMember() && currentUser?.name !== 'Kinjal Solanki' && (
-            <button
-              onClick={() => setCurrentView('associate-tasks')}
-              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-                currentView === 'associate-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
-              }`}
-            >
-              <Users className="w-4 h-4 mb-1" />
-              <span className="text-xs font-medium whitespace-nowrap">Associates</span>
-            </button>
-          )}
-
-          {/* External Tasks - available to non-team members, exclude Kinjal Solanki */}
-          {!isTeamMember() && currentUser?.name !== 'Kinjal Solanki' && (
-            <button
-              onClick={() => setCurrentView('external-tasks')}
-              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-                currentView === 'external-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
-              }`}
-            >
-              <UserPlus className="w-4 h-4 mb-1" />
-              <span className="text-xs font-medium whitespace-nowrap">External</span>
-            </button>
-          )}
-
-          {/* Confidential Tasks - Only for Ketul Lathia */}
-          {currentUser?.name === 'Ketul Lathia' && (
-            <button
-              onClick={() => setCurrentView('confidential-tasks')}
-              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-                currentView === 'confidential-tasks' ? 'bg-orange-50 text-orange-600' : 'text-gray-600'
-              }`}
-            >
-              <svg className="w-4 h-4 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <span className="text-xs font-medium whitespace-nowrap">Confidential</span>
-            </button>
-          )}
-          
-          {currentUser?.name === 'Ketul Lathia' && (
-            <button
-              onClick={() => setCurrentView('admin-reports')}
-              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-                currentView === 'admin-reports' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4 mb-1" />
-              <span className="text-xs font-medium whitespace-nowrap">Reports</span>
-            </button>
-          )}
-          <button
-            onClick={() => setCurrentView('mom-history')}
-            className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-              currentView === 'mom-history' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
-            }`}
-          >
-            <FileText className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium whitespace-nowrap">MOMs</span>
-          </button>
-          <button
-            onClick={() => setCurrentView('settings')}
-            className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
-              currentView === 'settings' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
-            }`}
-          >
-            <Bell className="w-4 h-4 mb-1" />
-            <span className="text-xs font-medium whitespace-nowrap">Settings</span>
-          </button>
-        </div>
-      </div>
 
       {/* PWA Installation Prompt - Enhanced for Mobile */}
       {showInstallPrompt && !isInstalled && (

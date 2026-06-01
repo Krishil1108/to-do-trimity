@@ -1,0 +1,125 @@
+{/* Mobile Navigation - Toggle Menu */}
+          {/* Mobile Sidebar Overlay */}
+          {showAdvancedMenu && (
+            <div className="fixed inset-0 bg-gray-900/60 z-40 lg:hidden backdrop-blur-sm transition-opacity" onClick={() => setShowAdvancedMenu(false)} />
+          )}
+
+          {/* Mobile Sidebar Drawer */}
+          <div className={`fixed top-0 right-0 h-full w-[280px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden flex flex-col ${showAdvancedMenu ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">
+                  {currentUser?.name?.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{currentUser?.name}</p>
+                  <p className="text-xs text-gray-500">{currentUser?.department}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowAdvancedMenu(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-1">
+              <div className="px-3 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Navigation</div>
+              <button
+                onClick={() => { setCurrentView('my-tasks'); setShowAdvancedMenu(false); }}
+                className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'my-tasks' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                <User className="w-5 h-5 mr-3" />
+                My Tasks
+              </button>
+              
+              {!isTeamMember() && (
+                <>
+                  {!['Kinjal Solanki', 'Vraj Patel'].includes(currentUser?.name) && (
+                    <button
+                      onClick={() => { setCurrentView('all-tasks'); setShowAdvancedMenu(false); }}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'all-tasks' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      <LayoutGrid className="w-5 h-5 mr-3" />
+                      All Tasks
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => { setCurrentView('assigned-by-me'); setShowAdvancedMenu(false); }}
+                    className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'assigned-by-me' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                  >
+                    <UserPlus className="w-5 h-5 mr-3" />
+                    Assigned By Me
+                  </button>
+
+                  {currentUser?.name !== 'Kinjal Solanki' && (
+                    <button
+                      onClick={() => { setCurrentView('associate-tasks'); setShowAdvancedMenu(false); }}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'associate-tasks' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      <Users className="w-5 h-5 mr-3" />
+                      Associates
+                    </button>
+                  )}
+
+                  {currentUser?.name !== 'Kinjal Solanki' && (
+                    <button
+                      onClick={() => { setCurrentView('external-tasks'); setShowAdvancedMenu(false); }}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'external-tasks' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      <Users className="w-5 h-5 mr-3" />
+                      External
+                    </button>
+                  )}
+
+                  {currentUser?.name === 'Ketul Lathia' && (
+                    <button
+                      onClick={() => { setCurrentView('confidential-tasks'); setShowAdvancedMenu(false); }}
+                      className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'confidential-tasks' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      <Lock className="w-5 h-5 mr-3 text-orange-500" />
+                      Confidential
+                    </button>
+                  )}
+                </>
+              )}
+              
+              <div className="my-2 border-t border-gray-100" />
+              <div className="px-3 pb-2 pt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">More</div>
+              
+              {isAdmin() && (
+                <button
+                  onClick={() => { setCurrentView('admin-reports'); setShowAdvancedMenu(false); }}
+                  className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'admin-reports' ? 'bg-purple-50 text-purple-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <BarChart3 className="w-5 h-5 mr-3 text-purple-500" />
+                  Admin Reports
+                </button>
+              )}
+              
+              <button
+                onClick={() => { setCurrentView('mom-history'); setShowAdvancedMenu(false); }}
+                className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'mom-history' ? 'bg-orange-50 text-orange-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                <FileText className="w-5 h-5 mr-3 text-orange-500" />
+                MOM History
+              </button>
+              
+              <button
+                onClick={() => { setCurrentView('settings'); setShowAdvancedMenu(false); }}
+                className={`flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium transition-colors ${currentView === 'settings' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                <Bell className="w-5 h-5 mr-3" />
+                Settings
+              </button>
+            </div>
+            
+            <div className="p-4 border-t border-gray-100">
+              <button
+                onClick={() => { handleLogout(); setShowAdvancedMenu(false); }}
+                className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="w-5 h-5 mr-3" />
+                Logout
+              </button>
+            </div>
+          </div>
