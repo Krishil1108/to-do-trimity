@@ -4,6 +4,7 @@ const Task = require('../models/Task');
 const User = require('../models/User');
 const firebaseNotificationService = require('../services/firebaseNotificationService');
 const Notification = require('../models/Notification');
+const emailNotificationService = require('../services/emailNotificationService');
 
 // Helper function to populate external user details
 const populateExternalUserDetails = async (tasks) => {
@@ -100,6 +101,8 @@ router.post('/', async (req, res) => {
     const task = new Task(taskData);
     const newTask = await task.save();
     
+    await emailNotificationService.sendTaskAssignedEmail(newTask);
+
     // Note: Push notifications are handled by frontend for better control
     // Frontend sends notifications after task creation to avoid duplicates
     
@@ -144,7 +147,16 @@ router.put('/:id', async (req, res) => {
     
     // Check if task was just completed (status changed from non-Completed to Completed)
     const wasCompleted = currentTask.status !== 'Completed' && updateData.status === 'Completed';
-    const statusChanged = currentTask.status !== updateData.status;
+    const statusChanged = updateData.status && currentTask.status !== updateData.status;
+    const assignedToChanged = updateData.assignedTo && currentTask.assignedTo !== updateData.assignedTo;
+
+    if (assignedToChanged) {
+      await emailNotificationService.sendTaskAssignedEmail(task);
+    }
+
+    if (statusChanged) {
+      await emailNotificationService.sendTaskStatusChangedEmail(task, currentTask.status);
+    }
     
     // Send Firebase push notification for task completion
     // Note: Notifications are handled by frontend for better control

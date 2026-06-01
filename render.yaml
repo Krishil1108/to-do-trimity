@@ -18,3 +18,9 @@ services:
         value: false
       - key: PUPPETEER_EXECUTABLE_PATH
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: TASK_NOTIFICATION_EMAILS
+        sync: false
