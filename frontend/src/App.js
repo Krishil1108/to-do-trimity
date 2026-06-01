@@ -3298,15 +3298,15 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
     const assignedByUser = users.find(u => u.username === task.assignedBy);
 
     return (
-      <div className={`bg-white rounded-lg border-2 p-3 sm:p-4 hover:shadow-md transition-all ${
+      <div className={`task-card bg-white rounded-lg border-2 p-3 sm:p-4 hover:shadow-md transition-all ${
         task.isSubtask 
-          ? 'border-l-4 border-blue-300 bg-blue-50 ml-4' 
+          ? 'task-card-subtask border-l-4 border-blue-300 bg-blue-50 ml-4'
           : 'border-gray-200'
-      } ${STATUS_COLORS[task.status]}`}>
+      } ${isOverdue ? 'task-card-overdue' : ''} ${STATUS_COLORS[task.status]}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{getProjectName(task.project)}</h3>
+              <h3 className="task-card-project font-semibold text-gray-900 text-sm sm:text-base truncate">{getProjectName(task.project)}</h3>
             </div>
             {task.isSubtask && task.parentTask ? (
               <button
@@ -3317,12 +3317,12 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
                 {task.title}
               </button>
             ) : (
-              <h4 className="font-medium text-gray-800 text-sm mb-1">{task.title}</h4>
+              <h4 className="task-card-title font-medium text-gray-800 text-sm mb-1">{task.title}</h4>
             )}
-            <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{task.description || 'No description'}</p>
+            <p className="task-card-description text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{task.description || 'No description'}</p>
           </div>
           {showActions && (
-            <div className="flex items-center gap-1 ml-2 sm:ml-4 flex-shrink-0">
+            <div className="task-card-actions flex items-center gap-1 ml-2 sm:ml-4 flex-shrink-0">
               {/* Copy button for associate tasks */}
               {showCopyButton && (
                 <>
@@ -3409,7 +3409,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mb-3">
+        <div className="task-card-meta grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mb-3">
           <div>
             <div className="flex flex-col gap-1">
               <span className="text-gray-500">Assigned To:</span>
@@ -3472,7 +3472,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-xs">
+        <div className="task-card-footer flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-xs">
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
             <span className="flex items-center gap-1 text-gray-600">
               <Calendar className="w-3 h-3" />
@@ -3485,7 +3485,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
             )}
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-            <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium border ${STATUS_COLORS[task.status]}`}>
+            <span className={`status-pill px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium border ${STATUS_COLORS[task.status]}`}>
               {task.status}
             </span>
           </div>
@@ -3580,8 +3580,8 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
     return (
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg p-4 text-white shadow-md">
+        <div className="stats-grid grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="stat-card stat-card-pending bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-yellow-100 text-xs font-medium">Pending</p>
@@ -3590,7 +3590,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
               <Clock className="w-8 h-8 opacity-50" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg p-4 text-white shadow-md">
+          <div className="stat-card stat-card-progress bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-xs font-medium">In Progress</p>
@@ -3599,7 +3599,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
               <Users className="w-8 h-8 opacity-50" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-pink-400 to-pink-500 rounded-lg p-4 text-white shadow-md">
+          <div className="stat-card stat-card-checking bg-gradient-to-br from-pink-400 to-pink-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-pink-100 text-xs font-medium">In Checking</p>
@@ -3608,7 +3608,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
               <Clock className="w-8 h-8 opacity-50" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-green-400 to-green-500 rounded-lg p-4 text-white shadow-md">
+          <div className="stat-card stat-card-completed bg-gradient-to-br from-green-400 to-green-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-xs font-medium">Completed</p>
@@ -3617,7 +3617,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
               <CheckCircle className="w-8 h-8 opacity-50" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-red-400 to-red-500 rounded-lg p-4 text-white shadow-md">
+          <div className="stat-card stat-card-overdue bg-gradient-to-br from-red-400 to-red-500 rounded-lg p-4 text-white shadow-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-red-100 text-xs font-medium">Overdue</p>
@@ -3629,7 +3629,7 @@ Target Date: ${new Date(task.dueDate || task.outDate).toLocaleDateString('en-GB'
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="filter-panel bg-white rounded-xl shadow-sm border border-gray-100">
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-xl"
@@ -7190,7 +7190,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-shell min-h-screen bg-gray-50">
       {/* Auto-update checker component */}
       <UpdateChecker />
       
@@ -7213,12 +7213,12 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
       )}
       
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+      <div className="app-header bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">TriDo</h1>
-              <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-lg">
+              <h1 className="brand-mark text-xl sm:text-2xl font-bold text-gray-900">TriDo</h1>
+              <div className="user-chip hidden lg:flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-lg">
                 <User className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-900">{currentUser.name}</span>
                 <span className="text-xs text-blue-600 px-2 py-0.5 bg-blue-100 rounded">
@@ -7226,7 +7226,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                 </span>
               </div>
               {/* Mobile user info */}
-              <div className="lg:hidden flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs">
+              <div className="user-chip lg:hidden flex items-center gap-1 px-2 py-1 bg-blue-50 rounded text-xs">
                 <User className="w-3 h-3 text-blue-600" />
                 <span className="text-blue-900 font-medium">{currentUser.name.split(' ')[0]}</span>
               </div>
@@ -7238,7 +7238,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
                   setFormData({...formData, assignedBy: currentUser.username});
                   setShowTaskModal(true);
                 }}
-                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
+                className="primary-action flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
               >
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Assign Task</span>
@@ -7308,7 +7308,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           )}
 
           {/* Desktop Navigation - Always Visible */}
-          <div className="hidden lg:block mt-3 pb-2 border-t pt-3">
+          <div className="desktop-nav hidden lg:block mt-3 pb-2 border-t pt-3">
             <div className="flex flex-wrap gap-2 overflow-x-auto">
               <button
                 onClick={() => { setCurrentView('my-tasks'); }}
@@ -7548,7 +7548,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-20 sm:pb-8">
+      <div className="app-content max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8 pb-20 sm:pb-8">
         {currentView === 'my-tasks' && <MyTasksDashboard />}
         {currentView === 'all-tasks' && <AllTasksView />}
         {currentView === 'assigned-by-me' && <AssignedByMeView />}
@@ -9077,11 +9077,11 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
       )}
 
       {/* Mobile Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-30">
+      <div className="mobile-bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-30">
         <div className="flex overflow-x-auto scrollbar-hide px-2 py-2 gap-2">
           <button
             onClick={() => setCurrentView('my-tasks')}
-            className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+            className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
               currentView === 'my-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
@@ -9093,7 +9093,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           {!isTeamMember() && !['Kinjal Solanki', 'Vraj Patel'].includes(currentUser?.name) && (
             <button
               onClick={() => setCurrentView('all-tasks')}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
                 currentView === 'all-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
               }`}
             >
@@ -9106,7 +9106,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           {!isTeamMember() && (
             <button
               onClick={() => setCurrentView('assigned-by-me')}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
                 currentView === 'assigned-by-me' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
               }`}
             >
@@ -9121,7 +9121,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           {!isTeamMember() && currentUser?.name !== 'Kinjal Solanki' && (
             <button
               onClick={() => setCurrentView('associate-tasks')}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
                 currentView === 'associate-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
               }`}
             >
@@ -9134,7 +9134,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           {!isTeamMember() && currentUser?.name !== 'Kinjal Solanki' && (
             <button
               onClick={() => setCurrentView('external-tasks')}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
                 currentView === 'external-tasks' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
               }`}
             >
@@ -9147,7 +9147,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           {currentUser?.name === 'Ketul Lathia' && (
             <button
               onClick={() => setCurrentView('confidential-tasks')}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
                 currentView === 'confidential-tasks' ? 'bg-orange-50 text-orange-600' : 'text-gray-600'
               }`}
             >
@@ -9161,7 +9161,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           {currentUser?.name === 'Ketul Lathia' && (
             <button
               onClick={() => setCurrentView('admin-reports')}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+              className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
                 currentView === 'admin-reports' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
               }`}
             >
@@ -9171,7 +9171,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           )}
           <button
             onClick={() => setCurrentView('mom-history')}
-            className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+            className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
               currentView === 'mom-history' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
@@ -9180,7 +9180,7 @@ ${diagnostics.browserPermission !== 'granted' ? '\n⚠️ Browser permission not
           </button>
           <button
             onClick={() => setCurrentView('settings')}
-            className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
+            className={`mobile-nav-item flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors min-w-max ${
               currentView === 'settings' ? 'bg-blue-50 text-blue-600' : 'text-gray-600'
             }`}
           >
