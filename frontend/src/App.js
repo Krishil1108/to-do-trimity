@@ -91,7 +91,7 @@ const TaskManagementSystem = () => {
   const [editingExternalUser, setEditingExternalUser] = useState(null);
   
   // App state
-  const [currentView, setCurrentView] = useState('my-tasks');
+  const [currentView, setCurrentView] = useState('all-tasks');
   const [tasks, setTasks] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
